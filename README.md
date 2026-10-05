@@ -27,7 +27,7 @@ local server they run. It is published so you can read exactly what runs on your
 
 ## See it in action
 
-https://github.com/user-attachments/assets/2c23cc1b-9454-4e98-bad5-c98999713b9b
+https://github.com/user-attachments/assets/73c3395a-d7f2-42b7-abdb-47f371ee332f
 
 <details>
 <summary><b>Full desktop walkthrough</b> (2 min, no sound): the eight things it does, one by one</summary>
