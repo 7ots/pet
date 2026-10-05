@@ -649,6 +649,10 @@ node) y la ventana de `cli/pet/electron/main.cjs`, sin npx ni node global. En CI
 `.github/workflows/desktop-release.yml` (Linux, macOS universal y Windows en paralelo, release en borrador; los
 secretos de firma están descritos en su cabecera). Luego `scripts/publish-desktop.sh <tag>` copia los instaladores al repo público `7ots/pet-releases` (de donde descargan los usuarios y se actualiza la app).
 
+**Código abierto.** El cliente (CLI, mascota, `desktop/` y el server local que trae el paquete npm) se publica en
+[github.com/7ots/pet](https://github.com/7ots/pet) bajo MIT, para que cualquiera pueda auditar lo que instala.
+`scripts/publish-source.sh [--dry-run]` sube HEAD como un commit `sync <sha>`; ver [`docs/OPEN-SOURCE.md`](docs/OPEN-SOURCE.md).
+
 Detalles de diseño en [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 
 ## Licencia
