@@ -3,16 +3,12 @@
 <p align="center"><b>An AI companion with its own face, living on your desktop.</b></p>
 
 <p align="center">
-  <a href="https://github.com/7ots/pet-releases/releases/latest/download/7ots-mac.dmg"><img alt="Download for macOS" src="https://img.shields.io/badge/macOS-download-7c5cff?style=for-the-badge&logo=apple&logoColor=white"></a>
-  <a href="https://github.com/7ots/pet-releases/releases/latest/download/7ots-windows.exe"><img alt="Download for Windows" src="https://img.shields.io/badge/Windows-download-7c5cff?style=for-the-badge&logo=windows&logoColor=white"></a>
-  <a href="https://github.com/7ots/pet-releases/releases/latest/download/7ots-linux.AppImage"><img alt="Download for Linux" src="https://img.shields.io/badge/Linux-AppImage-7c5cff?style=for-the-badge&logo=linux&logoColor=white"></a>
-  <a href="https://github.com/7ots/pet-releases/releases/latest/download/7ots-linux.deb"><img alt="Download .deb" src="https://img.shields.io/badge/Debian%2FUbuntu-.deb-7c5cff?style=for-the-badge&logo=debian&logoColor=white"></a>
-</p>
-
-<p align="center">
-  <a href="https://www.npmjs.com/package/@7ots/cli"><img alt="npm" src="https://img.shields.io/npm/v/@7ots/cli?color=7c5cff&label=%407ots%2Fcli"></a>
-  <a href="LICENSE"><img alt="MIT license" src="https://img.shields.io/badge/license-MIT-7c5cff"></a>
-  <a href="https://github.com/7ots/pet-releases/releases"><img alt="Latest release" src="https://img.shields.io/github/v/release/7ots/pet-releases?color=7c5cff&label=desktop"></a>
+  <b>Download:</b>
+  <a href="https://github.com/7ots/pet-releases/releases/latest/download/7ots-mac.dmg">macOS</a> ·
+  <a href="https://github.com/7ots/pet-releases/releases/latest/download/7ots-windows.exe">Windows</a> ·
+  <a href="https://github.com/7ots/pet-releases/releases/latest/download/7ots-linux.AppImage">Linux AppImage</a> ·
+  <a href="https://github.com/7ots/pet-releases/releases/latest/download/7ots-linux.deb">Debian/Ubuntu</a>
+  <br><sub>Free · MIT licensed · <a href="https://www.npmjs.com/package/@7ots/cli">npm</a> · <a href="https://github.com/7ots/pet-releases/releases">all releases</a></sub>
 </p>
 
 <p align="center">
@@ -44,18 +40,18 @@ https://github.com/user-attachments/assets/a4fd3baf-b76d-4030-87db-aa13e43d505e
 
 | | |
 |---|---|
-| 🧠 **Thinks in the cloud** | Its brain lives at 7ots.com, so it remembers the same things on every computer. You can switch it to a local AI CLI or your own API key. |
-| ⏰ **Reminds you** | “Remind me to stretch in 10 minutes.” It pops up when it's time, and you can see every pending reminder in its panel. |
-| 📝 **Learns from you** | Say “note that I prefer tea” and it remembers next time. Notes live in a panel where you can read and delete them. |
-| 👀 **Keeps watch** | Prices, processes, builds: “tell me when BTC crosses 85k” and get on with your day. |
-| 🤖 **Looks after your agent** | Hooks for Claude Code and your shell: it tells you when a task finishes, fails or asks for permission. |
-| 🔒 **You decide what it sees** | Screen awareness is off by default. Everything it can access is a switch in its settings. |
+| **Thinks in the cloud** | Its brain lives at 7ots.com, so it remembers the same things on every computer. You can switch it to a local AI CLI or your own API key. |
+| **Reminds you** | “Remind me to stretch in 10 minutes.” It pops up when it's time, and you can see every pending reminder in its panel. |
+| **Learns from you** | Say “note that I prefer tea” and it remembers next time. Notes live in a panel where you can read and delete them. |
+| **Keeps watch** | Prices, processes, builds: “tell me when BTC crosses 85k” and get on with your day. |
+| **Looks after your agent** | Hooks for Claude Code and your shell: it tells you when a task finishes, fails or asks for permission. |
+| **You decide what it sees** | Screen awareness is off by default. Everything it can access is a switch in its settings. |
 
 <p align="center"><img src="media/desktop.png" alt="The settings panel showing what the ot knows about you, next to the pet on the desktop" width="820"></p>
 
 ## Install
 
-**Desktop app (recommended).** Download the installer for your system with the buttons above, open it, and your
+**Desktop app (recommended).** Download the installer for your system with the links above, open it, and your
 ot appears on the desktop. To link it to your 7ots.com account, open its panel → **Account** → **Connect with
 7ots.com** and pick your ot. The app updates itself from [`7ots/pet-releases`](https://github.com/7ots/pet-releases).
 
