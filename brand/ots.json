@@ -1,0 +1,11 @@
+{
+  "v": 1,
+  "body": { "shape": "squircle", "color": "#6d5dfc", "pattern": "belly", "patternColor": "#8b7cff" },
+  "finish": "soft3d",
+  "outline": "auto",
+  "eyes": { "type": "round", "size": 1.05, "spacing": 1, "y": 0, "iris": "#22d3ee", "white": "#ffffff", "ink": "#16152a" },
+  "brows": { "type": "soft", "color": "#332a88" },
+  "mouth": { "type": "smile", "size": 1, "y": 0, "color": "", "lipColor": "#e11d48" },
+  "cheeks": { "type": "blush", "color": "#ff7eb6" },
+  "accessories": []
+}

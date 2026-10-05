@@ -1,0 +1,1133 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>7ots</title>
+<style>
+  :root {
+    --ink: #17141f; --ink-2: #4a4458; --muted: #8a8399; --bg: #f3f1f8; --panel: #ffffff; --panel-2: #f8f7fb;
+    --line: #e8e4f0; --accent: #6d5dfc; --accent-ink: #fff; --ok: #12a150; --warn: #e08a00; --err: #e5484d;
+    --shadow: 0 1px 2px rgb(20 16 40 / .06), 0 12px 40px -12px rgb(20 16 40 / .18);
+    --r: 18px; color-scheme: light;
+    --font: ui-sans-serif, -apple-system, 'Segoe UI', Inter, Roboto, system-ui, sans-serif;
+    --mono: ui-monospace, 'SF Mono', 'JetBrains Mono', Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --ink: #f2f0f8; --ink-2: #c9c3d6; --muted: #8d86a0; --bg: #0f0d14; --panel: #18151f; --panel-2: #1e1a27; --line: #2a2535; --shadow: 0 1px 2px rgb(0 0 0 / .4), 0 18px 50px -16px rgb(0 0 0 / .7); color-scheme: dark; }
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; min-height: 100%; font: 14px/1.45 var(--font); color: var(--ink); background: var(--bg); -webkit-font-smoothing: antialiased; }
+  body { display: grid; place-items: start center; padding: 24px 16px; }
+  button { font: inherit; color: inherit; }
+  svg { display: block; }
+
+  .app { width: min(400px, 100%); background: var(--panel); border: 1px solid var(--line); border-radius: 24px; box-shadow: var(--shadow); overflow: hidden; }
+
+  /* top bar */
+  .top { display: flex; align-items: center; gap: 10px; padding: 12px 14px 12px 16px; border-bottom: 1px solid var(--line); }
+  .brand { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 13px; letter-spacing: -.01em; }
+  .brand i { width: 20px; height: 20px; border-radius: 6px; background: var(--ink); color: var(--panel); display: grid; place-items: center; font: 800 10px/1 var(--font); font-style: normal; }
+  .sp { flex: 1; }
+  .live { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); }
+  .live::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: var(--muted); }
+  .live.on::before { background: var(--ok); box-shadow: 0 0 0 3px color-mix(in srgb, var(--ok) 22%, transparent); }
+
+  /* stage */
+  .hero { position: relative; padding: 64px 20px 18px; display: grid; justify-items: center;
+    background: radial-gradient(120% 80% at 50% 38%, color-mix(in srgb, var(--accent) 16%, transparent), transparent 70%); }
+  .stage { position: relative; width: 168px; height: 176px; }
+  .face { position: relative; z-index: 1; width: 100%; height: 100%; transition: transform .3s; }
+  .floor { position: absolute; left: 50%; bottom: 2px; width: 110px; height: 14px; transform: translateX(-50%); border-radius: 50%; background: radial-gradient(closest-side, rgb(0 0 0 / .18), transparent); }
+  .bubble { position: absolute; z-index: 2; left: 50%; bottom: calc(100% - 4px); width: max-content; max-width: min(300px, 86vw); padding: 10px 14px; border-radius: 16px;
+    background: var(--panel); color: var(--ink); border: 1px solid var(--line); box-shadow: var(--shadow); font-size: 13.5px; line-height: 1.4; text-align: left;
+    opacity: 0; transform: translate(-50%, 6px) scale(.97); transform-origin: 50% 100%; transition: opacity .22s, transform .22s; pointer-events: none; }
+  .bubble.on { opacity: 1; transform: translate(-50%, 0) scale(1); }
+  .bubble::after { content: ''; position: absolute; left: 50%; top: 100%; width: 12px; height: 12px; margin: -6px 0 0 -6px; background: inherit; border: inherit; border-width: 0 1px 1px 0; transform: rotate(45deg); }
+  .bubble.asking { pointer-events: auto; -webkit-app-region: no-drag; border-color: var(--accent); }
+  .bubble .q { display: block; margin-bottom: 8px; }
+  .bubble .yn { display: flex; gap: 6px; justify-content: flex-end; }
+  .bubble .yn button { font: inherit; font-size: 12.5px; font-weight: 650; padding: 5px 12px; border-radius: 999px; border: 1px solid var(--line); background: transparent; color: var(--ink); cursor: pointer; }
+  .bubble .yn button.ok { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+  .bubble .yn button:hover { filter: brightness(1.08); }
+  .dots { display: inline-flex; gap: 4px; padding: 2px 0; }
+  .dots b { width: 6px; height: 6px; border-radius: 50%; background: var(--muted); animation: dot 1s infinite ease-in-out; }
+  .dots b:nth-child(2) { animation-delay: .15s; } .dots b:nth-child(3) { animation-delay: .3s; }
+  @keyframes dot { 0%, 80%, 100% { opacity: .3; transform: none; } 40% { opacity: 1; transform: translateY(-3px); } }
+  body.asleep .face { filter: saturate(.6) brightness(.95); }
+  .zz { position: absolute; right: 8px; top: 6px; font: 700 15px var(--font); color: var(--muted); opacity: 0; }
+  body.asleep .zz { opacity: 1; animation: zz 2.4s infinite ease-in-out; }
+  @keyframes zz { 50% { transform: translate(4px, -6px); opacity: .5; } }
+
+  .who { text-align: center; margin-top: 10px; }
+  h1 { margin: 0; font-size: 22px; line-height: 1.15; font-weight: 750; letter-spacing: -.025em; }
+  .sub { margin-top: 4px; display: flex; gap: 8px; align-items: center; justify-content: center; color: var(--muted); font-size: 13px; }
+  .cardlink { text-decoration: none; cursor: pointer; }
+  .cardlink:hover { border-color: var(--accent); }
+  .cardlink svg { width: 13px; height: 13px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linejoin: round; }
+  .mood { display: inline-flex; align-items: center; gap: 6px; padding: 2px 9px 2px 7px; border-radius: 99px; background: var(--panel-2); border: 1px solid var(--line); color: var(--ink-2); font-size: 12px; font-weight: 600; }
+  .mood::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: var(--mood, var(--muted)); }
+
+  /* level */
+  .level { padding: 14px 18px 4px; }
+  .level-h { display: flex; justify-content: space-between; align-items: baseline; font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+  .level-h b { color: var(--ink); font-size: 13px; }
+  .track { height: 6px; border-radius: 99px; background: var(--panel-2); border: 1px solid var(--line); overflow: hidden; }
+  .track > span { display: block; height: 100%; border-radius: inherit; background: var(--accent); transition: width .5s cubic-bezier(.2, .8, .2, 1); }
+
+  /* stats */
+  .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; padding: 12px 18px 4px; }
+  .stat { padding: 10px 10px 11px; border-radius: 14px; background: var(--panel-2); border: 1px solid var(--line); }
+  .stat-h { display: flex; align-items: center; gap: 6px; font-size: 11.5px; color: var(--muted); font-weight: 600; }
+  .stat-h svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .stat-v { font-size: 18px; font-weight: 750; letter-spacing: -.02em; margin: 4px 0 6px; font-variant-numeric: tabular-nums; }
+  .stat .track { height: 4px; border: 0; background: var(--line); }
+  .stat .track > span { background: var(--ok); }
+  .stat.mid .track > span { background: var(--warn); } .stat.low .track > span { background: var(--err); }
+  .stat.low .stat-v { color: var(--err); }
+
+  /* actions */
+  .actions { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; padding: 12px 18px 16px; }
+  .act { display: flex; align-items: center; justify-content: center; gap: 7px; height: 38px; border-radius: 12px; border: 1px solid var(--line); background: var(--panel); font-weight: 650; font-size: 13px; cursor: pointer; transition: background .15s, border-color .15s, transform .1s; }
+  a.act { color: inherit; text-decoration: none; -webkit-app-region: no-drag; }
+  .act svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .act:hover { border-color: color-mix(in srgb, var(--accent) 50%, var(--line)); background: color-mix(in srgb, var(--accent) 7%, var(--panel)); }
+  .act:active { transform: scale(.97); }
+  .act:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .act.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+  .act.primary:hover { background: color-mix(in srgb, var(--accent) 88%, #000); }
+
+  /* activity */
+  .feed { border-top: 1px solid var(--line); padding: 12px 18px 6px; }
+  .feed-h { display: flex; justify-content: space-between; align-items: center; font-size: 11.5px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
+  .feed-h h2 { margin: 0; font: inherit; }
+  .feed-h #tally { letter-spacing: 0; text-transform: none; font-weight: 500; font-variant-numeric: tabular-nums; }
+  .feed ol { list-style: none; margin: 0; padding: 0; max-height: 196px; overflow: auto; }
+  .feed li { display: grid; grid-template-columns: 22px 1fr auto; gap: 8px; align-items: center; padding: 6px 0; border-bottom: 1px dashed var(--line); font-size: 12.5px; animation: in .3s ease-out; }
+  .feed li:last-child { border-bottom: 0; }
+  @keyframes in { from { opacity: 0; transform: translateY(-4px); } }
+  .ico { width: 22px; height: 22px; border-radius: 7px; display: grid; place-items: center; background: var(--panel-2); color: var(--ink-2); }
+  .ico svg { width: 12px; height: 12px; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+  .ok .ico { background: color-mix(in srgb, var(--ok) 14%, transparent); color: var(--ok); }
+  .bad .ico { background: color-mix(in srgb, var(--err) 14%, transparent); color: var(--err); }
+  .feed .txt { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--ink-2); }
+  .feed .txt code { font: 12px var(--mono); color: var(--ink); }
+  .feed time { color: var(--muted); font-size: 11px; font-variant-numeric: tabular-nums; }
+  .empty { color: var(--muted); font-size: 12.5px; padding: 8px 0 10px; }
+
+  .foot { display: flex; gap: 6px 12px; flex-wrap: wrap; justify-content: space-between; padding: 10px 18px 14px; color: var(--muted); font-size: 11.5px; border-top: 1px solid var(--line); background: var(--panel-2); }
+  .foot b { color: var(--ink-2); font-weight: 600; }
+
+  .ask { display: flex; width: 100%; margin: 4px 0 2px; }
+  .ask input { flex: 1; min-width: 0; height: 36px; padding: 0 12px; border-radius: 12px; border: 1px solid var(--line); background: var(--panel-2); color: var(--ink); font: inherit; font-size: 13px; outline: none; }
+  .ask input:focus { border-color: var(--accent); }
+  /* ── desktop: transparent frameless window walking along the bottom of the screen ── */
+  html:has(body.desktop:not(.opaque)) { background: transparent; } /* html also paints --bg: without this the window is a white box */
+  body.desktop { background: transparent; padding: 0; place-items: end center; height: 100vh; overflow: hidden; user-select: none; } /* dragged by hand (see 'drag' below): a drag region would swallow clicks and double clicks */
+  body.desktop .app { width: 100%; background: transparent; border: 0; box-shadow: none; border-radius: 0; overflow: visible; }
+  body.desktop .top, body.desktop .who, body.desktop .level, body.desktop .stats, body.desktop .feed, body.desktop .foot { display: none; }
+  body.desktop .hero { background: none; padding: 0 0 6px; }
+  body.desktop .stage { width: calc(140px * var(--pet-scale, 1)); height: calc(148px * var(--pet-scale, 1)); } /* stretched from a corner (see 'resize' below) */
+  body.desktop .stage.flip .face { transform: scaleX(-1); }
+  /* the 3D ot is framed with room under its feet (~34px at 1x) that grows with the stretch: the figure is drawn
+     lower by what that room grew, so a bigger ot still stands where it stood; the stage (hit area) stays put */
+  body.desktop.ot3d .face { top: calc(34px * (var(--pet-scale, 1) - 1)); }
+  /* scenes with other ots (electron/director.cjs): the acts move .act; props (fireballs, beams, sabers, bullets) */
+  .actor { position: absolute; inset: 0; z-index: 1; transform-origin: 50% 92%; }
+  .props { position: absolute; inset: 0; z-index: 3; pointer-events: none; overflow: visible; }
+  .props > * { position: absolute; }
+  .props .ball { left: 50%; top: 42%; width: 34px; height: 34px; margin: -17px; border-radius: 50%; background: radial-gradient(circle at 40% 40%, #fff 0 18%, #8fe3ff 30%, #2a7bff 62%, transparent 72%); box-shadow: 0 0 22px 8px #4cb8ff; }
+  .props .beam { left: 50%; top: 40%; height: 26px; margin-top: -13px; border-radius: 13px; background: linear-gradient(180deg, #bfefff, #fff 45%, #fff 55%, #7fd6ff); box-shadow: 0 0 24px 10px #49b6ff, 0 0 60px 18px #1f6bff88; }
+  .props .bullet { top: 34%; width: 14px; height: 6px; margin-top: -3px; border-radius: 3px; background: linear-gradient(90deg, #6b5a2b, #e9cf7a); }
+  .props .ring { top: 34%; width: 18px; height: 18px; margin: -9px; border-radius: 50%; border: 2px solid rgb(180 220 255 / .8); }
+  .props .saber { left: 50%; top: 50%; width: 6px; height: 92px; margin-left: -3px; transform-origin: 50% 100%; border-radius: 4px; background: #fff; }
+  .props .flash { top: 44%; width: 30px; height: 30px; margin: -15px; border-radius: 50%; background: radial-gradient(#fff, #ffd35a 40%, #ff7a1a 60%, transparent 70%); }
+  /* entrances (wrestling style): spotlights from above, pyro columns, the name slammed in */
+  .props .spot { left: 50%; bottom: 0; width: 120px; height: 140%; margin-left: -60px; transform-origin: 50% 0; top: -40%; background: linear-gradient(180deg, rgb(255 250 220 / .0), rgb(255 250 220 / .32) 70%, rgb(255 250 220 / .0)); clip-path: polygon(44% 0, 56% 0, 100% 100%, 0 100%); filter: blur(2px); mix-blend-mode: screen; }
+  .props .spot.rock { animation: rockhue 1s linear infinite; }
+  @keyframes rockhue { from { filter: blur(2px) hue-rotate(0deg) saturate(4); } to { filter: blur(2px) hue-rotate(360deg) saturate(4); } }
+  .props .smoke { bottom: 4%; width: 110px; height: 80px; margin-left: -55px; border-radius: 50%; background: radial-gradient(closest-side, rgb(235 230 255 / .9), rgb(190 170 255 / .5) 60%, transparent); filter: blur(6px); }
+  .props .pyro { bottom: 6%; width: 16px; height: 120px; margin-left: -8px; transform-origin: 50% 100%; border-radius: 8px 8px 4px 4px; background: linear-gradient(0deg, #fff6c0, #ffb627 30%, #ff5a1f 65%, transparent); filter: blur(1px) drop-shadow(0 0 10px #ff8a1f); }
+  .props .title { left: 50%; top: 4%; transform: translateX(-50%); font: 900 30px/1 Impact, 'Anton', system-ui, sans-serif; letter-spacing: 2px; text-transform: uppercase; white-space: nowrap; color: #fff; background: linear-gradient(180deg, #fff 30%, #ffd84a 55%, #ff8a1f); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; -webkit-text-stroke: 1.5px #2a0f00; filter: drop-shadow(0 3px 0 #1a0a00) drop-shadow(0 0 12px rgb(255 160 40 / .7)); }
+  .props .pow { left: 50%; top: 6%; font: 900 22px/1 system-ui, sans-serif; color: #ffd400; -webkit-text-stroke: 2px #1a1020; transform: translateX(-50%); white-space: nowrap; }
+  /* a visiting ot: its own little menu (play, say goodbye, settings, move); feeding, talking and sleep are the host's */
+  body.guest .ask, body.guest #talkBtn, body.guest #micBtn, body.guest #sleepBtn { display: none !important; }
+  .bye { display: none; }
+  body.desktop.guest .bye { display: flex; }
+  body.desktop .bubble { max-width: 220px; font-size: 12.5px; padding: 8px 12px; }
+  body.desktop .actions { position: absolute; right: auto; left: calc(50% + 70px * var(--pet-scale, 1) - 4px); /* beside the ot at any size: over it, it hid the corners that stretch it */ bottom: 14px; transform: translateX(6px); display: flex; flex-direction: column; gap: 4px; padding: 4px; border-radius: 99px;
+    background: color-mix(in srgb, var(--panel) 86%, transparent); border: 1px solid var(--line); box-shadow: var(--shadow); backdrop-filter: blur(10px);
+    opacity: 0; transition: none; /* a transition here never finished painting in the transparent window: the menu stayed invisible */ -webkit-app-region: no-drag; z-index: 5; } /* above the 3D stage canvas (z 3) */
+  body.desktop.hover .actions, body.desktop.menu .actions { opacity: 1; transform: none; } /* .hover: set by the shell, which sees the cursor even when no mouse event reaches the page (no CSS :hover: it sticks in a click-through window that never gets the mouseleave) */
+  body.desktop .act { width: 32px; height: 32px; padding: 0; border-radius: 50%; border: 0; background: transparent; }
+  body.desktop .act span { display: none; }
+  .grip { display: none; }
+  body.desktop .grip { display: flex; cursor: grab; touch-action: none; }
+  body.desktop .grip:active { cursor: grabbing; }
+  body.desktop .act.primary { background: var(--accent); }
+  body.desktop .badge { display: flex; }
+  body.listening #micBtn { background: var(--err); color: #fff; animation: rec 1s ease-in-out infinite; }
+  @keyframes rec { 50% { box-shadow: 0 0 0 6px color-mix(in srgb, var(--err) 30%, transparent); } }
+  body.desktop .ask { display: none; position: absolute; left: 6px; right: 6px; top: 6px; margin: 0; z-index: 4; -webkit-app-region: no-drag; }
+  body.desktop.talking .ask { display: flex; }
+  .badge { display: none; position: absolute; z-index: 2; left: -6px; bottom: 18px; min-width: 22px; height: 22px; padding: 0 6px; border-radius: 99px; align-items: center; justify-content: center;
+    background: var(--panel); border: 1px solid var(--line); box-shadow: var(--shadow); font: 750 11px/1 var(--font); color: var(--ink); }
+  body.desktop .floor { bottom: 0; }
+  /* --opaque: a solid card instead of transparency (for Linux setups that paint a box behind the window) */
+  body.desktop.opaque { background: var(--panel); }
+
+  @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+</style>
+</head>
+<body>
+<main class="app">
+  <header class="top">
+    <span class="brand"><i>7</i>7ots</span>
+    <span class="sp"></span>
+    <span class="live" id="live"></span>
+  </header>
+
+  <section class="hero">
+    <div class="stage" id="stage">
+      <div class="bubble" id="bubble" role="status" aria-live="polite"></div>
+      <span class="zz" aria-hidden="true">z</span>
+      <div class="actor" id="act"><div class="face" id="face"></div></div>
+      <div class="props" id="props" aria-hidden="true"></div>
+      <div class="floor" aria-hidden="true"></div>
+      <span class="badge" id="badge"></span>
+    </div>
+    <form class="ask" id="ask" autocomplete="off"><input id="askIn" maxlength="800" enterkeyhint="send"></form>
+    <div class="who">
+      <h1 id="name"></h1>
+      <div class="sub"><span id="role"></span><span class="mood" id="mood"></span><a class="mood cardlink" id="cardBtn" target="_blank" rel="noopener"><svg viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="2.5"/><path d="M12 8.5l1.2 2.4 2.6.4-1.9 1.8.5 2.6-2.4-1.3-2.4 1.3.5-2.6-1.9-1.8 2.6-.4z"/></svg><span data-t="card"></span></a></div>
+    </div>
+  </section>
+
+  <section class="level" aria-labelledby="lvl">
+    <div class="level-h"><b id="lvl"></b><span id="xp"></span></div>
+    <div class="track"><span id="xpbar" style="width:0"></span></div>
+  </section>
+
+  <section class="stats" id="stats"></section>
+
+  <nav class="actions">
+    <button class="act primary" data-act="feed"><svg viewBox="0 0 24 24"><path d="M12 7c-1.5-2.5-6-2.5-7 1.5S7 20 9.5 20c1.2 0 1.6-.6 2.5-.6s1.3.6 2.5.6C17 20 20 12.5 19 8.5S13.5 4.5 12 7z"/><path d="M12 7c0-2 1-3.5 3-4"/></svg><span data-t="feed"></span></button>
+    <button class="act" id="talkBtn" type="button"><svg viewBox="0 0 24 24"><path d="M5 6h14v9H9l-4 3z"/></svg><span data-t="talk"></span></button>
+    <button class="act" id="micBtn" type="button"><svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21"/></svg><span data-t="listen"></span></button>
+    <button class="act" data-act="sleep" id="sleepBtn"><svg viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/></svg><span data-t="sleep"></span></button>
+    <button class="act" id="danceBtn" type="button"><svg viewBox="0 0 24 24"><path d="M9 18V6l10-2v12"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="16" r="2"/></svg><span data-t="dance"></span></button>
+    <a class="act" id="setBtn" target="_blank" rel="noopener"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1"/></svg><span data-t="settings"></span></a>
+    <button class="act bye" id="byeBtn" type="button"><svg viewBox="0 0 24 24"><path d="M15 4h4v16h-4M10 8l-4 4 4 4M6 12h10"/></svg></button>
+    <button class="act grip" id="moveBtn" type="button" title="⇔"><svg viewBox="0 0 24 24"><path d="M12 3v18M3 12h18M12 3l-3 3M12 3l3 3M12 21l-3-3M12 21l3-3M3 12l3-3M3 12l3 3M21 12l-3-3M21 12l-3 3"/></svg></button>
+  </nav>
+
+  <section class="feed" aria-labelledby="feed-h">
+    <div class="feed-h"><h2 id="feed-h" data-t="activity"></h2><span id="tally"></span></div>
+    <ol id="feed"></ol>
+  </section>
+
+  <footer class="foot"><span id="brain"></span><span id="age"></span></footer>
+</main>
+
+<script type="module">
+  const BOOT = __BOOT__;
+  const T = {
+    en: { dance: 'Dance', settings: 'Settings', card: 'Card', dismiss: 'Send home', listen: 'Listen', listening: 'Listening… 🎙️', noStt: 'Voice control needs an OpenAI or ElevenLabs key (Settings).', noMic: 'I can’t reach the microphone.', sttErr: 'I didn’t catch that.', talk: 'Talk', askPh: 'Remind me to check email in 10 min…', feed: 'Treat', play: 'Play', sleep: 'Sleep', wake: 'Wake', food: 'Food', energy: 'Energy', fun: 'Fun', level: 'Level {l}', xp: '{x} / {n} xp', live: 'Live', off: 'Reconnecting…', approve: 'Approve', reject: 'Reject',
+      activity: 'Activity', empty: 'Nothing yet. Run a command or ask your coding agent something.', tally: '{ok} ok · {fail} failed · turns {turns}',
+      brain: 'Brain: {b}', age: 'Born {d}', lines: 'built-in phrases', now: 'now', m: '{n}m', h: '{n}h',
+      moods: { happy: 'Happy', neutral: 'Calm', sad: 'Sad', disgust: 'Bored', sleep: 'Asleep', thinking: 'Thinking' },
+      kind: { tool: 'Tool', shell: 'Shell', prompt: 'You asked', stop: 'Turn finished', notify: 'Needs you', start: 'Session started' } },
+    es: { dance: 'Bailar', settings: 'Ajustes', card: 'Tarjeta', dismiss: 'Despedir', listen: 'Escuchar', listening: 'Te escucho… 🎙️', noStt: 'Para hablarme por voz falta una key de OpenAI o ElevenLabs (Ajustes).', noMic: 'No puedo usar el micrófono.', sttErr: 'No te entendí.', talk: 'Hablar', askPh: 'Recuérdame ver el correo en 10 min…', feed: 'Mimar', play: 'Jugar', sleep: 'Dormir', wake: 'Despertar', food: 'Comida', energy: 'Energía', fun: 'Diversión', level: 'Nivel {l}', xp: '{x} / {n} xp', live: 'En vivo', off: 'Reconectando…', approve: 'Aprobar', reject: 'Rechazar',
+      activity: 'Actividad', empty: 'Nada todavía. Ejecuta un comando o pregúntale algo a tu agente.', tally: '{ok} ok · {fail} fallos · turnos {turns}',
+      brain: 'Cerebro: {b}', age: 'Nació {d}', lines: 'frases propias', now: 'ahora', m: '{n} min', h: '{n} h',
+      moods: { happy: 'Feliz', neutral: 'Tranquilo', sad: 'Triste', disgust: 'Aburrido', sleep: 'Dormido', thinking: 'Pensando' },
+      kind: { tool: 'Herramienta', shell: 'Terminal', prompt: 'Preguntaste', stop: 'Turno terminado', notify: 'Te necesita', start: 'Sesión iniciada' } },
+    pt: { dance: 'Dançar', settings: 'Ajustes', card: 'Carta', dismiss: 'Despedir', listen: 'Ouvir', listening: 'Estou ouvindo… 🎙️', noStt: 'Para falar por voz falta uma key da OpenAI ou ElevenLabs (Ajustes).', noMic: 'Não consigo usar o microfone.', sttErr: 'Não entendi.', talk: 'Falar', askPh: 'Me lembre de ver o e-mail em 10 min…', feed: 'Mimar', play: 'Brincar', sleep: 'Dormir', wake: 'Acordar', food: 'Comida', energy: 'Energia', fun: 'Diversão', level: 'Nível {l}', xp: '{x} / {n} xp', live: 'Ao vivo', off: 'Reconectando…', approve: 'Aprovar', reject: 'Recusar',
+      activity: 'Atividade', empty: 'Nada ainda. Rode um comando ou pergunte algo ao seu agente.', tally: '{ok} ok · {fail} falhas · turnos {turns}',
+      brain: 'Cérebro: {b}', age: 'Nasceu {d}', lines: 'frases próprias', now: 'agora', m: '{n} min', h: '{n} h',
+      moods: { happy: 'Feliz', neutral: 'Tranquilo', sad: 'Triste', disgust: 'Entediado', sleep: 'Dormindo', thinking: 'Pensando' },
+      kind: { tool: 'Ferramenta', shell: 'Terminal', prompt: 'Você pediu', stop: 'Turno concluído', notify: 'Precisa de você', start: 'Sessão iniciada' } },
+  };
+  const lang = T[BOOT.lang] ? BOOT.lang : 'en';
+  const L = T[lang];
+  const t = (k, v = {}) => String(k.split('.').reduce((o, p) => o?.[p], L) ?? k).replace(/\{(\w+)\}/g, (_, x) => v[x] ?? '');
+  const $ = (s) => document.querySelector(s);
+  const id = BOOT.identity;
+  const desktop = new URLSearchParams(location.search).has('desktop');
+  const guest = BOOT.guest || ''; // a visiting ot: no state, no voice, only the scenes
+  document.body.classList.toggle('guest', !!guest);
+
+  document.documentElement.lang = lang;
+  document.body.classList.toggle('desktop', desktop);
+  document.body.classList.toggle('opaque', desktop && new URLSearchParams(location.search).has('opaque'));
+  document.title = `${id.name} · 7ots`;
+  $('#name').textContent = id.name;
+  $('#role').textContent = id.role || '';
+  document.querySelectorAll('[data-t]').forEach((el) => (el.textContent = t(el.dataset.t)));
+  document.querySelectorAll('[data-act]').forEach((b) => b.setAttribute('aria-label', t(b.dataset.act)));
+  const accent = id.look?.character?.body?.color;
+  if (/^#[0-9a-f]{6}$/i.test(accent || '')) {
+    // Readable text on the accent: dark ink on light bodies.
+    const [r, g, b] = [1, 3, 5].map((i) => parseInt(accent.slice(i, i + 2), 16));
+    document.documentElement.style.setProperty('--accent', accent);
+    document.documentElement.style.setProperty('--accent-ink', 0.299 * r + 0.587 * g + 0.114 * b > 140 ? '#17141f' : '#ffffff');
+  }
+  $('#brain').innerHTML = '';
+  $('#brain').append(t('brain', { b: '' }), Object.assign(document.createElement('b'), { textContent: BOOT.brain === 'lines' ? t('lines') : BOOT.brain }));
+
+  const { createCharacter, loadCharacter3D, playBeat, DANCES = [], DANCE_STYLE = {} } = await import('/dist/7ots.esm.js');
+  const spec = id.look?.character || {};
+  let ch = null;
+  if (new URLSearchParams(location.search).has('3d')) {
+    // three comes from the CDN; without WebGL or network the 2D ot takes over
+    try {
+      const m = await loadCharacter3D();
+      ch = m.createCharacter3D($('#face'), spec, { material: 'plush', backdrop: !desktop && BOOT.backdrop !== false, orbit: !desktop, bleed: desktop ? 'window' : 0, stage: { key: 'pet', zIndex: 3, maxDpr: 2, minDpr: 1.25, supersample: desktop } });
+      if (ch.fallback) console.warn('[7ots pet] no WebGL: 2D ot');
+    } catch (err) {
+      console.warn('[7ots pet] 3D ot unavailable, using 2D:', err?.message || err);
+      ch = null;
+    }
+  }
+  ch ||= createCharacter($('#face'), spec, { locale: lang, title: id.name, backdrop: BOOT.backdrop !== false });
+  const is3d = !!ch.character;
+  document.body.classList.toggle('ot3d', is3d);
+  // While a gesture/effect/morph plays the ot needs room around it (wings, hearts, confetti): the desktop
+  // shell reads window.__need() and sizes the window to what is really on screen.
+  let fxUntil = 0;
+  let actUntil = 0; // a scene act is playing: it needs actRoom px on each side (a beam, a saber swing)
+  let actRoom = 0;
+  let actTall = 70; // and that much room above it (an entrance's name card)
+  for (const k of ['gesture', 'effect', 'morph']) {
+    const f = ch[k]?.bind(ch);
+    if (!f) continue;
+    try {
+      ch[k] = (n, o) => ((fxUntil = Math.max(fxUntil, Date.now() + Math.max(2600, o?.ms || 0) + 400)), tellNeed(), f(n, o));
+    } catch {}
+  }
+  // Effects the character starts on its own (a mood's steam, a gesture's sparkles) skip the wrapper: they show
+  // up as children of its fx layers, so those count as "playing" too.
+  const fxLayers = () => $('#face').querySelectorAll('[data-p="fx"], [data-p="fxback"], [data-p="fxface"]');
+  const fxOn = () => Date.now() < fxUntil || [...fxLayers()].some((g) => g.childElementCount);
+  // What the figure really covers (arms out, a raised hand, a hop): the union of the drawn parts, which can
+  // stick out of the stage. The window is centred on the ot, so the width is twice the widest side.
+  const drawn = () => {
+    const parts = $('#face').querySelectorAll('svg > g, svg > use, svg > path');
+    let l = Infinity, t = Infinity, r = -Infinity;
+    for (const e of parts) {
+      const b = e.getBoundingClientRect();
+      if (!b.width && !b.height) continue;
+      l = Math.min(l, b.left), t = Math.min(t, b.top), r = Math.max(r, b.right);
+    }
+    return l === Infinity ? null : { l, t, r };
+  };
+  window.__need = () => {
+    const st = $('#stage').getBoundingClientRect();
+    // playing: room up front (hearts rise, confetti flies), not grown pixel by pixel as they move
+    const on = fxOn();
+    let w = st.width + (on ? 72 : 12) * 2;
+    let h = st.height + 6 + (on ? 96 : 12);
+    const d = drawn();
+    if (d) {
+      const cx = st.left + st.width / 2;
+      w = Math.max(w, 2 * Math.max(cx - d.l, d.r - cx) + 24);
+      h = Math.max(h, innerHeight - d.t + 12);
+    }
+    const b = $('#bubble');
+    if (b.classList.contains('on')) {
+      w = Math.max(w, b.offsetWidth + 24);
+      h = Math.max(h, st.height + 6 + b.offsetHeight + 16);
+    }
+    if (document.body.classList.contains('talking')) (w = Math.max(w, 240)), (h = Math.max(h, st.height + 60));
+    if (Date.now() < actUntil) (w = Math.max(w, actRoom * 2)), (h = Math.max(h, st.height + actTall));
+    w = Math.max(w, st.width + 2 * 58); // the menu beside it (shown on hover)
+    return { w: Math.ceil(w), h: Math.ceil(h) };
+  };
+  // The shell polls __need every 250 ms; when an effect starts it's told at once (a console line it listens
+  // for), so the window is big before the first frame that needs it instead of cutting it off.
+  let toldNeed = '';
+  function tellNeed() {
+    if (!desktop) return;
+    requestAnimationFrame(() => {
+      const n = JSON.stringify(window.__need());
+      if (n !== toldNeed) (toldNeed = n), console.debug('\u00a77need' + n);
+    });
+  }
+  if (!is3d) {
+    const mo = new MutationObserver(tellNeed);
+    for (const g of fxLayers()) mo.observe(g, { childList: true });
+  }
+  // Drag: the page tells the shell when the button goes down and up on the ot; the shell moves the window
+  // with the cursor in between. A click that doesn't move stays a click.
+  const onOt = (e) => {
+    const r = $('#stage').getBoundingClientRect();
+    return e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom;
+  };
+  // Size: grabbing the ot by a corner stretches it (bigger or smaller) instead of moving it; remembered per ot.
+  const SCALE_KEY = `7ots.petScale${guest ? `.${guest}` : ''}`;
+  let scale = 1;
+  try {
+    scale = Math.max(0.6, Math.min(2, Number(localStorage.getItem(SCALE_KEY)) || 1));
+  } catch {}
+  const setScale = (k) => ((scale = k), document.documentElement.style.setProperty('--pet-scale', k.toFixed(3)), tellNeed());
+  if (desktop && scale !== 1) setScale(scale);
+  const CORNER = 22;
+  // which corner of the ot the pointer is on ('nw' | 'ne' | 'sw' | 'se'), or ''
+  const cornerAt = (e) => {
+    if (!desktop || !onOt(e)) return '';
+    const r = $('#stage').getBoundingClientRect();
+    const v = e.clientY - r.top < CORNER ? 'n' : r.bottom - e.clientY < CORNER ? 's' : '';
+    const h = e.clientX - r.left < CORNER ? 'w' : r.right - e.clientX < CORNER ? 'e' : '';
+    return v && h ? v + h : '';
+  };
+  if (desktop) {
+    let down = false;
+    let sizing = null;
+    let pulled = null; // { m, on }: a drag that started off the corners
+    const up = () => {
+      if (pulled?.on) {
+        ch.unmorph?.(pulled.m); // let go: back into shape
+        fxUntil = Date.now() + 600; // room while it eases back
+      }
+      pulled = null;
+      if (sizing) {
+        sizing = null;
+        try {
+          localStorage.setItem(SCALE_KEY, String(scale));
+        } catch {}
+      }
+      if (down) (down = false), console.debug('\u00a77drag' + JSON.stringify({ on: false }));
+    };
+    addEventListener('pointermove', (e) => {
+      if (sizing) {
+        // the ot stays anchored at its feet, centred: sideways it grows on both sides, so a corner moves half as much
+        const dx = (e.screenX - sizing.x) * (sizing.c[1] === 'e' ? 1 : -1) * 2;
+        const dy = (e.screenY - sizing.y) * (sizing.c[0] === 's' ? 1 : -1);
+        const k = sizing.k * ((140 * sizing.k + dx) / (140 * sizing.k) + (148 * sizing.k + dy) / (148 * sizing.k)) / 2;
+        return setScale(Math.max(0.6, Math.min(2, k)));
+      }
+      if (down) return;
+      const c = cornerAt(e);
+      document.body.style.cursor = c ? (c === 'nw' || c === 'se' ? 'nwse-resize' : 'nesw-resize') : '';
+    });
+    // on the document: in 3D the ot is drawn on a canvas above the page, so events don't target #stage
+    addEventListener('pointerdown', (e) => {
+      // on the ot itself, or on the move handle in the menu (a sure grip while the ot is mid-animation)
+      const grip = e.target.closest?.('#moveBtn');
+      if (e.button !== 0 || (!grip && (e.target.closest?.('.actions, .ask, a, button') || !onOt(e)))) return;
+      down = true;
+      document.documentElement.setPointerCapture?.(e.pointerId);
+      const c = !grip && cornerAt(e);
+      if (c) sizing = { c, x: e.screenX, y: e.screenY, k: scale };
+      else if (!grip) {
+        const r = $('#stage').getBoundingClientRect();
+        const side = Math.abs(e.clientX - (r.left + r.width / 2)) / r.width > Math.abs(e.clientY - (r.top + r.height / 2)) / r.height;
+        pulled = { m: side ? 'squish' : 'stretch', on: false };
+      }
+      // resizing: the shell keeps the mouse but leaves the window where it is
+      console.debug('\u00a77drag' + JSON.stringify({ on: true, resize: !!c }));
+    });
+    // pulled by a side or the top: once the shell says the window is really being carried (the page sees
+    // almost no pointer motion then: the window moves with the hand), it stretches toward the pull — wider
+    // from a side, taller from above or below — until it's let go
+    addEventListener('message', (e) => {
+      if (!e.data?.carried || !pulled || pulled.on) return;
+      pulled.on = true;
+      fxUntil = Infinity; // room around it for as long as it's held stretched
+      ch.morph?.(pulled.m, { hold: true });
+      tellNeed();
+    });
+    for (const ev of ['pointerup', 'pointercancel', 'lostpointercapture']) addEventListener(ev, up);
+    addEventListener('blur', up);
+  }
+  let lookFree = 0; // while > now, the eyes wander on their own (a glance) instead of following the cursor
+  addEventListener('pointermove', (e) => Date.now() > lookFree && ch.lookAtPoint(e.clientX, e.clientY));
+  // A click on the ot pokes it: it gets squished and, poked again and again, more and more annoyed.
+  // Waits a beat so a double click (the menu) doesn't count as two pokes; a drag or a stretch isn't a poke.
+  let pressAt = null, pokeT = 0, pokes = 0, pokedAt = 0;
+  addEventListener('pointerdown', (e) => (pressAt = { x: e.screenX, y: e.screenY }));
+  addEventListener('click', (e) => {
+    clearTimeout(pokeT);
+    if (e.detail > 1 || !onOt(e) || e.target.closest?.('.actions, .ask, .bubble.asking, a, button')) return;
+    if (pressAt && Math.hypot(e.screenX - pressAt.x, e.screenY - pressAt.y) > 4) return;
+    pokeT = setTimeout(poke, 240);
+  });
+  function poke() {
+    pokes = Date.now() - pokedAt < 2500 ? pokes + 1 : 1;
+    pokedAt = Date.now();
+    lookFree = 0;
+    ch.morph?.('squish', { ms: 420 });
+    if (pokes === 1) ch.gesture('bounce');
+    else if (pokes <= 3) (ch.gesture('surprise'), ch.effect?.('exclaim'));
+    else (ch.gesture(pokes % 2 ? 'stomp' : 'shake'), ch.effect?.('anger'), pokes >= 6 && ch.effect?.('steam'));
+  }
+
+  const post = (path, body) => fetch(path, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-7ots-Token': BOOT.token }, body: JSON.stringify(body) });
+  let asleep = false;
+  // something urgent while asleep: it wakes up for a moment (says it, walks over), then dozes off again
+  let stirUntil = 0, stirT = 0, sleptAt = 0;
+  function stir() {
+    stirUntil = Date.now() + 30000;
+    document.body.classList.remove('asleep');
+    clearTimeout(stirT);
+    stirT = setTimeout(() => last && render(last), 30500);
+  }
+  document.querySelectorAll('[data-act]').forEach((b) =>
+    b.addEventListener('click', () => guest ? (b.dataset.act === 'feed' && postMessage({ gesture: 'celebrate' })) : post('/event', { type: b.dataset.act === 'sleep' && asleep ? 'wake' : b.dataset.act })),
+  );
+
+  // ── state ──
+  const ICON = {
+    food: '<path d="M12 7c-1.5-2.5-6-2.5-7 1.5S7 20 9.5 20c1.2 0 1.6-.6 2.5-.6s1.3.6 2.5.6C17 20 20 12.5 19 8.5S13.5 4.5 12 7z"/>',
+    energy: '<path d="M13 3 5 13.5h6L10 21l9-11h-6z"/>',
+    fun: '<path d="M12 20s-7.5-4.6-7.5-10A4.3 4.3 0 0 1 12 7.4 4.3 4.3 0 0 1 19.5 10c0 5.4-7.5 10-7.5 10z"/>',
+  };
+  const MOOD_COLOR = { happy: 'var(--ok)', neutral: 'var(--accent)', sad: 'var(--err)', disgust: 'var(--warn)', sleep: 'var(--muted)', thinking: 'var(--accent)' };
+  const stats = $('#stats');
+  for (const k of ['food', 'energy', 'fun']) {
+    stats.insertAdjacentHTML('beforeend', `<div class="stat" data-k="${k}"><div class="stat-h"><svg viewBox="0 0 24 24">${ICON[k]}</svg>${t(k)}</div><div class="stat-v">–</div><div class="track"><span style="width:0"></span></div></div>`);
+  }
+  let last = null;
+  let thinking = false;
+  function paintMood() {
+    const m = thinking ? 'thinking' : last?.mood || 'neutral';
+    $('#mood').textContent = t(`moods.${m}`);
+    $('#mood').style.setProperty('--mood', MOOD_COLOR[m] || 'var(--muted)');
+  }
+  function render(s) {
+    if (s.asleep && !asleep && last) sleptAt = Date.now(); // just sent to bed: its "good night" still gets said
+    last = s;
+    asleep = s.asleep;
+    const stirred = asleep && Date.now() < stirUntil;
+    document.body.classList.toggle('asleep', asleep && !stirred);
+    ch.mood(stirred ? 'neutral' : s.mood);
+    paintMood();
+    $('#sleepBtn [data-t]').textContent = t(asleep ? 'wake' : 'sleep');
+    $('#sleepBtn').setAttribute('aria-label', t(asleep ? 'wake' : 'sleep'));
+    for (const el of stats.children) {
+      const v = s[el.dataset.k];
+      el.className = `stat ${v < 25 ? 'low' : v < 50 ? 'mid' : ''}`;
+      el.querySelector('.stat-v').textContent = v;
+      el.querySelector('.track span').style.width = `${v}%`;
+    }
+    $('#lvl').textContent = t('level', { l: s.level });
+    $('#badge').textContent = s.level;
+    $('#xp').textContent = t('xp', { x: s.xp, n: s.next });
+    $('#xpbar').style.width = `${Math.min(100, (s.xp / s.next) * 100)}%`;
+    const st = s.stats || {};
+    $('#tally').textContent = t('tally', { ok: st.ok || 0, fail: st.fail || 0, turns: st.turns || 0 });
+    if (s.born) $('#age').textContent = t('age', { d: new Date(s.born).toLocaleDateString(lang, { month: 'short', day: 'numeric' }) });
+  }
+
+  // ── activity feed ──
+  const FEED_ICON = {
+    ok: '<path d="M5 12.5l4.5 4.5L19 7.5"/>', bad: '<path d="M7 7l10 10M17 7 7 17"/>',
+    prompt: '<path d="M5 6h14v9H9l-4 3z"/>', stop: '<path d="M5 12.5l4.5 4.5L19 7.5"/>',
+    notify: '<path d="M12 4a5 5 0 0 1 5 5v4l1.5 3h-13L7 13V9a5 5 0 0 1 5-5zM10 19a2 2 0 0 0 4 0"/>', start: '<path d="M8 5v14l11-7z"/>',
+  };
+  const ago = (at) => {
+    const s = (Date.now() - at) / 1000;
+    return s < 60 ? t('now') : s < 3600 ? t('m', { n: Math.floor(s / 60) }) : t('h', { n: Math.floor(s / 3600) });
+  };
+  const rows = [];
+  function addActivity(a) {
+    rows.unshift(a);
+    if (rows.length > 30) rows.pop();
+    paintFeed();
+  }
+  function paintFeed() {
+    const ol = $('#feed');
+    ol.textContent = '';
+    if (!rows.length) return ol.insertAdjacentHTML('beforeend', `<li class="empty" style="display:block;border:0">${t('empty')}</li>`);
+    for (const a of rows.slice(0, 20)) {
+      const li = document.createElement('li');
+      const tone = ['tool', 'shell'].includes(a.kind) ? (a.ok ? 'ok' : 'bad') : '';
+      li.className = tone;
+      const ic = ['tool', 'shell'].includes(a.kind) ? (a.ok ? 'ok' : 'bad') : a.kind;
+      li.innerHTML = `<span class="ico"><svg viewBox="0 0 24 24">${FEED_ICON[ic] || FEED_ICON.start}</svg></span><span class="txt"></span><time></time>`;
+      const txt = li.querySelector('.txt');
+      if (a.kind === 'shell' || a.kind === 'tool') txt.append(Object.assign(document.createElement('code'), { textContent: a.text }));
+      else txt.textContent = a.text ? `${t(`kind.${a.kind}`)} · ${a.text}` : t(`kind.${a.kind}`);
+      txt.title = a.text;
+      li.querySelector('time').textContent = ago(a.at);
+      ol.append(li);
+    }
+  }
+  for (const a of (BOOT.activity || []).slice().reverse()) rows.push(a);
+  paintFeed();
+  setInterval(paintFeed, 30_000);
+
+  // ── voice ──
+  const bubble = $('#bubble');
+  let hideT, lip;
+  function talk(on, text, ms) {
+    lip?.stop?.();
+    lip = null;
+    if (!on) return ch.mouth(0);
+    if (typeof ch.speak !== 'function') return; // older character bundle
+    lip = ch.speak(text, { durationMs: ms || 500 + text.length * 60 });
+  }
+  // one voice at a time: a new line cuts the one playing (small talk never cuts a reply: see the say message)
+  const hush = () => {
+    if (speak.cur) speak.cur.onended = speak.cur.onerror = null, speak.cur.pause(), (speak.cur = null), talk(false);
+    if ('speechSynthesis' in window) speechSynthesis.cancel();
+  };
+  async function speak(text, reply = false) {
+    if (BOOT.voice?.kind === 'none') return;
+    hush();
+    const turn = (speak.turn = (speak.turn || 0) + 1);
+    if (BOOT.voice?.kind && BOOT.voice.kind !== 'browser') {
+      try {
+        const r = await post('/tts', { text });
+        if (r.ok) {
+          const blob = await r.blob();
+          if (turn !== speak.turn) return; // a newer line arrived while this one was synthesizing
+          const audio = new Audio(URL.createObjectURL(blob));
+          speak.cur = audio;
+          speak.reply = reply;
+          audio.onplay = () => {
+            // real audio drives the mouth when possible, else text-timed visemes
+            try {
+              const ctx = (speak.ctx ||= new AudioContext());
+              const src = ctx.createMediaElementSource(audio);
+              const an = ctx.createAnalyser();
+              src.connect(an);
+              an.connect(ctx.destination);
+              const stop = ch.lipsync?.(an, { text: clean(text) });
+              if (stop) return void (lip = { stop });
+            } catch {}
+            talk(true, clean(text), (audio.duration || 0) * 1000);
+          };
+          audio.onended = audio.onerror = () => ((speak.cur = null), talk(false));
+          return await audio.play();
+        }
+      } catch {}
+    }
+    if (turn !== speak.turn || !('speechSynthesis' in window)) return;
+    const u = new SpeechSynthesisUtterance(clean(text));
+    u.lang = id.voice?.lang || lang;
+    u.rate = id.voice?.rate || 1;
+    u.pitch = id.voice?.pitch || 1;
+    u.onstart = () => talk(true, text);
+    u.onboundary = (e) => lip?.sync?.(e.charIndex);
+    u.onend = u.onerror = () => talk(false);
+    speechSynthesis.cancel();
+    speechSynthesis.speak(u);
+  }
+  function showBubble(content, ms) {
+    if (asking && !content.classList?.contains('askq')) return; // a question waiting for you stays until answered
+    bubble.classList.remove('asking');
+    bubble.replaceChildren(content);
+    bubble.classList.add('on');
+    clearTimeout(hideT);
+    if (ms) hideT = setTimeout(() => bubble.classList.remove('on'), ms);
+  }
+  // What it says shows on its face too: a gesture/effect picked from the words (when the server sent none).
+  const REACT = [
+    [/(ja){2,}|(ha){2,}|jeje|lol|kkk|😂|🤣/i, 'laugh', null],
+    [/gracias|thank|obrigad|te quiero|love you|❤|💜|lindo|cute/i, 'bow', 'hearts'],
+    [/error|fail|fall[óo]|rompi|broke|oops|ups|ay no|uh.?oh/i, 'shake', 'sweat'],
+    [/listo|done|logrado|genial|great|bravo|yay|bien hecho|nice|perfect|✓|✅|🎉/i, 'celebrate', 'confetti'],
+    [/hambre|hungry|fome|comida|food|🍎/i, 'point', 'thought'],
+    [/sueño|tired|cansad|dormir|sleep|nap|zz/i, 'yawn', null],
+    [/miedo|scary|assust|fear|😱/i, 'shiver', 'sweat'],
+    [/enojad|angry|bravo con|grr|😠/i, 'stomp', 'anger'],
+    [/hola|hello|hi\b|hey|oi\b|buen(os|as) d[ií]as|good morning/i, 'wave', null],
+    [/[?¿]\s*$/, 'think', 'question'],
+    [/!\s*$/, 'bounce', 'exclaim'],
+  ];
+  function react(text) {
+    for (const [re, g, fx] of REACT) {
+      if (!re.test(text)) continue;
+      if (g) ch.gesture(g);
+      if (fx) ch.effect?.(fx);
+      return;
+    }
+    ch.gesture(Math.random() < 0.5 ? 'nod' : 'wiggle');
+  }
+  // speech tags ([laugh], <whisper>…: settings → Voice → expressions) go to the voice, never to the bubble (as src/voice/tags.js)
+  const clean = (t) => String(t ?? '').replace(/<\/?(loud|soft|whisper|fast|slow|singing)>/gi, '').replace(/\s*\[(pause|long-pause|laugh|cry|mouth-click|breath|sigh)\]\s*/gi, ' ').replace(/\s{2,}/g, ' ').trim();
+  function say(raw, withFace = false, ambient = false) {
+    if (ambient && speak.cur && speak.reply) return; // small talk waits for the answer to finish
+    const text = clean(raw);
+    showBubble(document.createTextNode(text), Math.max(4500, text.length * 90));
+    talk(true, text); // the mouth moves with the words even without a voice; a real voice re-syncs it
+    clearTimeout(say.t);
+    say.t = setTimeout(() => talk(false), 500 + text.length * 60);
+    if (withFace) react(text);
+    speak(raw, !ambient);
+  }
+  // It asks before acting for you (Orquesta…): Approve / Reject in the bubble, answered on POST /approve.
+  let asking = null;
+  function ask4(a) {
+    if (a.done) {
+      if (asking !== a.id) return;
+      asking = null;
+      bubble.classList.remove('on', 'asking');
+      return;
+    }
+    asking = null;
+    const box = document.createElement('div');
+    box.className = 'askq';
+    const q = document.createElement('span');
+    q.className = 'q';
+    q.textContent = a.text;
+    const yn = document.createElement('div');
+    yn.className = 'yn';
+    const btn = (ok) => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.textContent = t(ok ? 'approve' : 'reject');
+      if (ok) b.className = 'ok';
+      b.addEventListener('click', () => {
+        yn.querySelectorAll('button').forEach((x) => (x.disabled = true));
+        post('/approve', { id: a.id, ok }).catch(() => {});
+      });
+      return b;
+    };
+    yn.append(btn(false), btn(true));
+    box.append(q, yn);
+    showBubble(box, 0);
+    bubble.classList.add('asking');
+    asking = a.id;
+    ch.gesture('think');
+    speak(a.text);
+  }
+  function setThinking(on) {
+    if (on === thinking) return;
+    thinking = on;
+    paintMood();
+    if (on) {
+      const d = document.createElement('span');
+      d.className = 'dots';
+      d.innerHTML = '<b></b><b></b><b></b>';
+      showBubble(d, 0);
+    } else if (!asking && bubble.querySelector('.dots')) bubble.classList.remove('on');
+  }
+
+  // ── live updates ──
+  const live = $('#live');
+  // The daemon restarts (another ot): wait for it, then reload with the new identity.
+  async function waitAndReload() {
+    for (let i = 0; i < 60; i++) {
+      await new Promise((r) => setTimeout(r, 500));
+      // the new daemon, not the one still letting go of the port (it would serve the old ot again)
+      const h = await fetch('/health').then((r) => (r.ok ? r.json() : null), () => null);
+      if (h && h.pid !== BOOT.pid) return location.reload();
+    }
+  }
+  // The view is in the URL (?3d): on the desktop the shell reloads it (and relaunches when the 3D ot needs
+  // the GPU it started without); in a browser tab the page reloads itself with the new URL.
+  function setView(on) {
+    const q = new URLSearchParams(location.search);
+    if (q.has('3d') === on) return false;
+    if (desktop) return console.debug('§7view' + (on ? '3d' : '2d')), true;
+    on ? q.set('3d', '1') : q.delete('3d');
+    location.replace(`${location.pathname}?${q}`);
+    return true;
+  }
+  function connect() {
+    const es = new EventSource(`/events?token=${encodeURIComponent(BOOT.token)}`);
+    es.onopen = () => { live.classList.add('on'); live.textContent = t('live'); };
+    es.onerror = () => { live.classList.remove('on'); live.textContent = t('off'); };
+    es.onmessage = (e) => {
+      const m = JSON.parse(e.data);
+      if (m.reload) return location.reload(); // e.g. the voice changed in the settings
+      if (m.restart) return waitAndReload(); // it became another ot: a new daemon is starting
+      if (m.backdrop !== undefined) return location.reload(); // its style's background on/off (settings)
+      if (m.view && setView(m.view === '3d')) return; // 2D ↔ 3D changed in the settings
+      if (guest) return; // the host's events are the host's
+      if (m.stir || (m.say && asleep && Date.now() < stirUntil)) stir(); // awake until it has said it
+      if (m.state) render(m.state);
+      if (m.ask) ask4(m.ask); // before thinking: an approved ask hands the bubble back to the dots
+      if ('thinking' in m) setThinking(!!m.thinking);
+      if (m.activity) addActivity(m.activity);
+      // asleep (and not stirred by something you asked for): no moving, gestures or talking
+      if (asleep && Date.now() >= stirUntil && Date.now() - sleptAt > 15000) return void (m.dance && dance(m.dance));
+      if (m.gesture) ch.gesture(m.gesture);
+      if (m.morph) ch.morph?.(m.morph);
+      if (m.effect) ch.effect?.(m.effect);
+      if (m.say) say(m.say, !m.gesture, !!m.ambient);
+      if (m.dance) dance(m.dance);
+      if (m.entrance) entrance(m.entrance);
+      if (m.point && desktop) window.__goal = m.point; // the desktop shell walks it over there
+    };
+  }
+  live.textContent = t('off');
+  connect();
+
+  // ── talk: reminders, notes, open a site (POST /ask) ──
+  const ask = $('#ask');
+  const askIn = $('#askIn');
+  askIn.placeholder = t('askPh');
+  $('#setBtn').href = `/settings?token=${encodeURIComponent(BOOT.token)}`;
+  $('#cardBtn').href = `/card?token=${encodeURIComponent(BOOT.token)}`;
+  $('#setBtn').title = t('settings');
+  if (!desktop) $('#setBtn').removeAttribute('target'); // in a browser tab, Settings opens in place (its Back returns here); the desktop window opens a tab
+  $('#byeBtn').title = t('dismiss');
+  $('#byeBtn').addEventListener('click', () => console.debug('\u00a77bye')); // the shell sends the visitor home
+  const talking = (on) => {
+    document.body.classList.toggle('talking', on);
+    if (on) askIn.focus();
+  };
+  $('#talkBtn').addEventListener('click', () => talking(!document.body.classList.contains('talking') || !desktop));
+  // double click: the menu stays out (for a while, or until another double click); talking is its 💬 button
+  let menuT = 0;
+  addEventListener('dblclick', (e) => {
+    if (!onOt(e) || e.target.closest?.('.actions, .ask')) return;
+    console.log('[7ots] menu');
+    const on = !document.body.classList.contains('menu');
+    document.body.classList.toggle('menu', on);
+    clearTimeout(menuT);
+    if (on) menuT = setTimeout(() => document.body.classList.remove('menu'), 8000);
+  });
+  // right click: the shell's menu (settings, talk, sleep, hide…) at the cursor. Asked for by name: Electron's own
+  // 'context-menu' event didn't reach the shell from this transparent click-through window on Linux.
+  if (desktop)
+    addEventListener('contextmenu', (e) => {
+      if (e.target.closest?.('.ask input')) return; // the talk box keeps copy/paste
+      e.preventDefault();
+      console.debug('\u00a77ctx');
+    });
+  askIn.addEventListener('keydown', (e) => e.key === 'Escape' && talking(false));
+  ask.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const text = askIn.value.trim();
+    if (!text) return;
+    askIn.value = '';
+    if (desktop) talking(false);
+    const r = await post('/ask', { text }).then((x) => x.json()).catch(() => null);
+    if (!r) say('…');
+  });
+  addEventListener('message', (e) => e.data?.talk && talking(true));
+
+  // ── voice: record until you stop talking, transcribe (/stt), then it's like typing it (/ask) ──
+  let rec = null;
+  async function listen() {
+    if (rec) return rec.state === 'recording' && rec.stop();
+    if (!BOOT.stt) return say(t('noStt'));
+    let stream;
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } });
+    } catch {
+      return say(t('noMic'));
+    }
+    const type = MediaRecorder.isTypeSupported('audio/webm;codecs=opus') ? 'audio/webm;codecs=opus' : '';
+    const chunks = [];
+    rec = new MediaRecorder(stream, type ? { mimeType: type } : {});
+    rec.ondataavailable = (e) => e.data.size && chunks.push(e.data);
+    const ac = new AudioContext();
+    const an = ac.createAnalyser();
+    an.fftSize = 1024;
+    ac.createMediaStreamSource(stream).connect(an);
+    const buf = new Float32Array(an.fftSize);
+    const t0 = Date.now();
+    let heard = false;
+    let quiet = t0;
+    let peak = 0;
+    const iv = setInterval(() => {
+      an.getFloatTimeDomainData(buf);
+      let sum = 0;
+      for (const x of buf) sum += x * x;
+      const now = Date.now();
+      const level = Math.sqrt(sum / buf.length);
+      if (level > 0.015) (heard = true), (quiet = now);
+      peak = Math.max(peak, level);
+      // stops after 1.3 s of silence, 6 s without a word, or 15 s in all
+      if ((heard && now - quiet > 1300) || (!heard && now - t0 > 6000) || now - t0 > 15000) rec?.state === 'recording' && rec.stop();
+    }, 80);
+    rec.onstop = async () => {
+      clearInterval(iv);
+      stream.getTracks().forEach((x) => x.stop());
+      ac.close().catch(() => {});
+      rec = null;
+      document.body.classList.remove('listening');
+      console.log('[7ots voice] stopped', { heard, peak: peak.toFixed(3), chunks: chunks.length, ms: Date.now() - t0 });
+      if (!chunks.length) return bubble.classList.remove('on');
+      if (!heard && peak < 0.004) return say(t('noMic')); // silence all along: wrong or muted microphone
+      setThinking(true);
+      const blob = new Blob(chunks, { type: chunks[0].type || 'audio/webm' });
+      const r = await fetch('/stt', { method: 'POST', headers: { 'Content-Type': blob.type, 'X-7ots-Token': BOOT.token }, body: blob })
+        .then((x) => x.json())
+        .catch(() => null);
+      setThinking(false);
+      const text = r?.text?.trim();
+      if (!text) return say(r?.error && !/stt/.test(r.error) ? t('noStt') : t('sttErr'));
+      showBubble(document.createTextNode(`🎙️ “${text}”`), 2500);
+      post('/ask', { text });
+    };
+    rec.onerror = (e) => console.warn('[7ots voice] recorder', e.error?.message || e);
+    const hard = setTimeout(() => rec?.state === 'recording' && rec.stop(), 15000); // whatever the level meter says
+    rec.addEventListener('stop', () => clearTimeout(hard));
+    ac.resume().catch(() => {});
+    rec.start(250);
+    console.log('[7ots voice] listening', rec.mimeType, ac.state);
+    document.body.classList.add('listening');
+    showBubble(document.createTextNode(t('listening')), 0);
+    ch.gesture('nod');
+    lookFree = Date.now() + 2000;
+    ch.lookAt(0, 0);
+  }
+  $('#micBtn').addEventListener('click', listen);
+
+  // The desktop shell tells us how we move: facing (walk -1..1), hops, being dropped, following, the cursor.
+  addEventListener('message', (e) => {
+    const d = e.data || {};
+    if (d.walk != null) {
+      if (is3d) ch.character.yaw = -d.walk * 0.9; // turns toward where it walks, smoothly
+      else $('#stage').classList.toggle('flip', d.walk < 0);
+    }
+    if (d.hop) ch.gesture('bounce');
+    if (d.errand) ch.effect?.('exclaim');
+    if (d.point) {
+      lookFree = Date.now() + 3500;
+      ch.lookAtPoint(d.at[0], d.at[1]);
+      ch.gesture('point', { ms: 2200 });
+    }
+    if (d.listen) listen();
+    if (d.dropped) (ch.gesture('dizzy'), ch.effect?.('dizzy'));
+    if (d.follow) ch.effect?.(Math.random() < 0.6 ? 'hearts' : 'question');
+    if (d.look && Date.now() > lookFree) ch.lookAtPoint(d.look[0], d.look[1]); // the cursor anywhere on screen
+  });
+
+  // ── scenes with other ots: the shell's director sends lines, gestures and acts to each one ──
+  const act = $('#act');
+  const props = $('#props');
+  const prop = (cls, css = {}, text = '') => {
+    const e = Object.assign(document.createElement('div'), { className: cls, textContent: text });
+    Object.assign(e.style, css);
+    props.append(e);
+    return e;
+  };
+  const gone = (e, a) => a.finished.then(() => e.remove(), () => e.remove());
+  const ACTS = {
+    guard: () => act.animate([{ transform: 'none' }, { transform: 'translateY(-5px) rotate(-3deg)' }, { transform: 'none' }, { transform: 'translateY(-5px) rotate(3deg)' }, { transform: 'none' }], { duration: 700, iterations: 3 }),
+    jab: (d) => act.animate([{ transform: 'none' }, { transform: `translateX(${d * 30}px) rotate(${d * 7}deg) scaleX(1.06)`, offset: 0.35 }, { transform: 'none' }], { duration: 280, easing: 'ease-out' }),
+    uppercut: (d) => act.animate([{ transform: 'none' }, { transform: `translate(${-d * 6}px, 8px) rotate(${-d * 8}deg)`, offset: 0.3 }, { transform: `translate(${d * 22}px, -30px) rotate(${d * 16}deg)`, offset: 0.6 }, { transform: 'none' }], { duration: 650, easing: 'ease-out' }),
+    hit: (d) => act.animate([{ transform: 'none' }, { transform: `translateX(${-d * 16}px) rotate(${-d * 12}deg)`, offset: 0.25 }, { transform: 'none' }], { duration: 420 }),
+    pow: (d, o) => {
+      const e = prop('pow', {}, o?.text || 'POW!');
+      return gone(e, e.animate([{ opacity: 0, transform: 'translateX(-50%) scale(.3)' }, { opacity: 1, transform: 'translateX(-50%) scale(1.25) rotate(-8deg)', offset: 0.3 }, { opacity: 0, transform: 'translate(-50%, -16px) scale(1)' }], { duration: 900 }));
+    },
+    // Matrix: bending back in slow motion while the bullets go by
+    lean: (d) => {
+      const a = act.animate([{ transform: 'none' }, { transform: `rotate(${-d * 74}deg) translateX(${-d * 8}px)`, offset: 0.22 }, { transform: `rotate(${-d * 80}deg) translateX(${-d * 10}px)`, offset: 0.78 }, { transform: 'none' }], { duration: 3200, easing: 'cubic-bezier(.3,.7,.3,1)' });
+      for (let i = 0; i < 3; i++) {
+        const y = `${26 + i * 7}%`;
+        const from = d > 0 ? `calc(100% + ${actRoom}px)` : `-${actRoom}px`;
+        const to = d > 0 ? `-${actRoom}px` : `calc(100% + ${actRoom}px)`;
+        const b = prop('bullet', { top: y, left: from });
+        gone(b, b.animate([{ left: from }, { left: to }], { duration: 2400, delay: 500 + i * 260, easing: 'linear', fill: 'both' }));
+        const r = prop('ring', { top: y, left: from, opacity: 0 });
+        gone(r, r.animate([{ left: from, opacity: 0 }, { left: '50%', opacity: 1, transform: 'scale(1)' }, { left: to, opacity: 0, transform: 'scale(2.6)' }], { duration: 2400, delay: 500 + i * 260, fill: 'both' }));
+      }
+      return a;
+    },
+    fall: (d) => act.animate([{ transform: 'none' }, { transform: `rotate(${-d * 90}deg) translateY(10px)`, offset: 0.2 }, { transform: `rotate(${-d * 90}deg) translateY(10px)`, offset: 0.8 }, { transform: 'none' }], { duration: 2600, easing: 'ease-in-out' }),
+    charge: () => act.animate([{ transform: 'none', filter: 'none' }, { transform: 'translate(-2px,1px)', filter: 'drop-shadow(0 0 10px #59c4ff)' }, { transform: 'translate(2px,-1px)', filter: 'drop-shadow(0 0 18px #59c4ff)' }, { transform: 'none', filter: 'none' }], { duration: 160, iterations: 9 }),
+    hadouken: (d) => {
+      const b = prop('ball');
+      gone(b, b.animate([{ transform: 'translateX(0) scale(.4)' }, { transform: `translateX(${d * (actRoom - 10)}px) scale(1.15)` }], { duration: 650, easing: 'ease-in' }));
+      return act.animate([{ transform: 'none' }, { transform: `translateX(${d * 12}px)`, offset: 0.2 }, { transform: 'none' }], { duration: 700 });
+    },
+    beam: (d) => {
+      const b = prop('beam', d > 0 ? { left: '50%' } : { right: '50%', left: 'auto' });
+      gone(b, b.animate([{ width: '0px', opacity: 1 }, { width: `${actRoom}px`, opacity: 1, offset: 0.25 }, { width: `${actRoom}px`, opacity: 1, offset: 0.8 }, { width: `${actRoom}px`, opacity: 0 }], { duration: 1800 }));
+      return act.animate([{ transform: 'none' }, { transform: `translateX(${-d * 6}px)` }], { duration: 120, iterations: 14, direction: 'alternate' });
+    },
+    saber: (d, o) => {
+      const c = o?.color || '#ff3b3b';
+      const s = prop('saber', { background: `linear-gradient(90deg, ${c}, #fff 40%, #fff 60%, ${c})`, boxShadow: `0 0 12px 4px ${c}`, left: `calc(50% + ${d * 34}px)` });
+      return gone(s, s.animate([{ transform: `rotate(${-d * 40}deg)` }, { transform: `rotate(${d * 50}deg)` }, { transform: `rotate(${-d * 20}deg)` }, { transform: `rotate(${d * 70}deg)` }, { transform: `rotate(${-d * 40}deg)` }], { duration: 2400, easing: 'ease-in-out' }));
+    },
+    bang: (d) => {
+      const f = prop('flash', { left: `calc(50% + ${d * 46}px)` });
+      return gone(f, f.animate([{ opacity: 1, transform: 'scale(.4)' }, { opacity: 0, transform: 'scale(1.6)' }], { duration: 260 }));
+    },
+    twist: () => act.animate([{ transform: 'rotate(-12deg) translateX(-6px)' }, { transform: 'rotate(12deg) translateX(6px)' }], { duration: 330, iterations: 10, direction: 'alternate', easing: 'ease-in-out' }),
+    shove: (d) => act.animate([{ transform: 'none' }, { transform: `translateX(${d * 24}px) scaleX(1.1)`, offset: 0.4 }, { transform: 'none' }], { duration: 380 }),
+  };
+  addEventListener('message', (e) => {
+    const d = e.data || {};
+    if (d.hush) (bubble.classList.remove('on'), clearTimeout(say.t), talk(false)); // the other ot's turn to talk
+    if (d.line) {
+      showBubble(document.createTextNode(d.line), d.ms || Math.max(2200, d.line.length * 70));
+      talk(true, d.line);
+      clearTimeout(say.t);
+      say.t = setTimeout(() => talk(false), 400 + d.line.length * 55);
+    }
+    if (d.gesture) ch.gesture(d.gesture, d.gms ? { ms: d.gms } : undefined);
+    if (d.effect) ch.effect?.(d.effect);
+    if (d.act && ACTS[d.act]) {
+      actRoom = d.room || 150;
+      actTall = 70;
+      actUntil = Date.now() + (d.ms || 3600);
+      tellNeed();
+      requestAnimationFrame(() => ACTS[d.act](d.dir || 1, d));
+    }
+    if (d.dance) dance(d.dance);
+    if (d.entrance) entrance(d.entrance);
+    if (d.face != null) {
+      if (is3d) ch.character.yaw = -d.face * 0.9;
+      else $('#stage').classList.toggle('flip', d.face < 0);
+      lookFree = Date.now() + 1500;
+      ch.lookAt?.(d.face * 0.8, 0);
+    }
+  });
+
+  // ── dances with music, and entrances (POST /dance, /entrance on the daemon; `7ots dance`, `7ots entrance`) ──
+  // Music: synthesized at the dance's tempo (beat.js, no copyrighted audio) or one of your own files in ~/.7ots/music.
+  const any = (a) => a[Math.floor(Math.random() * a.length)];
+  let beat = null;
+  let tune = null;
+  let danceEnd = 0;
+  function stopMusic(fade = 0.4) {
+    beat?.stop(fade);
+    beat = null;
+    if (tune) {
+      const a = tune;
+      tune = null;
+      const v0 = a.volume;
+      const t0 = Date.now();
+      const f = setInterval(() => {
+        const k = Math.min(1, (Date.now() - t0) / (fade * 1000 || 1));
+        a.volume = Math.max(0, v0 * (1 - k));
+        if (k >= 1) (clearInterval(f), a.pause());
+      }, 40);
+    }
+  }
+  function music(m, ms, style) {
+    stopMusic(0.2);
+    if (!m || guest) return; // a visitor dances along to the host's music
+    const vol = Math.max(0, Math.min(1, m.vol ?? 0.5));
+    if (m.file) {
+      const a = new Audio(`/music/${encodeURIComponent(m.file)}?token=${encodeURIComponent(BOOT.token)}`);
+      a.volume = vol;
+      a.play().catch((e) => console.warn('[7ots pet] music:', e?.message || e));
+      tune = a;
+      setTimeout(() => tune === a && stopMusic(1.2), Math.max(0, ms - 1200));
+    } else beat = playBeat?.(m.style || style || 'hype', { ms, volume: vol });
+  }
+  function dance(d = {}) {
+    if (asleep) stir();
+    const name = DANCES.includes(d.name) ? d.name : any(DANCES.length ? DANCES : ['dance']);
+    const ms = Math.max(1500, Math.min(60000, Number(d.ms) || 8000));
+    danceEnd = Date.now() + ms;
+    ch.gesture(name, { ms });
+    music(d.music, ms, DANCE_STYLE[name]);
+  }
+  // a wrestling-style entrance: the crowd, two booms with pyro, spotlights, its name slammed in, then a dance
+  let entering = 0;
+  function entrance(d = {}) {
+    if (Date.now() < entering) return;
+    const INTRO = 2200; // the music's intro (crowd + booms) before the riff
+    const ms = 12000;
+    entering = Date.now() + ms;
+    stir();
+    const kind = ['wwe', 'rock', 'magic'].includes(d.kind) ? d.kind : 'wwe';
+    const style = { wwe: 'entrance', rock: 'hype', magic: 'chip' }[kind];
+    music(d.music && !d.music.file ? { ...d.music, style } : d.music, ms, style);
+    if (desktop) console.debug('§7enter'); // the shell walks it in from the side
+    actRoom = 190;
+    actTall = 150;
+    actUntil = Date.now() + ms;
+    tellNeed();
+    // walking in under two crossing spotlights
+    for (const k of kind === 'magic' ? [] : [-1, 1]) {
+      const sp = prop(kind === 'rock' ? 'spot rock' : 'spot');
+      gone(sp, sp.animate([{ opacity: 0, transform: `rotate(${k * 28}deg)` }, { opacity: 1, transform: `rotate(${-k * 18}deg)`, offset: 0.25 }, { opacity: 1, transform: `rotate(${k * 12}deg)`, offset: 0.5 }, { opacity: 1, transform: `rotate(${-k * 6}deg)`, offset: 0.75 }, { opacity: 0, transform: 'rotate(0deg)' }], { duration: ms, easing: 'ease-in-out' }));
+    }
+    ch.gesture('groove', { ms: INTRO + 1800 });
+    // pyro on each boom of the music (1.0 s and 1.6 s), both sides
+    const pyro = (at) =>
+      setTimeout(() => {
+        if (kind === 'rock') return ch.effect?.('confetti'), ch.effect?.('notes');
+        if (kind === 'magic') {
+          for (const x of [-1, 0, 1]) {
+            const p = prop('smoke', { left: `calc(50% + ${x * (actRoom - 50)}px)` });
+            gone(p, p.animate([{ transform: 'scale(.3)', opacity: 0.9 }, { transform: 'scale(1.6) translateY(-20px)', opacity: 0 }], { duration: 1600, easing: 'ease-out' }));
+          }
+          return ch.effect?.('sparkles');
+        }
+        for (const x of [-1, 1]) {
+          const p = prop('pyro', { left: `calc(50% + ${x * (actRoom - 30)}px)` });
+          gone(p, p.animate([{ transform: 'scaleY(0)', opacity: 1 }, { transform: 'scaleY(1.1)', opacity: 1, offset: 0.25 }, { transform: 'scaleY(.8)', opacity: 0.9, offset: 0.6 }, { transform: 'scaleY(.2)', opacity: 0 }], { duration: 1100, easing: 'ease-out' }));
+        }
+        const f = prop('flash', { left: '50%', top: '30%' });
+        gone(f, f.animate([{ opacity: 1, transform: 'scale(.5)' }, { opacity: 0, transform: 'scale(4)' }], { duration: 500 }));
+        ch.effect?.('sparkles');
+      }, at);
+    pyro(1000);
+    pyro(1600);
+    // its name, slammed in on the riff
+    setTimeout(() => {
+      const t = prop('title', {}, String(d.name || id.name || 'ot').slice(0, 24));
+      gone(t, t.animate([{ opacity: 0, transform: 'translateX(-50%) scale(2.6)' }, { opacity: 1, transform: 'translateX(-50%) scale(.95)', offset: 0.06 }, { opacity: 1, transform: 'translateX(-50%) scale(1)', offset: 0.1 }, { opacity: 1, transform: 'translateX(-50%) scale(1.04)', offset: 0.85 }, { opacity: 0, transform: 'translateX(-50%) translateY(-10px) scale(1)' }], { duration: ms - INTRO - 600, easing: 'ease-out' }));
+      ch.gesture('celebrate');
+      ch.effect?.('confetti');
+    }, INTRO);
+    // arrived: points at the crowd, then dances to the end of the music
+    setTimeout(() => (ch.gesture('point'), ch.effect?.('sparkles')), INTRO + 1900);
+    setTimeout(() => {
+      const name = DANCES.includes(d.dance) ? d.dance : any(DANCES.filter((n) => n !== 'dab' && n !== 'dance'));
+      danceEnd = entering;
+      ch.gesture(name, { ms: ms - INTRO - 3600 });
+    }, INTRO + 3400);
+  }
+  // an entrance when the pet starts, if the owner turned it on (the server says yes once per run)
+  if (!guest) setTimeout(() => post('/entrance', { start: true }).catch(() => {}), 2500);
+  $('#danceBtn').title = t('dance');
+  if (!guest)
+    $('#danceBtn')?.addEventListener('click', () => post('/dance', {}).catch(() => dance({})));
+  else $('#danceBtn')?.addEventListener('click', () => dance({}));
+
+  // ── personality: small life between events (glances, fidgets, effects, shape changes) ──
+  const pick = (a) => a[Math.floor(Math.random() * a.length)];
+  const SHAPES = ['round', 'egg', 'pear', 'bean', 'squircle', 'drop', 'ghost', 'cat', 'cloud', 'blob', 'heart', 'mushroom', 'tall', 'wide'].filter((x) => x !== spec.shape);
+  const weighted = (list) => {
+    let r = Math.random() * list.reduce((a, x) => a + x[0], 0);
+    for (const x of list) if ((r -= x[0]) <= 0) return x[1];
+  };
+  function glance() {
+    lookFree = Date.now() + 1400 + Math.random() * 1200;
+    ch.lookAt((Math.random() * 2 - 1) * 0.8, (Math.random() * 2 - 1) * 0.5);
+    if (Math.random() < 0.4) ch.blink?.();
+  }
+  function fidget() {
+    const s = last || {};
+    const tired = s.energy < 35;
+    const bored = s.fun < 35;
+    const hungry = s.food < 35;
+    const happy = s.mood === 'happy';
+    weighted([
+      [5, glance],
+      [2, () => ch.gesture('wiggle')],
+      [1.5, () => (ch.gesture('think'), ch.effect?.('question'))],
+      [1, () => ch.gesture('shrug')],
+      [0.6, () => ch.gesture('hiccup')],
+      [0.5, () => (ch.gesture('sneeze'), ch.effect?.('sneeze'))],
+      [happy ? 2.5 : 0.6, () => (ch.gesture('dance'), ch.effect?.('notes'))],
+      [happy ? 0.8 : 0.2, () => ch.gesture(pick(DANCES.length ? DANCES : ['dance']), { ms: 3000 })], // a few silent moves (music only when asked)
+      [happy ? 0.8 : 0.2, () => (ch.gesture('celebrate'), ch.effect?.('sparkles'))],
+      [0.6, () => ch.gesture('spin')],
+      [0.5, () => ch.gesture('clap')],
+      [tired ? 3 : 0.4, () => ch.gesture('yawn')],
+      [bored ? 1.5 : 0.2, () => (ch.gesture('stomp'), ch.effect?.('steam'))],
+      [hungry ? 1.2 : 0, () => (ch.gesture('point'), ch.effect?.('thought'))],
+      [0.6, () => ch.effect?.('blush')],
+      [0.3, () => ch.gesture('shiver')],
+      [1.2, () => ch.morph?.(pick(['puff', 'squish', 'stretch']), { ms: 1600 + Math.random() * 1600 })],
+      [0.7, () => ch.morph?.(pick(['wings', 'horns', 'spikes', 'hands']), { ms: 2500 + Math.random() * 2500 })],
+      [0.8, () => ch.morph?.(`shape:${pick(SHAPES)}`, { ms: 2500 + Math.random() * 3000 })],
+    ])?.();
+  }
+  (function life() {
+    setTimeout(() => {
+      if (!asleep && !thinking && !rec && !bubble.classList.contains('on') && !document.hidden && Date.now() > danceEnd) fidget(); // not over a dance
+      life();
+    }, 4000 + Math.random() * 8000);
+  })();
+</script>
+</body>
+</html>

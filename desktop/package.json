@@ -1,0 +1,20 @@
+{
+  "name": "7ots-desktop",
+  "private": true,
+  "description": "Builds the 7ots desktop pet installers (AppImage/deb, dmg, NSIS exe). See electron-builder.yml and .github/workflows/desktop-release.yml.",
+  "scripts": {
+    "stage": "node stage.mjs",
+    "start": "node stage.mjs && electron app",
+    "dist": "node stage.mjs && electron-builder --publish never",
+    "dist:linux": "node stage.mjs && electron-builder --linux --publish never",
+    "dist:mac": "node stage.mjs && electron-builder --mac --publish never",
+    "dist:win": "node stage.mjs && electron-builder --win --publish never"
+  },
+  "appDependencies": {
+    "electron-updater": "^6.8.9"
+  },
+  "devDependencies": {
+    "electron": "37.10.3",
+    "electron-builder": "^26.15.3"
+  }
+}

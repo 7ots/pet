@@ -1,0 +1,75 @@
+{
+  "name": "@7ots/cli",
+  "version": "0.1.17",
+  "description": "7ots.com — your AI companion with a face of its own: a desktop pet that watches over your coding agent (Claude Code and shell hooks), a personal assistant (reminders, alerts, notes, opens sites, sees your screen if allowed) and a reproducible identity (face, personality, voice) for any agent — in apuchat meet calls, Orquesta projects or your own server.",
+  "homepage": "https://7ots.com",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/7ots/7ots.git"
+  },
+  "type": "module",
+  "license": "MIT",
+  "main": "./dist/7ots.esm.js",
+  "module": "./dist/7ots.esm.js",
+  "exports": {
+    ".": {
+      "import": "./dist/7ots.esm.js",
+      "default": "./dist/7ots.esm.js"
+    },
+    "./server": "./server/sdk.mjs",
+    "./identity": "./server/identity.mjs",
+    "./src/*": "./src/*"
+  },
+  "files": [
+    "dist",
+    "src",
+    "server",
+    "cli",
+    "skills",
+    "brand",
+    ".env.example",
+    "README.md",
+    "LICENSE",
+    "llms.txt"
+  ],
+  "bin": {
+    "7ots": "./cli/7ots.mjs"
+  },
+  "scripts": {
+    "dev": "node --watch server/server.mjs",
+    "start": "node server/server.mjs",
+    "build": "node scripts/build.mjs",
+    "check": "node scripts/check.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "keywords": [
+    "ai-companion",
+    "desktop-pet",
+    "tamagotchi",
+    "personal-assistant",
+    "agent-identity",
+    "ai-agent",
+    "claude-code",
+    "coding-agent",
+    "hooks",
+    "reminders",
+    "avatar",
+    "voice",
+    "meet",
+    "orquesta",
+    "prowl",
+    "mcp",
+    "claude",
+    "openai",
+    "cli"
+  ],
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.129.0",
+    "openai": "^7.25.0"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2"
+  }
+}

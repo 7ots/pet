@@ -1,0 +1,59 @@
+/*
+ * 7ots.com — tokens de marca (ver docs/BRAND.md).
+ * Escalas fijas + tokens semánticos con tema claro/oscuro.
+ * Tema: automático por prefers-color-scheme, o forzado con <html data-theme="light|dark">.
+ */
+:root {
+  /* violeta (primario) */
+  --v-50: #f3f1ff; --v-100: #e8e5ff; --v-200: #d3cdff; --v-300: #b3a9ff; --v-400: #8b7cff; --v-500: #6d5dfc;
+  --v-600: #5b47f0; --v-700: #4b36d6; --v-800: #3d2dad; --v-900: #332a88; --v-950: #1e1850;
+  /* cian (acento) */
+  --c-50: #ecfeff; --c-100: #cffafe; --c-200: #a5f3fc; --c-300: #67e8f9; --c-400: #22d3ee; --c-500: #06b6d4;
+  --c-600: #0891b2; --c-700: #0e7490; --c-800: #155e75; --c-900: #164e63; --c-950: #083344;
+  /* neutros con tinte violeta */
+  --n-0: #ffffff; --n-50: #f8f7fc; --n-100: #f0eff7; --n-200: #e2e0ee; --n-300: #c9c6db; --n-400: #9d9ab0;
+  --n-500: #6b6880; --n-600: #514e66; --n-700: #3b3950; --n-800: #25233a; --n-900: #16152a; --n-950: #0b0a14;
+
+  /* tipografía */
+  --font-display: 'Bricolage Grotesque', Inter, system-ui, sans-serif;
+  --font-body: Inter, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  /* forma */
+  --radius-sm: 8px; --radius-md: 16px; --radius-lg: 24px; --radius-pill: 999px;
+  --container: 1200px; --measure: 660px;
+
+  /* semánticos: claro */
+  --bg: var(--n-50); --surface: var(--n-0); --surface-2: var(--n-100); --border: var(--n-200);
+  --text: var(--n-900); --text-muted: var(--n-500);
+  --primary: var(--v-600); --primary-hover: var(--v-700); --on-primary: #fff; --primary-soft: var(--v-100);
+  --link: var(--v-600); --accent: var(--c-400); --accent-text: var(--c-700);
+  --success: #16a34a; --warning: #d97706; --error: #dc2626;
+  --shadow: 0 1px 2px rgb(22 21 42 / .06), 0 8px 24px rgb(22 21 42 / .06);
+  --shadow-lg: 0 2px 4px rgb(22 21 42 / .05), 0 24px 60px rgb(22 21 42 / .12);
+  --glow: none;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --bg: var(--n-950); --surface: var(--n-900); --surface-2: #1d1c33; --border: #ffffff14;
+    --text: var(--n-50); --text-muted: var(--n-400);
+    --primary: var(--v-400); --primary-hover: var(--v-300); --on-primary: var(--n-950); --primary-soft: #221d4a;
+    --link: var(--v-300); --accent-text: var(--c-400);
+    --success: #4ade80; --warning: #fbbf24; --error: #f87171;
+    --shadow: inset 0 1px 0 #ffffff0f; --shadow-lg: inset 0 1px 0 #ffffff0f, 0 30px 80px rgb(0 0 0 / .45);
+    --glow: 0 0 120px 20px rgb(109 93 252 / .25);
+    color-scheme: dark;
+  }
+}
+:root[data-theme='dark'] {
+  --bg: var(--n-950); --surface: var(--n-900); --surface-2: #1d1c33; --border: #ffffff14;
+  --text: var(--n-50); --text-muted: var(--n-400);
+  --primary: var(--v-400); --primary-hover: var(--v-300); --on-primary: var(--n-950); --primary-soft: #221d4a;
+  --link: var(--v-300); --accent-text: var(--c-400);
+  --success: #4ade80; --warning: #fbbf24; --error: #f87171;
+  --shadow: inset 0 1px 0 #ffffff0f; --shadow-lg: inset 0 1px 0 #ffffff0f, 0 30px 80px rgb(0 0 0 / .45);
+  --glow: 0 0 120px 20px rgb(109 93 252 / .25);
+  color-scheme: dark;
+}

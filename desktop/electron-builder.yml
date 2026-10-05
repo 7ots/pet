@@ -1,0 +1,65 @@
+# The 7ots desktop pet as installers. `npm run dist:linux|mac|win` here (after `npm run build` at the root);
+# CI: .github/workflows/desktop-release.yml. Signing/notarization come only from env (CSC_LINK, APPLE_API_KEY…).
+appId: com.sevenots.pet
+productName: 7ots
+copyright: Copyright © 2026 7ots
+directories:
+  app: app            # staged by stage.mjs
+  output: release
+  buildResources: build
+# Unpacked: the daemon runs cli/*.mjs in node mode and hands python helpers (cli/lib/*.py) to python3.
+asar: false
+# Stable names (no version): https://github.com/7ots/pet-releases/releases/latest/download/<name> always works.
+artifactName: 7ots-${os}.${ext}
+
+# electron-updater reads latest*.yml from the public binaries repo 7ots/pet-releases (7ots/7ots is private).
+# CI uploads to a draft on 7ots/7ots with `gh` (never --publish); scripts/publish-desktop.sh copies it over.
+publish:
+  provider: github
+  owner: 7ots
+  repo: pet-releases
+
+mac:
+  category: public.app-category.entertainment
+  target:
+    - target: dmg
+      arch: universal
+    - target: zip       # what the updater downloads
+      arch: universal
+  artifactName: 7ots-mac.${ext}   # 7ots-mac.zip (updater)
+  hardenedRuntime: true
+  gatekeeperAssess: false
+  entitlements: build/entitlements.mac.plist
+  entitlementsInherit: build/entitlements.mac.plist
+  extendInfo:
+    NSMicrophoneUsageDescription: Your 7ots pet listens when you ask it to (Ctrl+Alt+Space).
+    NSCameraUsageDescription: Your 7ots pet only uses the camera if you allow it in its settings.
+dmg:
+  artifactName: 7ots-mac.${ext}
+
+win:
+  target:
+    - target: nsis
+      arch: x64
+nsis:
+  artifactName: 7ots-windows.${ext}
+  oneClick: true
+  perMachine: false
+  createDesktopShortcut: true
+  runAfterFinish: true
+
+linux:
+  target:
+    - AppImage
+    - deb
+  category: Utility
+  synopsis: Your AI companion with a face of its own, on your desktop
+  maintainer: 7ots <noreply@7ots.com>
+  executableName: 7ots
+  syncDesktopName: true
+appImage:
+  artifactName: 7ots-linux.${ext}
+deb:
+  artifactName: 7ots-linux.${ext}
+  depends: [libnotify4, libxtst6, libnss3, libxss1, libatspi2.0-0, libuuid1, libsecret-1-0]
+  recommends: [python3, xdotool]
