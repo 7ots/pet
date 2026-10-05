@@ -29,6 +29,17 @@ keeping an eye on prices or long-running jobs, and telling you when your AI codi
 This repository is the full source of what you install: the desktop app, the `7ots` command-line tool and the
 local server they run. It is published so you can read exactly what runs on your computer.
 
+## See it in action
+
+https://github.com/user-attachments/assets/2c23cc1b-9454-4e98-bad5-c98999713b9b
+
+<details>
+<summary><b>Full desktop walkthrough</b> (2 min, no sound): the eight things it does, one by one</summary>
+
+https://github.com/user-attachments/assets/a4fd3baf-b76d-4030-87db-aa13e43d505e
+
+</details>
+
 ## What it does
 
 | | |
