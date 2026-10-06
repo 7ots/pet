@@ -110,7 +110,7 @@ function childEnv() {
 
 function run(cmd, args, { cwd, signal, timeout = 10 * 60 * 1000, input } = {}) {
   return new Promise((resolve) => {
-    const p = spawn(cmd, args, { cwd, env: childEnv(), stdio: ['pipe', 'pipe', 'pipe'] });
+    const p = spawn(cmd, args, { cwd, windowsHide: true, env: childEnv(), stdio: ['pipe', 'pipe', 'pipe'] });
     let out = '';
     const add = (b) => {
       if (out.length < OUT_MAX * 2) out += b;

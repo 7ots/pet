@@ -61,7 +61,7 @@ async function httpSession(url, token) {
 
 // ── stdio ──
 async function stdioSession(command, extraEnv) {
-  const child = spawn('/bin/sh', ['-c', command], { stdio: ['pipe', 'pipe', 'ignore'], env: { ...process.env, ...extraEnv } });
+  const child = spawn('/bin/sh', ['-c', command], { windowsHide: true, stdio: ['pipe', 'pipe', 'ignore'], env: { ...process.env, ...extraEnv } });
   const waiting = new Map();
   let buf = '';
   let dead = null;

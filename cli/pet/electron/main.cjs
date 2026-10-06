@@ -31,9 +31,9 @@ const MIN = { w: 288, h: 272 };
 const linux = process.platform === 'linux';
 
 const L = {
-  en: { settings: '⚙️ Settings', talk: '💬 Talk', listen: '🎙️ Listen (Ctrl+Alt+Space)', show: 'Show pet', hide: 'Hide (keeps living)', feed: '🍎 Treat', play: '🎾 Play', sleep: '💤 Sleep', wake: '☀️ Wake up', still: 'Stay still', quit: 'Quit pet' },
-  es: { settings: '⚙️ Configuración', talk: '💬 Hablar', listen: '🎙️ Escúchame (Ctrl+Alt+Espacio)', show: 'Mostrar mascota', hide: 'Ocultar (sigue viva)', feed: '🍎 Mimar', play: '🎾 Jugar', sleep: '💤 Dormir', wake: '☀️ Despertar', still: 'Quedarse quieta', quit: 'Cerrar mascota' },
-  pt: { settings: '⚙️ Configurações', talk: '💬 Falar', listen: '🎙️ Me escute (Ctrl+Alt+Espaço)', show: 'Mostrar bichinho', hide: 'Esconder (segue vivo)', feed: '🍎 Mimar', play: '🎾 Brincar', sleep: '💤 Dormir', wake: '☀️ Acordar', still: 'Ficar parado', quit: 'Fechar bichinho' },
+  en: { settings: '⚙️ Settings', talk: '💬 Talk', listen: '🎙️ Listen (Ctrl+Alt+Space)', show: 'Show pet', hide: 'Hide (keeps living)', feed: '🍎 Treat', play: '🎾 Play', byte: '🎮 Play on byte', watch: '📺 Watch the game', stopGame: '⏹ Stop the game', noGames: 'byte: no games (sign in to 7ots.com)', sleep: '💤 Sleep', wake: '☀️ Wake up', still: 'Stay still', quit: 'Quit pet' },
+  es: { settings: '⚙️ Configuración', talk: '💬 Hablar', listen: '🎙️ Escúchame (Ctrl+Alt+Espacio)', show: 'Mostrar mascota', hide: 'Ocultar (sigue viva)', feed: '🍎 Mimar', play: '🎾 Jugar', byte: '🎮 Jugar en byte', watch: '📺 Ver la partida', stopGame: '⏹ Parar la partida', noGames: 'byte: sin juegos (entra a 7ots.com)', sleep: '💤 Dormir', wake: '☀️ Despertar', still: 'Quedarse quieta', quit: 'Cerrar mascota' },
+  pt: { settings: '⚙️ Configurações', talk: '💬 Falar', listen: '🎙️ Me escute (Ctrl+Alt+Espaço)', show: 'Mostrar bichinho', hide: 'Esconder (segue vivo)', feed: '🍎 Mimar', play: '🎾 Brincar', byte: '🎮 Jogar no byte', watch: '📺 Ver a partida', stopGame: '⏹ Parar a partida', noGames: 'byte: sem jogos (entre no 7ots.com)', sleep: '💤 Dormir', wake: '☀️ Acordar', still: 'Ficar parado', quit: 'Fechar bichinho' },
 }[LANG] || {};
 const tr = (k) => L[k] || { listen: 'Listen', show: 'Show pet', hide: 'Hide', talk: 'Talk', settings: 'Settings', feed: 'Feed', play: 'Play', sleep: 'Sleep', wake: 'Wake up', still: 'Stay still', quit: 'Quit pet' }[k];
 
@@ -91,7 +91,7 @@ function watchX11Cursor() {
   ].join('\n');
   let child;
   try {
-    child = require('node:child_process').spawn('python3', ['-c', py], { stdio: ['ignore', 'pipe', 'ignore'] });
+    child = require('node:child_process').spawn('python3', ['-c', py], { stdio: ['ignore', 'pipe', 'ignore'], windowsHide: true });
   } catch {
     return;
   }
@@ -171,6 +171,8 @@ function makeOt(opt = {}) {
   const FULL = HOST || !!opt.url;
   const postOt = (p, body) =>
     fetch(new URL(p, base), { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-7ots-Token': tok }, body: JSON.stringify(body || {}) }).catch(() => {});
+  const getOt = (p) =>
+    fetch(new URL(p, base), { headers: { 'X-7ots-Token': tok } }).then((r) => r.json()).catch(() => ({}));
   const area = screen.getPrimaryDisplay().workArea;
   const right = area.x + area.width;
   const floor = area.y + area.height;
@@ -263,11 +265,64 @@ function makeOt(opt = {}) {
       { label: tr('feed'), click: () => postOt('/event', { type: 'feed' }) },
       { label: tr('sleep'), click: () => postOt('/event', { type: 'sleep' }) },
       { label: tr('wake'), click: () => postOt('/event', { type: 'wake' }) },
+      { label: tr('byte'), click: () => gameMenu().then((m) => m.popup({ window: win })) },
       { type: 'separator' },
       { label: tr('settings'), click: () => openSettings(base, tok) },
       { label: tr('still'), type: 'checkbox', checked: still, click: (i) => (still = i.checked) },
       HOST ? { label: tr('quit'), click: () => post('/quit').finally(() => app.quit()) } : { label: { es: '👋 Despedir', pt: '👋 Mandar embora' }[LANG] || '👋 Send home', click: dismiss },
     ]);
+  // ── byte arena: the ot plays a game live (7ots.com runs its moves) and a small window shows it, beside it ──
+  let gameWin = null;
+  const watchGame = (url) => {
+    if (!/^https:\/\/[^/]+\/stream\/s_[a-z0-9]+$/i.test(String(url || ''))) return;
+    if (gameWin && !gameWin.isDestroyed()) return gameWin.loadURL(url), gameWin.showInactive();
+    const w = 480;
+    const h = 300;
+    const [wx, wy] = win.getPosition();
+    const x = Math.max(area.x, Math.min(right - w, wx + size.w / 2 - w - 40));
+    const y = Math.max(area.y, Math.min(floor - h, wy + size.h - h));
+    gameWin = new BrowserWindow({ x, y, width: w, height: h, minWidth: 320, minHeight: 200, alwaysOnTop: true, title: 'byte arena', icon: ICON, autoHideMenuBar: true, backgroundColor: '#0b0b12', show: false, webPreferences: { contextIsolation: true, sandbox: true } });
+    gameWin.removeMenu?.();
+    gameWin.setAlwaysOnTop(true, 'floating');
+    gameWin.webContents.setAudioMuted(false);
+    // the page stays on byte's stream; any other link goes to the browser
+    const origin = new URL(url).origin;
+    gameWin.webContents.setWindowOpenHandler(({ url: u }) => (shell.openExternal(u).catch(() => {}), { action: 'deny' }));
+    gameWin.webContents.on('will-navigate', (e, u) => String(u).startsWith(`${origin}/stream/`) || (e.preventDefault(), shell.openExternal(u).catch(() => {})));
+    gameWin.loadURL(url);
+    gameWin.once('ready-to-show', () => gameWin.showInactive());
+    gameWin.on('closed', () => (gameWin = null));
+  };
+  const playGame = async (game) => {
+    const r = await fetch(new URL('/byte/play', base), { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-7ots-Token': tok }, body: JSON.stringify({ game }) }).then((x) => x.json()).catch((e) => ({ error: e.message }));
+    if (r.streamUrl) {
+      watchGame(r.streamUrl);
+      postOt('/event', { type: 'say', text: `🎮 ${r.game}` });
+      watchStart(r.sessionId);
+    } else postOt('/event', { type: 'say', text: `byte: ${r.error || 'no'}` });
+  };
+  // a game that dies before its first move leaves the stream black: say why and close the window
+  const watchStart = (sid, n = 0) =>
+    setTimeout(async () => {
+      const st = await getOt('/byte/status').catch(() => ({}));
+      if (st.sessionId !== sid) return;
+      if (st.status === 'error' || ((st.status === 'finished' || st.status === 'stopped') && !st.moves)) {
+        postOt('/event', { type: 'say', text: `byte: ${st.error || st.status}` });
+        if (gameWin && !gameWin.isDestroyed()) gameWin.close();
+      } else if (!st.moves && n < 12) watchStart(sid, n + 1);
+    }, 4000);
+  const gameMenu = async () => {
+    const [st, g] = await Promise.all([getOt('/byte'), getOt('/byte/games')]);
+    const live = st.play?.status === 'running';
+    const items = live
+      ? [
+          { label: `${st.play.game} · ${st.play.moves}`, enabled: false },
+          { label: tr('watch'), click: () => watchGame(st.play.streamUrl) },
+          { label: tr('stopGame'), click: () => postOt('/byte/stop').then(() => gameWin && !gameWin.isDestroyed() && gameWin.close()) },
+        ]
+      : (g.games || []).map((x) => ({ label: x.name || x.slug, click: () => playGame(x.slug) }));
+    return Menu.buildFromTemplate(items.length ? items : [{ label: tr('noGames'), enabled: false }]);
+  };
   function listen() {
     if (!win.isVisible()) win.showInactive();
     page('postMessage({ listen: true })');
@@ -460,6 +515,7 @@ function makeOt(opt = {}) {
     }
     if (m.startsWith('\u00a77bye')) return HOST || dismiss();
     if (m.startsWith('\u00a77ctx')) return (FULL ? menu() : guestMenu()).popup({ window: win });
+    if (m.startsWith('\u00a77game')) return FULL && gameMenu().then((mm) => mm.popup({ window: win }));
     if (m.startsWith('\u00a77view')) return setView(m.slice(6) === '3d');
     if (m.startsWith('\u00a77enter')) return enter();
     if (!m.startsWith('\u00a77need')) return;
@@ -596,7 +652,7 @@ function makeOt(opt = {}) {
   const minY = area.y + BIG.h;
   const TERM = /terminal|kitty|alacritty|konsole|tilix|wezterm|xterm|ghostty|warp|terminator|code|cursor|windsurf|zed|jetbrains|idea|pycharm|webstorm/i;
   const BROWSER = /chrom|firefox|brave|vivaldi|opera|edge|epiphany|librewolf|zen/i;
-  const run = (cmd, args) => new Promise((res) => execFile(cmd, args, { timeout: 1500 }, (e, out) => res(e ? '' : String(out))));
+  const run = (cmd, args) => new Promise((res) => execFile(cmd, args, { timeout: 1500, windowsHide: true }, (e, out) => res(e ? '' : String(out))));
   // The top-most visible window whose class matches, if it is not mostly covered by others (no use pointing
   // at a terminal hidden behind the browser: then it comes to the cursor instead).
   async function findWindow(re) {

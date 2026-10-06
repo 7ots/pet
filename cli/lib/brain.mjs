@@ -39,12 +39,16 @@ export const AI_CLIS = {
 
 const LANG_NAME = { en: 'English', es: 'Spanish', pt: 'Portuguese' };
 
-/** Which AI CLIs are installed (for the wizard and `--mode auto`). */
+/** Which AI CLIs are installed (for the wizard and `--mode auto`). Cached a minute: settings polls it. */
+let clisSeen = null;
 export function detectClis() {
-  return Object.keys(AI_CLIS).filter((k) => {
-    const r = spawnSync(process.platform === 'win32' ? 'where' : 'which', [AI_CLIS[k].bin], { stdio: 'ignore' });
+  if (clisSeen && Date.now() - clisSeen.at < 60000) return clisSeen.list;
+  const list = Object.keys(AI_CLIS).filter((k) => {
+    const r = spawnSync(process.platform === 'win32' ? 'where' : 'which', [AI_CLIS[k].bin], { stdio: 'ignore', windowsHide: true });
     return r.status === 0;
   });
+  clisSeen = { at: Date.now(), list };
+  return list;
 }
 
 /** System prompt shared by every brain. */
@@ -79,6 +83,7 @@ function runCli({ cli, model, command }, prompt, timeoutMs, files) {
   return new Promise((resolve, reject) => {
     const child = spawn(spec.bin, spec.args(prompt, model, files), {
       cwd: ensureHome(),
+      windowsHide: true,
       env: { ...process.env, SEVENOTS_PET_BRAIN: '1', NO_COLOR: '1' },
       stdio: ['ignore', 'pipe', 'ignore'],
     });

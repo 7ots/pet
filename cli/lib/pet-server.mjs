@@ -10,6 +10,7 @@
  *   POST /tts     X-7ots-Token         { text } → audio with the configured voice
  *   POST /ask     X-7ots-Token         { text } → { reply, actions }   reminders, notes, open a site (assistant.mjs)
  *   POST /stt     X-7ots-Token         raw audio (webm/ogg) → { text }   voice control (stt.mjs)
+ *   POST /log     X-7ots-Token         { page, msg } → pet.log «audio[page]: msg» (what each page did with its audio)
  *   GET  /reminders?token=…            { reminders, notes }
  *   GET  /inferences?token=…           the brain's history: what was sent (the data it used) and what came back
  *   GET  /memory?token=…               everything it keeps about you: notes, what it saw, what it said, its state
@@ -20,6 +21,8 @@
  *   POST /watchers/cancel              { id | 'all' }
  *   GET  /cloud                        7ots.com link + the cloud assistant's VM status (integrations.mjs)
  *   POST /integrations/test            { integration } → { ok, tools? (MCP), text?, error? } (a draft, not saved)
+ *   GET  /byte · /byte/games · /byte/status · POST /byte/play { game } · /byte/stop   the twin ot plays byte arena (7ots.com)
+ *   GET  /wallet                       the twin ot's wallet on 7ots.com (read only): addresses, balances, payments + tx links
  *   GET  /orquesta/projects · POST /orquesta/send { projectId, text } · GET /orquesta/prompt?id=   your Orquesta agents
  *   POST /character/letta              write the character sheet into a Letta agent's persona (LETTA_API_KEY)
  *   GET  /settings?token=…             the settings page: brain, what it may see and do, notes, reminders
@@ -58,7 +61,7 @@ import { createSiteContext } from './prowl.mjs';
 import { SEVENOTS_URL, community, sync as syncOt, logout as accountLogout, me as accountMe, pull as pullOt, signedIn, startLogin, use as useOt } from './account.mjs';
 import { openUrl } from './open.mjs';
 import { VM_KINDS } from './vm.mjs';
-import { cloudStatus, createExtras, lettaSync, normalizeCharacter, normalizeIntegrations, redact, testCustom } from './integrations.mjs';
+import { cloudByte, cloudStatus, cloudWallet, createExtras, lettaSync, normalizeCharacter, normalizeIntegrations, redact, testCustom } from './integrations.mjs';
 import { spawn } from 'node:child_process';
 import { openSync } from 'node:fs';
 import { line } from './lines.mjs';
@@ -185,6 +188,7 @@ export function startPetServer({ port = PET_PORT, log = () => {} } = {}) {
 
   const broadcast = (msg) => {
     const data = `data: ${JSON.stringify({ state: view(pet), ...msg })}\n\n`;
+    if (msg.say) log(`audio: say → ${clients.size} page(s) «${String(msg.say).slice(0, 60)}»${msg.ambient ? ' (ambient)' : ''}`); // to debug a voice heard twice
     for (const res of clients) res.write(data);
   };
 
@@ -506,6 +510,7 @@ export function startPetServer({ port = PET_PORT, log = () => {} } = {}) {
     spawn(process.execPath, [join(PKG_ROOT, 'cli', '7ots.mjs'), 'pet', '--daemon'], {
       cwd: c.dir, // never pick up a project's .7ots/identity.json
       detached: true,
+      windowsHide: true,
       stdio: ['ignore', out, out],
       env: { ...process.env, SEVENOTS_COMPANION: '1', SEVENOTS_HOME: c.dir, SEVENOTS_PET_PORT: String(port + 1), SEVENOTS_PORT_WAIT: '1' },
     }).unref();
@@ -635,11 +640,36 @@ export function startPetServer({ port = PET_PORT, log = () => {} } = {}) {
       });
     if (req.method === 'GET' && p === '/reminders') return json(200, { reminders: assistant.reminders, notes: assistant.notes });
     if (req.method === 'GET' && p === '/cloud') return json(200, await cloudStatus(config));
+    const bm = /^\/byte(\/(?:games|status|play|stop))?$/.exec(p);
+    if (bm && (req.method === 'GET' || req.method === 'POST')) {
+      try {
+        let body;
+        if (req.method === 'POST') {
+          let raw = '';
+          for await (const c of req) if ((raw += c).length > 4096) break;
+          try {
+            body = JSON.parse(raw || '{}');
+          } catch {
+            body = {};
+          }
+        }
+        return json(200, await cloudByte(config, bm[1] || '', { method: req.method, body }));
+      } catch (e) {
+        return json(e.status === 401 ? 200 : 502, e.status === 401 ? { available: false } : { error: e.message });
+      }
+    }
+    if (req.method === 'GET' && p === '/wallet') {
+      try {
+        return json(200, await cloudWallet(config));
+      } catch (e) {
+        return json(e.status === 401 ? 200 : 502, e.status === 401 ? { available: false } : { error: e.message });
+      }
+    }
     if (req.method === 'GET' && (p === '/orquesta/projects' || p === '/orquesta/prompt')) {
       const o = await import('./orquesta.mjs');
       if (!o.via()) return json(200, { connected: false });
       try {
-        if (p === '/orquesta/projects') return json(200, { connected: true, projects: await o.agentProjects() });
+        if (p === '/orquesta/projects') return json(200, { connected: true, via: o.via(), projects: await o.agentProjects() });
         return json(200, { connected: true, ...(await o.agentTask(String(url.searchParams.get('id') || '').slice(0, 80))) });
       } catch (e) {
         const off = [401, 409].includes(e.status); // no token / not connected on 7ots.com
@@ -695,8 +725,14 @@ export function startPetServer({ port = PET_PORT, log = () => {} } = {}) {
       savePet(pet);
       return json(200, { ok: true, state: view(pet) });
     }
+    // what each page did with its audio (say, tts, play, cut, music): pet.log, to debug voices heard twice
+    if (p === '/log') {
+      log(`audio[${String(data.page || '?').slice(0, 8)}]: ${String(data.msg || '').replace(/\s+/g, ' ').slice(0, 200)}`);
+      return json(200, { ok: true });
+    }
     if (p === '/tts') {
       const kind = config.voice.kind;
+      log(`audio: tts ${kind} «${String(data.text || '').slice(0, 60)}»`);
       if (['none', 'browser'].includes(kind)) return json(501, { error: 'browser voice' });
       try {
         if (kind === 'local') {
@@ -1161,7 +1197,7 @@ ${keys.map((k) => FIELDS[k]).join('\n')}`;
     // The new one retries the port while this one lets go of it.
     stop(() => {
       const out = openSync(homeFile('pet.log'), 'a');
-      spawn(process.execPath, [join(PKG_ROOT, 'cli', '7ots.mjs'), 'pet', '--daemon'], { detached: true, stdio: ['ignore', out, out], env: { ...process.env, SEVENOTS_PORT_WAIT: '1' } }).unref();
+      spawn(process.execPath, [join(PKG_ROOT, 'cli', '7ots.mjs'), 'pet', '--daemon'], { detached: true, windowsHide: true, stdio: ['ignore', out, out], env: { ...process.env, SEVENOTS_PORT_WAIT: '1' } }).unref();
     });
   }
 

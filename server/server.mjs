@@ -329,7 +329,10 @@ async function serveBackoffice(req, res, pathname, dir = 'backoffice') {
   let file = join(ROOT, rel);
   if (!file.startsWith(join(ROOT, dir))) return send(res, 403, { error: reqT(req)('server.http.forbidden') });
   try {
-    if ((await stat(file)).isDirectory()) file = join(file, 'index.html');
+    if ((await stat(file)).isDirectory()) {
+      if (!pathname.endsWith('/')) return redirectSlash(req, res, pathname);
+      file = join(file, 'index.html');
+    }
     const data = await readFile(file);
     const headers = { 'Content-Type': MIME[extname(file)] || 'application/octet-stream', 'Cache-Control': 'no-cache', 'X-Content-Type-Options': 'nosniff', 'Referrer-Policy': 'no-referrer' };
     // Nada se puede enmarcar (clickjacking).
@@ -429,6 +432,13 @@ const MIME = {
   '.css': 'text/css; charset=utf-8', '.json': 'application/json', '.svg': 'image/svg+xml', '.png': 'image/png',
   '.jpg': 'image/jpeg', '.glb': 'model/gltf-binary', '.md': 'text/markdown; charset=utf-8', '.ico': 'image/x-icon',
 };
+/** Directorio pedido sin barra final: 301 a la forma con barra (conserva la query). */
+function redirectSlash(req, res, pathname) {
+  const q = req.url.indexOf('?');
+  res.writeHead(301, { Location: `${pathname}/${q >= 0 ? req.url.slice(q) : ''}` });
+  res.end();
+}
+
 const STATIC_DIRS = ['site', 'brand', 'examples', 'src', 'dist'];
 
 async function serveStatic(req, res, pathname) {
@@ -441,7 +451,11 @@ async function serveStatic(req, res, pathname) {
   let file = join(ROOT, rel);
   if (!file.startsWith(ROOT)) return send(res, 403, { error: reqT(req)('server.http.forbidden') });
   try {
-    if ((await stat(file)).isDirectory()) file = join(file, 'index.html');
+    if ((await stat(file)).isDirectory()) {
+      // /site/start → /site/start/: sin la barra, los recursos relativos (start.css) no cargan.
+      if (!pathname.endsWith('/')) return redirectSlash(req, res, pathname);
+      file = join(file, 'index.html');
+    }
     const data = await readFile(file);
     res.writeHead(200, { 'Content-Type': MIME[extname(file)] || 'application/octet-stream', 'Cache-Control': 'no-cache' });
     res.end(data);

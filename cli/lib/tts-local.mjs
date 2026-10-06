@@ -35,7 +35,7 @@ function guessLang(text, fallback) {
 let worker = null;
 let queue = Promise.resolve();
 function startWorker() {
-  const p = spawn(PY(), [new URL('./tts-local.py', import.meta.url).pathname], { stdio: ['pipe', 'pipe', 'ignore'] });
+  const p = spawn(PY(), [new URL('./tts-local.py', import.meta.url).pathname], { stdio: ['pipe', 'pipe', 'ignore'], windowsHide: true });
   const w = { p, buf: '', waiting: null };
   p.stdout.on('data', (d) => {
     w.buf += d;
@@ -84,7 +84,7 @@ export async function synthesizeLocal(text, { lang = 'en', pitch = 1.12 } = {}) 
     if (Math.abs(pitch - 1) < 0.01) return { audio: readFileSync(out), contentType: 'audio/wav' };
     // higher voice, same speed: resample up, then stretch the tempo back
     const audio = await new Promise((res, rej) =>
-      execFile('ffmpeg', ['-nostdin', '-loglevel', 'error', '-i', out, '-af', `asetrate=22050*${pitch},aresample=22050,atempo=${(1 / pitch).toFixed(4)}`, '-f', 'wav', '-'], { encoding: 'buffer', maxBuffer: 32 << 20 }, (e, stdout) =>
+      execFile('ffmpeg', ['-nostdin', '-loglevel', 'error', '-i', out, '-af', `asetrate=22050*${pitch},aresample=22050,atempo=${(1 / pitch).toFixed(4)}`, '-f', 'wav', '-'], { encoding: 'buffer', maxBuffer: 32 << 20, windowsHide: true }, (e, stdout) =>
         {
           if (!e) return res(stdout);
           // ffmpeg failed: the plain voice, if there is one (a throw here would take the whole pet down)

@@ -22,7 +22,8 @@
 import { createHash, createPublicKey, randomBytes, verify as cryptoVerify } from 'node:crypto';
 import { reqT, teamT } from '../i18n.mjs';
 import { signValue, unsignValue } from './crypto.mjs';
-import { SESSION_TTL, accountExists, consumeLoginToken, createLoginToken, createSession, deleteAccountSessions, deleteSession, recentLoginTokens, sessionAccount, upsertAccount } from './store.mjs';
+import { SESSION_TTL, accountExists, consumeLoginToken, createLoginToken, createSession, deleteAccountSessions, deleteSession, recentLoginTokens, sessionAccount, upsertAccount, linkNotlogin } from './store.mjs';
+import { WALLET_SCOPE, saveNotloginTokens } from './wallet.mjs';
 
 const penv = process.env;
 export const SESSION_COOKIE = 'ots_session';
@@ -126,16 +127,21 @@ export function createAuth({ send, readJson, originOf, clientIp }) {
 
   const redirectUri = (req) => `${base(req)}/auth/notlogin/callback`;
 
-  function notloginStart(req, res) {
+  function notloginStart(req, res, url) {
     if (!notloginConfigured()) return fail(res, 'platform.api.notloginNotConfigured');
     const verifier = randomBytes(32).toString('base64url');
     const st = { s: randomBytes(16).toString('base64url'), v: verifier, n: randomBytes(16).toString('base64url'), e: Date.now() + OIDC_TTL };
+    // ?link=<otsId>: "Connect Notlogin" from the Wallet tab — ties notlogin to the signed-in account and
+    // asks for the wallet scopes (wallet.mjs); comes back to that ot's Wallet tab.
+    const link = String(url.searchParams.get('link') || '');
+    const me = link && currentAccount(req);
+    if (me && /^[a-z0-9_]{4,40}$/.test(link)) Object.assign(st, { l: me.id, o: link });
     const params = new URLSearchParams({
       vendor: penv.NOTLOGIN_CLIENT_ID,
       client_id: penv.NOTLOGIN_CLIENT_ID,
       redirect_uri: redirectUri(req),
       response_type: 'code',
-      scope: 'openid profile email',
+      scope: st.l ? WALLET_SCOPE : 'openid profile email',
       state: st.s,
       nonce: st.n,
       code_challenge: createHash('sha256').update(verifier).digest('base64url'),
@@ -168,6 +174,18 @@ export function createAuth({ send, readJson, originOf, clientIp }) {
       const j = await r.json().catch(() => ({}));
       if (!r.ok || !j.id_token) throw new Error(`token ${r.status}`);
       const claims = await verifyIdToken(j.id_token, st.n);
+      if (st.l) {
+        const back = (k) => redirect(res, `/app/?notice=${k}#ots/${st.o}/wallet`);
+        if (currentAccount(req)?.id !== st.l) return back('walletFailed');
+        try {
+          linkNotlogin(st.l, claims.sub);
+        } catch {
+          return back('walletLinkFailed');
+        }
+        saveNotloginTokens(st.l, j);
+        res.setHeader('Set-Cookie', cookie(req, OIDC_COOKIE, '', { path: '/auth/notlogin', maxAge: 0 }));
+        return back('walletConnected');
+      }
       const account = login(req, { notloginSub: claims.sub, email: claims.email_verified ? claims.email : null });
       if (!account) return fail(res, 'platform.api.tooManyAccounts');
       startSession(req, res, account, 'notlogin');
@@ -230,7 +248,7 @@ export function createAuth({ send, readJson, originOf, clientIp }) {
       return true;
     }
 
-    if (p === '/auth/notlogin' && req.method === 'GET') return notloginStart(req, res), true;
+    if (p === '/auth/notlogin' && req.method === 'GET') return notloginStart(req, res, url), true;
     if (p === '/auth/notlogin/callback' && req.method === 'GET') return await notloginCallback(req, res, url), true;
 
     if ((p === '/auth/logout' || p === '/auth/logout-all') && write) {

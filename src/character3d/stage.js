@@ -117,6 +117,14 @@ class Stage {
     this.visible.delete(view);
     this.io.unobserve(view.el);
     delete view.el.__ots3dView;
+    if (!this.visible.size) this.clear();
+  }
+
+  /** Borra el canvas: sin vistas el bucle se duerme, y el último cuadro quedaría pegado encima de la página. */
+  clear() {
+    this.sleep();
+    this.renderer.setScissorTest(false);
+    this.renderer.clear();
   }
 
   wake() {
@@ -144,7 +152,10 @@ class Stage {
 
   frame(t) {
     this.raf = 0;
-    if (document.hidden || !this.visible.size) return;
+    if (document.hidden) return;
+    // una vista cuyo elemento salió del DOM sin destroy() (la vista cambió por innerHTML) no se dibuja más
+    for (const v of this.visible) if (!v.el.isConnected) this.visible.delete(v);
+    if (!this.visible.size) return this.clear();
     const dt = Math.min(64, Math.max(0, t - this.last));
     this.last = t;
     const t0 = performance.now();

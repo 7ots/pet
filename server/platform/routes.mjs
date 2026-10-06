@@ -19,6 +19,8 @@
  *   GET    /api/platform/device/:code · POST { approve }   GET /api/platform/devices · DELETE …/:id
  *
  *   GET    /api/platform/ots/:id/vm          POST …/vm/enroll · DELETE …/vm   (vm.mjs)
+ *   GET    /api/platform/ots/:id/byte · POST …/byte/connect|play|stop · DELETE …/byte   (byte.mjs)
+ *   GET    /api/platform/ots/:id/wallet      POST …/wallet/payments/:pid/approve|decline|refresh   (wallet.mjs)
  *
  * Desktop pet signed in with `7ots login` (Authorization: Bearer 7d_…): /api/device/* — see device.mjs
  *   (…/ots/:id/vm[/jobs…]: the offload channel to the ot's worker, vm.mjs)
@@ -46,6 +48,8 @@ import { portraitOf, profilePage } from './profile.mjs';
 import { stage3dHeaders, stage3dPage } from './stage3d.mjs';
 import { orquestaAccountView, orquestaUrl } from './orquesta.mjs';
 import { createMods } from './mods.mjs';
+import { createWallet } from './wallet.mjs';
+import { createByte } from './byte.mjs';
 import '../../src/i18n/messages/platform.js';
 
 const penv = process.env;
@@ -409,6 +413,8 @@ export function createPlatform({ send, readJson, rateLimit, callLimit, originOf,
     if (sub.startsWith('/admin/')) return adminApi(req, res, ots, sub.slice('/admin'.length));
     if (await connect.ots(req, res, account, ots, sub)) return;
     if (await vm.dashboard(req, res, account, ots, sub)) return;
+    if (await wallet(req, res, account, ots, sub)) return;
+    if (await byte(req, res, ots, sub)) return;
 
     if (sub === '' && req.method === 'GET') return send(res, 200, { ots: otsSummary(ots, usageByOts(account.id)[ots.id] || {}) });
     if (sub === '' && req.method === 'PATCH') {
@@ -452,6 +458,8 @@ export function createPlatform({ send, readJson, rateLimit, callLimit, originOf,
   const device = createDevice({ send, readJson, rateLimit, base: (req) => (penv.PLATFORM_URL || originOf(req)).replace(/\/+$/, ''), summary: (o) => otsSummary(o), save });
   const sites = createSites({ send, readJson });
   const mods = createMods({ send, readJson });
+  const wallet = createWallet({ send, readJson });
+  const byte = createByte({ send, readJson });
   const vm = createVm({ send, readJson, rateLimit, base: (req) => (penv.PLATFORM_URL || originOf(req)).replace(/\/+$/, '') });
 
   /** @returns {Promise<boolean>} true si atendió la ruta */

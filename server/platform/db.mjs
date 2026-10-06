@@ -149,6 +149,24 @@ CREATE TABLE IF NOT EXISTS ots_tasks (
   updated_at INTEGER NOT NULL
 );
 CREATE INDEX IF NOT EXISTS ots_tasks_ots ON ots_tasks(ots_id, created_at DESC);
+CREATE TABLE IF NOT EXISTS ots_payments (
+  id TEXT PRIMARY KEY,
+  ots_id TEXT NOT NULL REFERENCES ots(id) ON DELETE CASCADE,
+  account_id TEXT NOT NULL,
+  network TEXT NOT NULL,
+  to_addr TEXT NOT NULL,
+  amount TEXT NOT NULL,
+  asset TEXT NOT NULL DEFAULT 'USDC',
+  reason TEXT NOT NULL DEFAULT '',
+  who TEXT NOT NULL DEFAULT '',
+  status TEXT NOT NULL DEFAULT 'pending',
+  intent_id TEXT,
+  tx_hash TEXT,
+  error TEXT,
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS ots_payments_ots ON ots_payments(ots_id, created_at DESC);
 CREATE TABLE IF NOT EXISTS ots_vms (
   ots_id TEXT PRIMARY KEY REFERENCES ots(id) ON DELETE CASCADE,
   account_id TEXT NOT NULL,

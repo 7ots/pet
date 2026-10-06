@@ -127,6 +127,7 @@ async function spawnDaemon() {
   const log = openSync(homeFile('pet.log'), 'a');
   const child = spawn(process.execPath, [join(PKG_ROOT, 'cli', '7ots.mjs'), 'pet', '--daemon'], {
     detached: true,
+    windowsHide: true,
     stdio: ['ignore', log, log],
     env: process.env,
   });
@@ -210,6 +211,7 @@ function openDesktop({ opaque = false, view3d = false } = {}) {
   const child = spawn(bin, [join(PKG_ROOT, 'cli', 'pet', 'electron', 'main.cjs'), ...electronSandboxArgs(bin)], {
     stdio: ['ignore', log, log],
     detached: true,
+    windowsHide: true,
     env: { ...process.env, SEVENOTS_PET_URL: `http://127.0.0.1:${PET_PORT}`, SEVENOTS_PET_TOKEN: petToken(), SEVENOTS_PET_OPAQUE: opaque ? '1' : '', SEVENOTS_PET_3D: view3d ? '1' : '', SEVENOTS_PET_LANG: menuLang() },
   });
   return new Promise((resolve) => {

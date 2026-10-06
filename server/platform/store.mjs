@@ -89,6 +89,18 @@ export function upsertAccount({ email = null, notloginSub = null, name = '' }) {
   });
 }
 
+/** Ties a notlogin identity to an account that signed in another way ("Connect Notlogin"). */
+export function linkNotlogin(accountId, notloginSub) {
+  return tx((d) => {
+    const acc = d.prepare('SELECT * FROM accounts WHERE id = ?').get(accountId);
+    if (!acc) throw i18nError(404, 'platform.api.notFound');
+    if (acc.notlogin_sub === notloginSub) return acc;
+    if (acc.notlogin_sub || d.prepare('SELECT 1 FROM accounts WHERE notlogin_sub = ?').get(notloginSub)) throw i18nError(409, 'platform.api.accountLinked');
+    d.prepare('UPDATE accounts SET notlogin_sub = ? WHERE id = ?').run(notloginSub, accountId);
+    return d.prepare('SELECT * FROM accounts WHERE id = ?').get(accountId);
+  });
+}
+
 export function publicAccount(acc) {
   return { id: acc.id, email: acc.email, name: acc.name, plan: acc.plan, notlogin: !!acc.notlogin_sub, vmEnabled: acc.vm_enabled === 1, createdAt: acc.created_at };
 }
@@ -363,10 +375,10 @@ export function deleteConversation(otsId, id) {
  * Tipos: llm (respuestas de IA), llm_platform (las pagadas por la plataforma),
  * tts / tts_platform (audios), call (videollamadas), conversation (conversaciones nuevas).
  */
-export function addUsage(ots, kind, n = 1) {
+export function addUsage(ots, kind, n = 1, period = monthOf()) {
   getDb()
     .prepare('INSERT INTO usage (account_id, ots_id, month, kind, count) VALUES (?, ?, ?, ?, ?) ON CONFLICT(ots_id, month, kind) DO UPDATE SET count = count + excluded.count')
-    .run(ots.accountId, ots.id, monthOf(), kind, n);
+    .run(ots.accountId, ots.id, period, kind, n);
 }
 
 /** Uso del mes de toda la cuenta de un tipo (para el cupo gratis). */
@@ -385,7 +397,8 @@ export function usageByOts(accountId, month = monthOf()) {
 
 /** Últimos meses de un ots: [{ month, llm, … }] */
 export function usageHistory(otsId, months = 6) {
-  const rows = getDb().prepare('SELECT month, kind, count FROM usage WHERE ots_id = ? ORDER BY month DESC').all(otsId);
+  // `month` también guarda días (YYYY-MM-DD, el cupo diario de byte): el historial es sólo de meses
+  const rows = getDb().prepare('SELECT month, kind, count FROM usage WHERE ots_id = ? AND length(month) = 7 ORDER BY month DESC').all(otsId);
   const by = new Map();
   for (const r of rows) {
     if (!by.has(r.month)) by.set(r.month, { month: r.month });

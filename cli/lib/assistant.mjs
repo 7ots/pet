@@ -276,7 +276,7 @@ export function notify(title, body) {
         : ['notify-send', ['-a', '7ots', '-u', 'critical', title, body]];
   if (!cmd) return;
   try {
-    spawn(cmd, args, { stdio: 'ignore', detached: true }).on('error', () => {}).unref();
+    spawn(cmd, args, { stdio: 'ignore', detached: true, windowsHide: true }).on('error', () => {}).unref();
   } catch {}
 }
 

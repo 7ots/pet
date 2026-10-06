@@ -23,7 +23,7 @@ export async function cardShot(url, { scale = 4, gl = false, timeout = 45000 } =
   const dir = mkdtempSync(join(tmpdir(), '7ots-card-'));
   const args = ['--headless=new', '--remote-debugging-pipe', '--no-first-run', '--no-default-browser-check', '--hide-scrollbars', `--user-data-dir=${dir}`,
     ...(gl ? ['--use-angle=swiftshader', '--enable-unsafe-swiftshader'] : ['--disable-gpu']), 'about:blank'];
-  const p = spawn(chrome, args, { stdio: ['ignore', 'ignore', 'ignore', 'pipe', 'pipe'] });
+  const p = spawn(chrome, args, { windowsHide: true, stdio: ['ignore', 'ignore', 'ignore', 'pipe', 'pipe'] });
   const [toChrome, fromChrome] = [p.stdio[3], p.stdio[4]];
   let seq = 0;
   const waiting = new Map();

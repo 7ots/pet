@@ -237,8 +237,12 @@ export function createConnect({ send, readJson, originOf, save }) {
       }
       if (body.daily !== undefined) settings.ORQUESTA_DAILY = String(Math.min(200, Math.max(1, Math.floor(Number(body.daily)) || 20)));
       if (settings.ORQUESTA_TASKS && !settings.ORQUESTA_PROJECT) return send(res, 400, { error: t('platform.orquesta.pickProject') });
+      const turnedOn = !!settings.ORQUESTA_TASKS && !ots.settings.ORQUESTA_TASKS;
+      const projectChanged = !!settings.ORQUESTA_PROJECT && settings.ORQUESTA_PROJECT !== ots.settings.ORQUESTA_PROJECT;
       const saved = await save(ots, { settings });
-      registerOts(account.id, { force: true }).catch(() => null); // seeds the link in Orquesta for a first project
+      // Seeds the link for a first project; when the owner just turned tasks on (or moved them to
+      // another project) it also asks Orquesta to add `run` to that project's link.
+      registerOts(account.id, { force: true, grant: settings.ORQUESTA_TASKS && (turnedOn || projectChanged) ? ots.id : null }).catch(() => null);
       return send(res, 200, orquestaView(account, saved));
     }
     if (sub === '/orquesta/ask' && req.method === 'POST') {

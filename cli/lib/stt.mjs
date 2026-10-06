@@ -34,7 +34,7 @@ export async function transcribe({ audio, contentType = 'audio/webm', lang = '',
     writeFileSync(f, audio, { mode: 0o600 });
     try {
       const text = await new Promise((res, rej) =>
-        execFile(LOCAL_PY(), [SCRIPT, f, lang || ''], { timeout: 60000 }, (e, out) => (e ? rej(Object.assign(new Error(`local stt: ${e.message.split('\n')[0]}`), { status: 502 })) : res(String(out).trim()))),
+        execFile(LOCAL_PY(), [SCRIPT, f, lang || ''], { timeout: 60000, windowsHide: true }, (e, out) => (e ? rej(Object.assign(new Error(`local stt: ${e.message.split('\n')[0]}`), { status: 502 })) : res(String(out).trim()))),
       );
       return { text, provider };
     } finally {

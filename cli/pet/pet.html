@@ -152,7 +152,7 @@
   .props .title { left: 50%; top: 4%; transform: translateX(-50%); font: 900 30px/1 Impact, 'Anton', system-ui, sans-serif; letter-spacing: 2px; text-transform: uppercase; white-space: nowrap; color: #fff; background: linear-gradient(180deg, #fff 30%, #ffd84a 55%, #ff8a1f); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; -webkit-text-stroke: 1.5px #2a0f00; filter: drop-shadow(0 3px 0 #1a0a00) drop-shadow(0 0 12px rgb(255 160 40 / .7)); }
   .props .pow { left: 50%; top: 6%; font: 900 22px/1 system-ui, sans-serif; color: #ffd400; -webkit-text-stroke: 2px #1a1020; transform: translateX(-50%); white-space: nowrap; }
   /* a visiting ot: its own little menu (play, say goodbye, settings, move); feeding, talking and sleep are the host's */
-  body.guest .ask, body.guest #talkBtn, body.guest #micBtn, body.guest #sleepBtn { display: none !important; }
+  body.guest .ask, body.guest #gameBtn, body:not(.desktop) #gameBtn, body.guest #talkBtn, body.guest #micBtn, body.guest #sleepBtn { display: none !important; }
   .bye { display: none; }
   body.desktop.guest .bye { display: flex; }
   body.desktop .bubble { max-width: 220px; font-size: 12.5px; padding: 8px 12px; }
@@ -217,6 +217,7 @@
     <button class="act" id="micBtn" type="button"><svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21"/></svg><span data-t="listen"></span></button>
     <button class="act" data-act="sleep" id="sleepBtn"><svg viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/></svg><span data-t="sleep"></span></button>
     <button class="act" id="danceBtn" type="button"><svg viewBox="0 0 24 24"><path d="M9 18V6l10-2v12"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="16" r="2"/></svg><span data-t="dance"></span></button>
+    <button class="act" id="gameBtn" type="button"><svg viewBox="0 0 24 24"><path d="M7 8.5h10a4 4 0 0 1 4 4v1.5a3 3 0 0 1-5.4 1.8L14.5 14h-5l-1.1 1.8A3 3 0 0 1 3 14v-1.5a4 4 0 0 1 4-4z"/><path d="M7.5 11v2.5M6.25 12.25h2.5"/></svg><span data-t="game"></span></button>
     <a class="act" id="setBtn" target="_blank" rel="noopener"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1"/></svg><span data-t="settings"></span></a>
     <button class="act bye" id="byeBtn" type="button"><svg viewBox="0 0 24 24"><path d="M15 4h4v16h-4M10 8l-4 4 4 4M6 12h10"/></svg></button>
     <button class="act grip" id="moveBtn" type="button" title="⇔"><svg viewBox="0 0 24 24"><path d="M12 3v18M3 12h18M12 3l-3 3M12 3l3 3M12 21l-3-3M12 21l3-3M3 12l3-3M3 12l3 3M21 12l-3-3M21 12l-3 3"/></svg></button>
@@ -233,17 +234,17 @@
 <script type="module">
   const BOOT = __BOOT__;
   const T = {
-    en: { dance: 'Dance', settings: 'Settings', card: 'Card', dismiss: 'Send home', listen: 'Listen', listening: 'Listening… 🎙️', noStt: 'Voice control needs an OpenAI or ElevenLabs key (Settings).', noMic: 'I can’t reach the microphone.', sttErr: 'I didn’t catch that.', talk: 'Talk', askPh: 'Remind me to check email in 10 min…', feed: 'Treat', play: 'Play', sleep: 'Sleep', wake: 'Wake', food: 'Food', energy: 'Energy', fun: 'Fun', level: 'Level {l}', xp: '{x} / {n} xp', live: 'Live', off: 'Reconnecting…', approve: 'Approve', reject: 'Reject',
+    en: { game: 'Play byte', dance: 'Dance', settings: 'Settings', card: 'Card', dismiss: 'Send home', listen: 'Listen', listening: 'Listening… 🎙️', noStt: 'Voice control needs an OpenAI or ElevenLabs key (Settings).', noMic: 'I can’t reach the microphone.', sttErr: 'I didn’t catch that.', talk: 'Talk', askPh: 'Remind me to check email in 10 min…', feed: 'Treat', play: 'Play', sleep: 'Sleep', wake: 'Wake', food: 'Food', energy: 'Energy', fun: 'Fun', level: 'Level {l}', xp: '{x} / {n} xp', live: 'Live', off: 'Reconnecting…', approve: 'Approve', reject: 'Reject',
       activity: 'Activity', empty: 'Nothing yet. Run a command or ask your coding agent something.', tally: '{ok} ok · {fail} failed · turns {turns}',
       brain: 'Brain: {b}', age: 'Born {d}', lines: 'built-in phrases', now: 'now', m: '{n}m', h: '{n}h',
       moods: { happy: 'Happy', neutral: 'Calm', sad: 'Sad', disgust: 'Bored', sleep: 'Asleep', thinking: 'Thinking' },
       kind: { tool: 'Tool', shell: 'Shell', prompt: 'You asked', stop: 'Turn finished', notify: 'Needs you', start: 'Session started' } },
-    es: { dance: 'Bailar', settings: 'Ajustes', card: 'Tarjeta', dismiss: 'Despedir', listen: 'Escuchar', listening: 'Te escucho… 🎙️', noStt: 'Para hablarme por voz falta una key de OpenAI o ElevenLabs (Ajustes).', noMic: 'No puedo usar el micrófono.', sttErr: 'No te entendí.', talk: 'Hablar', askPh: 'Recuérdame ver el correo en 10 min…', feed: 'Mimar', play: 'Jugar', sleep: 'Dormir', wake: 'Despertar', food: 'Comida', energy: 'Energía', fun: 'Diversión', level: 'Nivel {l}', xp: '{x} / {n} xp', live: 'En vivo', off: 'Reconectando…', approve: 'Aprobar', reject: 'Rechazar',
+    es: { game: 'Jugar byte', dance: 'Bailar', settings: 'Ajustes', card: 'Tarjeta', dismiss: 'Despedir', listen: 'Escuchar', listening: 'Te escucho… 🎙️', noStt: 'Para hablarme por voz falta una key de OpenAI o ElevenLabs (Ajustes).', noMic: 'No puedo usar el micrófono.', sttErr: 'No te entendí.', talk: 'Hablar', askPh: 'Recuérdame ver el correo en 10 min…', feed: 'Mimar', play: 'Jugar', sleep: 'Dormir', wake: 'Despertar', food: 'Comida', energy: 'Energía', fun: 'Diversión', level: 'Nivel {l}', xp: '{x} / {n} xp', live: 'En vivo', off: 'Reconectando…', approve: 'Aprobar', reject: 'Rechazar',
       activity: 'Actividad', empty: 'Nada todavía. Ejecuta un comando o pregúntale algo a tu agente.', tally: '{ok} ok · {fail} fallos · turnos {turns}',
       brain: 'Cerebro: {b}', age: 'Nació {d}', lines: 'frases propias', now: 'ahora', m: '{n} min', h: '{n} h',
       moods: { happy: 'Feliz', neutral: 'Tranquilo', sad: 'Triste', disgust: 'Aburrido', sleep: 'Dormido', thinking: 'Pensando' },
       kind: { tool: 'Herramienta', shell: 'Terminal', prompt: 'Preguntaste', stop: 'Turno terminado', notify: 'Te necesita', start: 'Sesión iniciada' } },
-    pt: { dance: 'Dançar', settings: 'Ajustes', card: 'Carta', dismiss: 'Despedir', listen: 'Ouvir', listening: 'Estou ouvindo… 🎙️', noStt: 'Para falar por voz falta uma key da OpenAI ou ElevenLabs (Ajustes).', noMic: 'Não consigo usar o microfone.', sttErr: 'Não entendi.', talk: 'Falar', askPh: 'Me lembre de ver o e-mail em 10 min…', feed: 'Mimar', play: 'Brincar', sleep: 'Dormir', wake: 'Acordar', food: 'Comida', energy: 'Energia', fun: 'Diversão', level: 'Nível {l}', xp: '{x} / {n} xp', live: 'Ao vivo', off: 'Reconectando…', approve: 'Aprovar', reject: 'Recusar',
+    pt: { game: 'Jogar byte', dance: 'Dançar', settings: 'Ajustes', card: 'Carta', dismiss: 'Despedir', listen: 'Ouvir', listening: 'Estou ouvindo… 🎙️', noStt: 'Para falar por voz falta uma key da OpenAI ou ElevenLabs (Ajustes).', noMic: 'Não consigo usar o microfone.', sttErr: 'Não entendi.', talk: 'Falar', askPh: 'Me lembre de ver o e-mail em 10 min…', feed: 'Mimar', play: 'Brincar', sleep: 'Dormir', wake: 'Acordar', food: 'Comida', energy: 'Energia', fun: 'Diversão', level: 'Nível {l}', xp: '{x} / {n} xp', live: 'Ao vivo', off: 'Reconectando…', approve: 'Aprovar', reject: 'Recusar',
       activity: 'Atividade', empty: 'Nada ainda. Rode um comando ou pergunte algo ao seu agente.', tally: '{ok} ok · {fail} falhas · turnos {turns}',
       brain: 'Cérebro: {b}', age: 'Nasceu {d}', lines: 'frases próprias', now: 'agora', m: '{n} min', h: '{n} h',
       moods: { happy: 'Feliz', neutral: 'Tranquilo', sad: 'Triste', disgust: 'Entediado', sleep: 'Dormindo', thinking: 'Pensando' },
@@ -463,6 +464,12 @@
     else (ch.gesture(pokes % 2 ? 'stomp' : 'shake'), ch.effect?.('anger'), pokes >= 6 && ch.effect?.('steam'));
   }
 
+  // Audio log (pet.log via POST /log): which page said what and when, to debug a voice heard twice. PAGE tells pages apart.
+  const PAGE = Math.random().toString(36).slice(2, 8);
+  const alog = (msg) => {
+    console.log(`[7ots audio] ${PAGE} ${msg}`);
+    post('/log', { page: PAGE, msg }).catch(() => {});
+  };
   const post = (path, body) => fetch(path, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-7ots-Token': BOOT.token }, body: JSON.stringify(body) });
   let asleep = false;
   // something urgent while asleep: it wakes up for a moment (says it, walks over), then dozes off again
@@ -575,14 +582,16 @@
   };
   async function speak(text, reply = false) {
     if (BOOT.voice?.kind === 'none') return;
+    if (speak.cur) alog(`cut #${speak.turn}`);
     hush();
     const turn = (speak.turn = (speak.turn || 0) + 1);
+    alog(`speak #${turn} ${BOOT.voice?.kind || 'browser'} «${clean(text).slice(0, 60)}»`);
     if (BOOT.voice?.kind && BOOT.voice.kind !== 'browser') {
       try {
         const r = await post('/tts', { text });
         if (r.ok) {
           const blob = await r.blob();
-          if (turn !== speak.turn) return; // a newer line arrived while this one was synthesizing
+          if (turn !== speak.turn) return void alog(`drop #${turn} (a newer line came)`); // a newer line arrived while this one was synthesizing
           const audio = new Audio(URL.createObjectURL(blob));
           speak.cur = audio;
           speak.reply = reply;
@@ -599,10 +608,14 @@
             } catch {}
             talk(true, clean(text), (audio.duration || 0) * 1000);
           };
-          audio.onended = audio.onerror = () => ((speak.cur = null), talk(false));
+          audio.onended = audio.onerror = (e) => (alog(`${e?.type === 'error' ? 'error' : 'end'} #${turn}`), (speak.cur = null), talk(false));
+          alog(`play #${turn} ${blob.size}B`);
           return await audio.play();
         }
-      } catch {}
+        alog(`tts #${turn} failed ${r.status}`);
+      } catch (e) {
+        alog(`tts #${turn} threw ${e?.message || e}`);
+      }
     }
     if (turn !== speak.turn || !('speechSynthesis' in window)) return;
     const u = new SpeechSynthesisUtterance(clean(text));
@@ -613,6 +626,7 @@
     u.onboundary = (e) => lip?.sync?.(e.charIndex);
     u.onend = u.onerror = () => talk(false);
     speechSynthesis.cancel();
+    alog(`browser voice #${turn}`);
     speechSynthesis.speak(u);
   }
   function showBubble(content, ms) {
@@ -649,7 +663,7 @@
   // speech tags ([laugh], <whisper>…: settings → Voice → expressions) go to the voice, never to the bubble (as src/voice/tags.js)
   const clean = (t) => String(t ?? '').replace(/<\/?(loud|soft|whisper|fast|slow|singing)>/gi, '').replace(/\s*\[(pause|long-pause|laugh|cry|mouth-click|breath|sigh)\]\s*/gi, ' ').replace(/\s{2,}/g, ' ').trim();
   function say(raw, withFace = false, ambient = false) {
-    if (ambient && speak.cur && speak.reply) return; // small talk waits for the answer to finish
+    if (ambient && speak.cur && speak.reply) return void alog('skip ambient (an answer is playing)'); // small talk waits for the answer to finish
     const text = clean(raw);
     showBubble(document.createTextNode(text), Math.max(4500, text.length * 90));
     talk(true, text); // the mouth moves with the words even without a voice; a real voice re-syncs it
@@ -748,7 +762,7 @@
       if (m.gesture) ch.gesture(m.gesture);
       if (m.morph) ch.morph?.(m.morph);
       if (m.effect) ch.effect?.(m.effect);
-      if (m.say) say(m.say, !m.gesture, !!m.ambient);
+      if (m.say) alog(`got say${m.ambient ? ' (ambient)' : ''} «${clean(m.say).slice(0, 40)}»`), say(m.say, !m.gesture, !!m.ambient);
       if (m.dance) dance(m.dance);
       if (m.entrance) entrance(m.entrance);
       if (m.point && desktop) window.__goal = m.point; // the desktop shell walks it over there
@@ -766,7 +780,8 @@
   $('#setBtn').title = t('settings');
   if (!desktop) $('#setBtn').removeAttribute('target'); // in a browser tab, Settings opens in place (its Back returns here); the desktop window opens a tab
   $('#byeBtn').title = t('dismiss');
-  $('#byeBtn').addEventListener('click', () => console.debug('\u00a77bye')); // the shell sends the visitor home
+  $('#byeBtn').addEventListener('click', () => console.debug('\u00a77bye'));
+  $('#gameBtn').addEventListener('click', () => console.debug('\u00a77game')); // the shell shows byte's games, then the game in a small window // the shell sends the visitor home
   const talking = (on) => {
     document.body.classList.toggle('talking', on);
     if (on) askIn.focus();
@@ -999,7 +1014,8 @@
   }
   function music(m, ms, style) {
     stopMusic(0.2);
-    if (!m || guest) return; // a visitor dances along to the host's music
+    if (!m || guest) return;
+    alog(`music ${m.file || m.style || style || 'hype'} ${ms}ms`); // a visitor dances along to the host's music
     const vol = Math.max(0, Math.min(1, m.vol ?? 0.5));
     if (m.file) {
       const a = new Audio(`/music/${encodeURIComponent(m.file)}?token=${encodeURIComponent(BOOT.token)}`);

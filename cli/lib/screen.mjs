@@ -12,7 +12,7 @@ import { existsSync, mkdirSync, unlinkSync } from 'node:fs';
 import { join } from 'node:path';
 import { homeFile, readJson, writeJson } from './paths.mjs';
 
-const run = (cmd, args, ms = 4000) => new Promise((res) => execFile(cmd, args, { timeout: ms }, (e, out) => res(e ? '' : String(out).trim())));
+const run = (cmd, args, ms = 4000) => new Promise((res) => execFile(cmd, args, { timeout: ms, windowsHide: true }, (e, out) => res(e ? '' : String(out).trim())));
 const MAX = 60;
 
 export function createScreenWatcher({ brain, enabled, every = () => 5, lang = 'en', log = () => {}, onSeen = () => {} }) {

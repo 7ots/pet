@@ -37,6 +37,7 @@ const DM_GAP_MS = 2100; // 0,5 mensajes/s por identidad
 const DM_MAX = 4000;
 const BACKLOG_MAX_AGE_MS = 10 * 60 * 1000;
 const INVITE_MAX_AGE_MS = 3 * 60 * 1000; // una invitación vieja es una llamada que ya acabó
+const NO_SHOW_MS = 5 * 60 * 1000; // lo que el agente espera en la sala a que entre la persona
 const PER_SENDER_PER_HOUR = 30;
 /** Configuración del canal desde el entorno (el SDK puede pasar la suya). */
 export function apuchatConfigFromEnv(e = env) {
@@ -215,12 +216,19 @@ export function createApuchatChannel({ agent, persona, log, config = apuchatConf
     const say = async (text) => {
       if (text) await send(text);
     };
+    // Lo mismo que puede en el chat con esa persona (p. ej. Orquesta): la llamada es otro canal, no otro agente.
+    // Sin @peer (una llamada abierta desde la web) no hay a quién autorizar: sin herramientas.
+    const extra = peer ? extraTools?.({ channel: 'dm', from: peer }) || null : null;
+    const voiceOpts = () => ({
+      lang: s.lang,
+      ...(extra ? { tools: extra.tools, run: (name, args) => extra.run(name, args) } : {}),
+    });
     const greet = async () => {
       if (s.greeted) return;
       s.greeted = true;
       s.lastHuman = Date.now();
       const hello = await agent
-        .respond(`call:${channel_id}`, 'voice', `(La persona${peer ? ` @${peer}` : ''} acaba de entrar en la llamada${reason ? `; ibais a hablar de: ${reason}` : ''}. Salúdala en una frase y pregúntale en qué la ayudas.)`, { lang: s.lang })
+        .respond(`call:${channel_id}`, 'voice', `(La persona${peer ? ` @${peer}` : ''} acaba de entrar en la llamada${reason ? `; ibais a hablar de: ${reason}` : ''}. Salúdala en una frase y pregúntale en qué la ayudas.)`, voiceOpts())
         .catch(() => '');
       await say(hello || tc('server.channels.hello', { name: p.name }));
     };
@@ -240,7 +248,8 @@ export function createApuchatChannel({ agent, persona, log, config = apuchatConf
 
     while (!s.done && !stopped) {
       const now = Date.now();
-      if (!s.greeted && now - s.start > 120_000) return leave('nadie entró');
+      // El teléfono puede tardar en sonar y en descolgarse: 5 min antes de rendirse.
+      if (!s.greeted && now - s.start > NO_SHOW_MS) return leave('nadie entró');
       if (s.greeted && now - s.lastHuman > 180_000) {
         await say(tc('server.channels.hangUp'));
         return leave('silencio');
@@ -251,7 +260,8 @@ export function createApuchatChannel({ agent, persona, log, config = apuchatConf
       }
       let r;
       try {
-        r = await hubFetch('GET', path(`/wait?timeout=25${s.since ? `&since=${s.since}` : ''}`), { headers: headers(), timeoutMs: 40000 });
+        // Mientras nadie entra, vueltas cortas: el roster de /wait dice cuándo llega la persona.
+        r = await hubFetch('GET', path(`/wait?timeout=${s.greeted ? 25 : 8}${s.since ? `&since=${s.since}` : ''}`), { headers: headers(), timeoutMs: 40000 });
       } catch {
         await sleep(2000);
         continue;
@@ -269,6 +279,8 @@ export function createApuchatChannel({ agent, persona, log, config = apuchatConf
         await sleep(2000);
         continue;
       }
+      // Quien entra a meet no siempre habla ni toca el idioma: con verlo en la sala ya se le saluda.
+      if (!s.greeted && (r.data.roster || []).some((c) => c && c !== s.cs)) await greet();
       const lines = [];
       for (const m of r.data.messages || []) {
         if (m.id > s.since) s.since = m.id;
@@ -291,7 +303,7 @@ export function createApuchatChannel({ agent, persona, log, config = apuchatConf
       s.turns++;
       await send(tc('server.channels.thinking'), 'status');
       try {
-        await say(await agent.respond(`call:${channel_id}`, 'voice', text, { lang: s.lang }));
+        await say(await agent.respond(`call:${channel_id}`, 'voice', text, voiceOpts()));
       } catch (e) {
         log('apuchat call llm:', e.message);
         await say(tc('server.channels.repeat'));

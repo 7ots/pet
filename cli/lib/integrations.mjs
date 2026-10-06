@@ -143,7 +143,7 @@ function exec(bin, args, { timeoutMs = 10000, max = 64000 } = {}) {
     let out = '';
     let child;
     try {
-      child = spawn(bin, args, { stdio: ['ignore', 'pipe', 'pipe'], env: { ...process.env, NO_COLOR: '1', PAGER: 'cat' } });
+      child = spawn(bin, args, { stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true, env: { ...process.env, NO_COLOR: '1', PAGER: 'cat' } });
     } catch (e) {
       return resolve({ ok: false, out: e.message });
     }
@@ -219,16 +219,20 @@ export async function readLogs({ source, target }) {
 
 // ── email (apumail) ──
 
+const isAcctToken = (t) => typeof t === 'string' && t.startsWith('acct_');
+
+/** An inbox token reads that inbox; an account token (`acct_…`) reads that inbox, or all of the account's when none is set. */
 export async function readMail(inbox, { n = 8 } = {}) {
   const token = env().APUMAIL_TOKEN;
-  if (!token || !inbox) throw new Error('email is not connected');
-  const res = await fetch(`${APUMAIL_API}/api/v1/inbox/${encodeURIComponent(inbox)}/wait?timeout=1`, { headers: { Authorization: `Bearer ${token}` }, signal: AbortSignal.timeout(15000) });
+  const all = !inbox && isAcctToken(token);
+  if (!token || (!inbox && !all)) throw new Error('email is not connected');
+  const url = all ? `${APUMAIL_API}/api/v1/account/all-mail?limit=${n}` : `${APUMAIL_API}/api/v1/inbox/${encodeURIComponent(inbox)}/wait?timeout=1`;
+  const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` }, signal: AbortSignal.timeout(15000) });
   if (!res.ok) throw new Error(`apumail ${res.status}`);
   const { messages = [] } = await res.json();
-  return messages
-    .slice(-n)
-    .reverse()
-    .map((m) => `- ${new Date(Number(m.received_at) || m.received_at).toLocaleString()} · ${str(m.from, 120)} · ${str(m.subject, 160) || '(no subject)'}\n  ${str(m.text, 300).replace(/\s+/g, ' ')}`)
+  // all-mail comes newest first; an inbox's wait, oldest first.
+  return (all ? messages.slice(0, n) : messages.slice(-n).reverse())
+    .map((m) => `- ${new Date(Number(m.received_at) || m.received_at).toLocaleString()} · ${all && m._addr ? `${m._addr} ← ` : ''}${str(m.from, 120)} · ${str(m.subject, 160) || '(no subject)'}\n  ${str(m.text, 300).replace(/\s+/g, ' ')}`)
     .join('\n');
 }
 
@@ -303,6 +307,32 @@ export async function cloudStatus(config = loadConfig()) {
   return out;
 }
 
+/** The twin ot's Notlogin subwallet on 7ots.com (device token): addresses, balances, payments. Read only. */
+export async function cloudWallet(config = loadConfig()) {
+  const id = config.account?.otsId;
+  if (!signedIn() || !id) return { available: false };
+  const res = await fetch(`${SEVENOTS_URL}/api/device/ots/${encodeURIComponent(id)}/wallet`, { headers: { Authorization: `Bearer ${env().SEVENOTS_TOKEN}` }, signal: AbortSignal.timeout(20000) });
+  if (res.status === 404) return { available: false };
+  if (!res.ok) throw Object.assign(new Error(`7ots.com ${res.status}`), { status: res.status });
+  return { available: true, ...(await res.json()) };
+}
+
+/** The twin ot's byte arena account on 7ots.com (device token): games, play { game }, status, stop. */
+export async function cloudByte(config = loadConfig(), sub = '', { method = 'GET', body } = {}) {
+  const id = config.account?.otsId;
+  if (!signedIn() || !id) return { available: false };
+  const res = await fetch(`${SEVENOTS_URL}/api/device/ots/${encodeURIComponent(id)}/byte${sub}`, {
+    method,
+    headers: { Authorization: `Bearer ${env().SEVENOTS_TOKEN}`, ...(body ? { 'Content-Type': 'application/json' } : {}) },
+    body: body ? JSON.stringify(body) : undefined,
+    signal: AbortSignal.timeout(90000),
+  });
+  if (res.status === 404) return { available: false };
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw Object.assign(new Error(data.error || `7ots.com ${res.status}`), { status: res.status });
+  return { available: true, ...data };
+}
+
 // ── Letta (persona memory) ──
 // Contract (docs.letta.com): Bearer LETTA_API_KEY
 //   POST  /v1/agents { name, memory_blocks: [{ label, value }], model, embedding } → { id }
@@ -373,7 +403,7 @@ export function createExtras({ config, brain, system, onLater, confirm = null, c
     const o = config().integrations?.orquesta || {};
     return o.projectId ? { id: o.projectId, name: o.projectName } : cloudOrq.project ? { id: cloudOrq.project, name: cloudOrq.projectName } : null;
   };
-  const mailOn = () => config().access?.inbox === true && config().integrations?.apumail?.on && config().integrations.apumail.inbox && Boolean(env().APUMAIL_TOKEN);
+  const mailOn = () => config().access?.inbox === true && config().integrations?.apumail?.on && Boolean(env().APUMAIL_TOKEN) && Boolean(config().integrations.apumail.inbox || isAcctToken(env().APUMAIL_TOKEN));
   const cloudId = () => (env().SEVENOTS_TOKEN && config().account?.otsId) || null;
   const customs = () => (config().integrations?.custom || []).filter((c) => c.on !== false && customKind(c) !== 'note' && (c.url || c.command));
   const toolsLine = (x) => {
@@ -425,7 +455,7 @@ export function createExtras({ config, brain, system, onLater, confirm = null, c
       const lines = [];
       checkCloud();
       if (c.access?.logs === true) lines.push(`{"type":"read_logs","source":"journal|pm2|docker|file|process","target":"unit / pm2 app / container / path to a .log file / part of a running command"} (read the last lines of a program's logs, then you explain them)`);
-      if (mailOn()) lines.push(`{"type":"read_mail"} (read the latest emails in their inbox ${c.integrations.apumail.inbox}, then you sum them up)`);
+      if (mailOn()) lines.push(`{"type":"read_mail"} (read the latest emails in ${c.integrations.apumail.inbox ? `their inbox ${c.integrations.apumail.inbox}` : 'all their apumail inboxes'}, then you sum them up)`);
       if (orqOn()) {
         const def = defProject()?.name ? ` (default project: "${defProject().name}")` : '';
         lines.push(`{"type":"orquesta_list"} (list their Orquesta projects and whether each agent is online) · {"type":"orquesta","project":"name or id, or null for the default","text":"the message for that project's coding agent"}${def} (send a task or question to one of their Orquesta agents; you tell them the answer when it finishes)`);

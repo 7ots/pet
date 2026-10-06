@@ -18,6 +18,10 @@
  *   GET  /api/device/ots/:id/inbox     → { apuchat, email, conversations: [{ channel, who, at, messages }] }
  *        what people wrote to the ot on apuchat and email lately, and what it answered (read only;
  *        the channels' keys stay on 7ots.com)
+ *   GET  /api/device/ots/:id/byte · GET …/byte/games|status · POST …/byte/play { game } · …/byte/stop   (byte.mjs)
+ *   GET  /api/device/ots/:id/wallet    → { linked, wallets: [{ network, address, usdc, native, symbol, explorerUrl }],
+ *        payments: [{ amount, asset, to, status, txUrl, … }], manageUrl }  the ot's Notlogin subwallet,
+ *        read only: approving a payment still happens on 7ots.com + Notlogin
  *
  * From the dashboard (session cookie, X-7ots-Admin: 1, same origin; see routes.mjs):
  *   GET  /api/platform/device/:code    → { name, expiresIn }  what is asking
@@ -36,6 +40,8 @@ import { dataDir, getDb } from './db.mjs';
 import { newId, sha256, token } from './crypto.mjs';
 import { getConversation, getOwnOts, listConversations, listOts, publicAccount } from './store.mjs';
 import { listProjects, orquestaAccountView, otsOrquesta, runTask, taskStatus } from './orquesta.mjs';
+import { walletView } from './wallet.mjs';
+import { createByte } from './byte.mjs';
 
 const CODE_TTL = 10 * 60_000;
 const PREFIX = '7d_'; // so a leaked token is recognizable
@@ -69,6 +75,7 @@ const SYNCED = ['name', 'role', 'tagline', 'bio', 'language', 'languages', 'pers
 const MAX_MODEL = 60 * 1024 * 1024;
 
 export function createDevice({ send, readJson, base, rateLimit, summary, save }) {
+  const byte = createByte({ send, readJson });
   /** Public half (/api/device/*). @returns {Promise<boolean>} */
   async function api(req, res, path) {
     res.setHeader('Cache-Control', 'no-store');
@@ -151,6 +158,24 @@ export function createDevice({ send, readJson, base, rateLimit, summary, save })
           .map((c) => ({ channel: c.channel, who: c.visitor, at: c.updatedAt, messages: (getConversation(ots.id, c.id)?.messages || []).slice(-6).map((m) => ({ role: m.role, text: m.content.slice(0, 1200), at: m.at })) }));
         const s = ots.settings;
         return send(res, 200, { apuchat: s.APUCHAT_AGENT_CALLSIGN || null, email: s.APUMAIL_AGENT_INBOX || null, conversations }), true;
+      }
+      const bm = /^\/ots\/([a-z0-9_]{4,40})(\/byte(?:\/.*)?)$/.exec(path);
+      if (bm) {
+        const ots = getOwnOts(account.id, bm[1]);
+        if (!ots) return send(res, 404, { error: 'not found' }), true;
+        return byte(req, res, ots, bm[2]);
+      }
+      const wm = /^\/ots\/([a-z0-9_]{4,40})\/wallet$/.exec(path);
+      if (wm && req.method === 'GET') {
+        const ots = getOwnOts(account.id, wm[1]);
+        if (!ots) return send(res, 404, { error: 'not found' }), true;
+        const v = await walletView(account, ots);
+        return send(res, 200, {
+          configured: v.configured, linked: v.linked, scoped: v.scoped, error: v.error,
+          wallets: v.wallets.map((w) => ({ network: w.namespace === 'solana' ? 'solana' : w.network, address: w.address, usdc: w.balances?.usdcFormatted ?? null, native: w.balances?.nativeFormatted ?? null, symbol: w.namespace === 'solana' ? 'SOL' : 'ETH', explorerUrl: w.explorerUrl })),
+          payments: v.payments.slice(0, 10).map(({ id, network, to, amount, asset, reason, status, txHash, txUrl, createdAt }) => ({ id, network, to, amount, asset, reason, status, txHash, txUrl, createdAt })),
+          manageUrl: `${base(req)}/app/#ots/${encodeURIComponent(ots.id)}/wallet`,
+        }), true;
       }
       const om = /^\/ots\/([a-z0-9_]{4,40})\/orquesta(\/tasks(?:\/([A-Za-z0-9_-]{4,100}))?)?$/.exec(path);
       if (om) {

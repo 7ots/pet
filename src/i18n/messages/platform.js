@@ -8,6 +8,7 @@ import { addCatalog } from '../index.js';
 
 const es = {
   platform: {
+    wallet: { notPending: 'Ese pago ya no está pendiente', relink: 'Conecta Notlogin de nuevo para aprobar pagos' },
     api: {
       tooManyAccounts: 'Se crearon demasiadas cuentas desde esta conexión; inténtalo mañana',
       otsDailyLimit: 'Este asistente llegó a su límite de hoy; vuelve mañana',
@@ -31,6 +32,7 @@ const es = {
     quota: {
       llm: 'Este asistente ha agotado sus mensajes gratis de este mes. Si es tu web, añade tu propia clave de IA en 7ots.com.',
       tts: 'Se agotó la voz gratis de este mes',
+      games: 'Hoy ya jugó sus {count} partidas gratis de byte; mañana hay más. Con tu propia clave de IA en 7ots.com no hay tope.',
     },
     mail: {
       subject: 'Tu enlace para entrar en 7ots.com',
@@ -74,7 +76,9 @@ const es = {
       busy: 'Ya hay una tarea en marcha ({id}); espera a que acabe',
       noAgent: 'Ese proyecto de Orquesta no tiene agente: configura uno en Orquesta ({url})',
       noProject: 'Ese proyecto de Orquesta no existe o no está compartido con 7ots',
-      notLinked: 'Este ot no está conectado a ese proyecto en Orquesta, o no tiene permiso para ejecutar tareas ahí. Conéctalo en el proyecto → Identidad → Ots conectados: {url}',
+      notLinked: 'Este ot no está conectado a ese proyecto en Orquesta. Un admin del proyecto puede conectarlo en Identidad → Ots conectados: {url}',
+      readOnlyLink: 'Este ot solo tiene permiso de lectura en ese proyecto: puede responder preguntas, pero no ejecutar tareas. Activa las tareas en 7ots → el ot → Orquesta (eso le da permiso "run"), o dáselo en el proyecto → Identidad → Ots conectados: {url}',
+      agentTooOld: 'El agente de ese proyecto es antiguo y no puede responder preguntas de solo lectura. Actualízalo (orquesta-agent 0.2.263 o más nuevo).',
       rateLimited: 'Orquesta está recibiendo muchas peticiones; espera un momento',
       submitFailed: 'Orquesta no aceptó la tarea (error {status})',
       agentOffline: 'El agente de este proyecto está desconectado: la tarea queda en cola y empezará cuando vuelva',
@@ -121,6 +125,7 @@ const es = {
 
 const en = {
   platform: {
+    wallet: { notPending: 'That payment is no longer pending', relink: 'Connect Notlogin again to approve payments' },
     api: {
       tooManyAccounts: 'Too many accounts were created from this connection; try again tomorrow',
       otsDailyLimit: 'This assistant has reached its limit for today; come back tomorrow',
@@ -144,6 +149,7 @@ const en = {
     quota: {
       llm: 'This assistant has used up its free messages for this month. If this is your website, add your own AI key on 7ots.com.',
       tts: 'The free voice for this month has run out',
+      games: 'It already played its {count} free byte games today; more tomorrow. With your own AI key on 7ots.com there is no cap.',
     },
     mail: {
       subject: 'Your sign-in link for 7ots.com',
@@ -187,7 +193,9 @@ const en = {
       busy: 'A task is already running ({id}); wait for it to finish',
       noAgent: 'That Orquesta project has no agent: set up an agent in Orquesta ({url})',
       noProject: 'That Orquesta project does not exist or is not shared with 7ots',
-      notLinked: 'This ot is not connected to that Orquesta project, or may not run tasks there. Connect it in the project → Identity → Connected ots: {url}',
+      notLinked: 'This ot is not connected to that Orquesta project. A project admin can connect it in Identity → Connected ots: {url}',
+      readOnlyLink: 'This ot only has read access to that project: it can answer questions but not run tasks. Turn tasks on in 7ots → the ot → Orquesta (that grants "run"), or grant it in the project → Identity → Connected ots: {url}',
+      agentTooOld: "That project's agent is too old to answer read-only questions. Update it (orquesta-agent 0.2.263 or newer).",
       rateLimited: 'Orquesta is getting too many requests; wait a moment',
       submitFailed: 'Orquesta did not accept the task (error {status})',
       agentOffline: "This project's agent is offline: the task is queued and will start when it is back",
@@ -234,6 +242,7 @@ const en = {
 
 const pt = {
   platform: {
+    wallet: { notPending: 'Esse pagamento não está mais pendente', relink: 'Conecte o Notlogin de novo para aprovar pagamentos' },
     api: {
       tooManyAccounts: 'Muitas contas foram criadas a partir desta conexão; tente amanhã',
       otsDailyLimit: 'Este assistente atingiu o limite de hoje; volte amanhã',
@@ -257,6 +266,7 @@ const pt = {
     quota: {
       llm: 'Este assistente esgotou as mensagens grátis deste mês. Se o site é seu, adicione sua própria chave de IA em 7ots.com.',
       tts: 'A voz grátis deste mês acabou',
+      games: 'Hoje já jogou as {count} partidas grátis de byte; amanhã tem mais. Com sua própria chave de IA em 7ots.com não há limite.',
     },
     mail: {
       subject: 'Seu link para entrar no 7ots.com',
@@ -300,7 +310,9 @@ const pt = {
       busy: 'Já há uma tarefa em andamento ({id}); espere ela terminar',
       noAgent: 'Esse projeto do Orquesta não tem agente: configure um agente no Orquesta ({url})',
       noProject: 'Esse projeto do Orquesta não existe ou não está compartilhado com o 7ots',
-      notLinked: 'Este ot não está conectado a esse projeto no Orquesta, ou não pode executar tarefas lá. Conecte-o no projeto → Identidade → Ots conectados: {url}',
+      notLinked: 'Este ot não está conectado a esse projeto no Orquesta. Um admin do projeto pode conectá-lo em Identidade → Ots conectados: {url}',
+      readOnlyLink: 'Este ot só tem permissão de leitura nesse projeto: pode responder perguntas, mas não executar tarefas. Ative as tarefas em 7ots → o ot → Orquesta (isso dá a permissão "run"), ou conceda-a no projeto → Identidade → Ots conectados: {url}',
+      agentTooOld: 'O agente desse projeto é antigo e não consegue responder perguntas somente leitura. Atualize-o (orquesta-agent 0.2.263 ou mais novo).',
       rateLimited: 'O Orquesta está recebendo muitas solicitações; espere um momento',
       submitFailed: 'O Orquesta não aceitou a tarefa (erro {status})',
       agentOffline: 'O agente deste projeto está desconectado: a tarefa fica na fila e começa quando ele voltar',

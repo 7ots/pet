@@ -10,6 +10,8 @@
  *        (PLATFORM_ANTHROPIC_API_KEY sigue valiendo: equivale a provider anthropic + esa clave)
  *        PLATFORM_FREE_MESSAGES       respuestas de IA gratis por cuenta y mes (defecto 100)
  *        PLATFORM_APUCHAT_VOICE_TOKEN · PLATFORM_FREE_TTS (audios gratis por cuenta y mes, defecto 100)
+ *        Partidas de byte (cupo aparte, no gastan los mensajes): PLATFORM_FREE_GAMES por cuenta y día
+ *        (defecto 3) · PLATFORM_GAME_LLM_MODEL (modelo barato para las jugadas; defecto el de la plataforma)
  * Así un ots nunca ve las claves del proceso ni las de otro ots.
  */
 
@@ -44,6 +46,8 @@ export function platformLlmEnv() {
 
 export const freeMessages = () => Number(penv.PLATFORM_FREE_MESSAGES ?? 100);
 export const freeTts = () => Number(penv.PLATFORM_FREE_TTS ?? 100);
+export const freeGames = () => Number(penv.PLATFORM_FREE_GAMES ?? 3);
+const dayOf = () => new Date().toISOString().slice(0, 10);
 
 /**
  * Entorno del ots.
@@ -147,6 +151,46 @@ export async function otsStep(ots, args) {
   release?.(true);
   addUsage(ots, 'llm');
   return out;
+}
+
+// ───────────────────────────── partidas de byte (cupo aparte) ─────────────────────────────
+
+let gameLlm = null; // { model, llm }: el LLM de la plataforma para jugar, compartido
+function platformGameLlm() {
+  const e = platformLlmEnv();
+  if (!e) return null;
+  const model = penv.PLATFORM_GAME_LLM_MODEL || e.LLM_MODEL;
+  if (gameLlm?.model !== model) gameLlm = { model, llm: createLLM({ ...e, LLM_MODEL: model, LLM_MAX_TOKENS: '800' }) };
+  return gameLlm.llm;
+}
+
+/**
+ * Takes one of today's free games for an ot on the platform's AI (402 `platform.quota.games` when used
+ * up). Ots with their own key play without a cap. Called once per game, before it starts; returns refund().
+ */
+export function takeGame(ots) {
+  if (!rawLlm(ots).platformLlm) return;
+  const limit = freeGames();
+  if (accountUsage(ots.accountId, 'byte_game', dayOf()) >= limit) throw i18nError(402, 'platform.quota.games', { count: limit });
+  const day = dayOf();
+  addUsage(ots, 'byte_game', 1, day);
+  return () => addUsage(ots, 'byte_game', -1, day); // the game never started: give it back
+}
+
+/**
+ * Una jugada de byte: con la IA propia del ot cuenta como siempre (llm); con la de la plataforma usa el
+ * modelo de juego y NO gasta los mensajes gratis del chat (el cupo es por partida, ver takeGame).
+ */
+export async function otsGameStep(ots, args) {
+  if (!rawLlm(ots).platformLlm) return otsStep(ots, args);
+  try {
+    const out = await platformGameLlm().step(args);
+    addUsage(ots, 'byte_move');
+    return out;
+  } catch (e) {
+    console.error('[7ots] platform game llm', e?.status || '', e?.message || e);
+    throw i18nError(502, 'server.http.internal');
+  }
 }
 
 export function otsLlmInfo(ots) {

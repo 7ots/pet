@@ -8,7 +8,7 @@ export function openUrl(url) {
   try {
     // The desktop app runs the daemon as Electron-in-node-mode; a browser or app opened from here must not inherit that.
     const { ELECTRON_RUN_AS_NODE, ...env } = process.env;
-    const child = spawn(cmd, args, { stdio: 'ignore', detached: true, env });
+    const child = spawn(cmd, args, { stdio: 'ignore', detached: true, windowsHide: true, env });
     child.on('error', () => {});
     child.unref();
     return true;
