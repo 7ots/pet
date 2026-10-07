@@ -17,7 +17,7 @@ import { Worker } from 'node:worker_threads';
 import { dataDir } from './db.mjs';
 
 /** Bump when export.js changes what it produces: every ot gets a new URL and a rebuild. */
-export const EXPORT_VERSION = 1;
+export const EXPORT_VERSION = 2;
 const MEM_KEEP = 24;
 
 const mem = new Map(); // hash → Buffer (LRU)
@@ -34,6 +34,19 @@ export function characterOf(identity) {
 
 /** A mod that swaps the whole body for an outside VRM/GLB: no own body to export. */
 const outsideModel = (c) => (c.mods || []).some((m) => m && typeof m === 'object' && (m.model || m.vrm));
+
+/**
+ * The outside .glb that replaces the whole body (the last full-body mod wins, as in applyMods), as an
+ * absolute https URL, or null. Such an ot has no own body to export, but that model IS its body, so
+ * byte can load it as is. Not VRM: its MToon materials and humanoid rig do not render as plain glTF.
+ */
+export function outsideModelUrl(character, base) {
+  let url = null;
+  for (const m of character?.mods || []) if (m && typeof m === 'object' && (m.model || m.vrm)) url = String(m.model?.url || '');
+  if (!url) return null;
+  if (/^\/mods\/[a-f0-9]{8,64}\.glb$/.test(url)) return `${base}${url}`;
+  return /^https:\/\/[^\s]+\.glb(\?[^\s]*)?$/i.test(url) && url.length <= 500 ? url : null;
+}
 
 /** Version hash of a character's glb (12 hex), or null if it has no exportable body. */
 export function modelHash(character) {

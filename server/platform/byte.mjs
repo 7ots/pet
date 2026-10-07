@@ -26,7 +26,7 @@ import { identityPrompt } from '../identity.mjs';
 import { reqT } from '../i18n.mjs';
 import { getOts, updateOts } from './store.mjs';
 import { otsGameStep, takeGame } from './runtime.mjs';
-import { characterOf, modelGlb, modelHash } from './model3d.mjs';
+import { characterOf, modelGlb, modelHash, outsideModelUrl } from './model3d.mjs';
 
 const penv = process.env;
 const byteUrl = () => (penv.BYTE_URL || 'https://app.bytearena.fun').replace(/\/+$/, '');
@@ -60,7 +60,8 @@ function profileOf(ots) {
     personality: [id.tagline, id.personality?.tone, (id.personality?.traits || []).join(', ')].filter(Boolean).join('. ').slice(0, 600) || undefined,
     avatarImageUrl: `${platformUrl()}/api/o/${encodeURIComponent(ots.id)}/portrait.svg`,
     // a new look → a new hash → a new URL: byte reloads the body on the next play
-    glbUrl: hash ? `${platformUrl()}/api/o/${encodeURIComponent(ots.id)}/model.glb?v=${hash}` : undefined,
+    // …and an ot wearing a full-body mod (an outside .glb) is that model: byte gets the mod's own file
+    glbUrl: hash ? `${platformUrl()}/api/o/${encodeURIComponent(ots.id)}/model.glb?v=${hash}` : outsideModelUrl(characterOf(id), platformUrl()) || undefined,
     color: /^#[0-9a-f]{6}$/i.test(id.look?.color || '') ? id.look.color : undefined,
     language: id.language || undefined,
   };
@@ -177,6 +178,19 @@ async function loop(ots, p, first, step) {
 
 export const listGames = (ots) => call(ots, 'list_games');
 
+/**
+ * byte's public name can differ from the ot's (a `-xxxx` suffix when another agent has it, kept on
+ * later ensure_agent calls), and /a/<name> is keyed by it: keep the stored profile link on the real one.
+ */
+function syncProfileUrl(ots, callsign) {
+  const link = linkOf(ots);
+  if (!link || typeof callsign !== 'string' || !callsign) return;
+  const url = `${byteUrl()}/a/${encodeURIComponent(callsign)}`;
+  if (link.profileUrl === url) return;
+  const o = fresh(ots);
+  updateOts(o.id, { settings: { ...o.settings, BYTE_AGENT: JSON.stringify({ ...link, profileUrl: url }) } });
+}
+
 /** Starts a game (connecting the ot to byte first if needed). `step` defaults to otsGameStep for this ot. */
 export async function startPlay(ots, game, step = (a) => otsGameStep(ots, a)) {
   const cur = plays.get(ots.id);
@@ -188,7 +202,8 @@ export async function startPlay(ots, game, step = (a) => otsGameStep(ots, a)) {
     const prof = profileOf(ots);
     // build the glb now (cached after), so the arena's first fetch of it does not wait
     if (prof.glbUrl) modelGlb(characterOf(ots.identity)).catch((e) => console.error('[byte] glb', ots.id, e.message));
-    await call(ots, 'ensure_agent', { callsign: prof.name, personality: prof.personality, color: prof.color, language: prof.language, avatarImageUrl: prof.avatarImageUrl, glbUrl: prof.glbUrl });
+    const ens = await call(ots, 'ensure_agent', { callsign: prof.name, personality: prof.personality, color: prof.color, language: prof.language, avatarImageUrl: prof.avatarImageUrl, glbUrl: prof.glbUrl });
+    syncProfileUrl(ots, ens?.agent?.callsign);
     first = await call(ots, 'play', { game: String(game || ''), language: prof.language, replace: true });
   } catch (e) {
     refund?.();

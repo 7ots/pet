@@ -1244,11 +1244,12 @@ export class Character3D {
       cv.getContext('2d').drawImage(img, 0, 0, cv.width, cv.height);
       tex.needsUpdate = true;
     };
-    img.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="${vx} ${vy} ${vw} ${vh}" width="${cv.width}" height="${cv.height}">${inner}</svg>`)}`;
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${vx} ${vy} ${vw} ${vh}" width="${cv.width}" height="${cv.height}">${inner}</svg>`;
+    img.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
     const m = new THREE.Mesh(new THREE.PlaneGeometry(vw * sc, vh * sc), new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false, side: THREE.DoubleSide }));
     m.position.set((vx + vw / 2) * sc, -(vy + vh / 2) * sc, p.layer === 'back' ? -0.01 : 0.01);
     m.userData.ownMaterial = true;
-    m.userData.modPlane = true; // SVG en canvas: export.js no lo puede llevar a un glb
+    m.userData.modPlane = { svg, w: cv.width, h: cv.height }; // export.js lo rasteriza con o.rasterSvg (si no, lo deja fuera)
     return m;
   }
 

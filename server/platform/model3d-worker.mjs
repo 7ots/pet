@@ -4,7 +4,7 @@
  * export.js is browser code (three.js). Node lacks a few browser APIs it touches while building —
  * none of them draws anything that ends up in the glb — so they are stubbed here:
  *   document.createElement('canvas') — the contact-shadow texture (not exported);
- *   Image — mod parts drawn from SVG (not exported);
+ *   Image — mod parts drawn from SVG (the glb gets them from rasterSvg, with resvg);
  *   FileReader — GLTFExporter assembles the binary with it.
  * The baked textures are PNGs encoded with zlib. Mod parts stored on this server (/mods/<hash>.glb)
  * are read from disk (workerData.modsDir).
@@ -14,6 +14,8 @@ import { parentPort, workerData } from 'node:worker_threads';
 import { deflateSync } from 'node:zlib';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { createRequire } from 'node:module';
+import { initWasm, Resvg } from '@resvg/resvg-wasm';
 
 const noop = () => {};
 const ctx2d = new Proxy({}, { get: (t, k) => (k in t ? t[k] : () => ({ addColorStop: noop })), set: (t, k, v) => ((t[k] = v), true) });
@@ -72,11 +74,21 @@ function localMods(character) {
   };
 }
 
+let wasm = null;
+/** SVG of a mod part → RGBA w×h (resvg; text is not allowed in mod SVGs, so no fonts). */
+function rasterSvg(svg, w, h) {
+  const img = new Resvg(svg).render();
+  if (img.width !== w || img.height !== h) return null;
+  return new Uint8Array(img.pixels);
+}
+
 let lib = null;
 parentPort?.on('message', async ({ id, character }) => {
   try {
     lib ??= await import('../../src/character3d/export.js');
-    const r = await lib.characterGlb(localMods(character), { encodePng, waitMs: 4000 });
+    wasm ??= initWasm(readFileSync(createRequire(import.meta.url).resolve('@resvg/resvg-wasm/index_bg.wasm')));
+    await wasm;
+    const r = await lib.characterGlb(localMods(character), { encodePng, rasterSvg, waitMs: 4000 });
     parentPort.postMessage({ id, glb: r ? new Uint8Array(r.glb) : null });
   } catch (e) {
     parentPort.postMessage({ id, error: String(e?.stack || e) });

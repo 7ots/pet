@@ -161,7 +161,10 @@ async function openaiClient(apiKey) {
   return openaiClients.get(apiKey);
 }
 
-/** POST JSON con tiempo límite. Si el proveedor falla, 502 sin reenviar su respuesta (podría llevar datos de la cuenta). */
+/**
+ * POST JSON con tiempo límite. Si el proveedor falla, 502 con un motivo accionable: solo el código y el mensaje
+ * corto del proveedor (sin correos ni ids de request), nunca su respuesta entera (podría llevar datos de la cuenta).
+ */
 async function post(url, { headers, body }, name) {
   let res;
   try {
@@ -169,11 +172,32 @@ async function post(url, { headers, body }, name) {
   } catch {
     throw httpError(502, `${name} unreachable`);
   }
-  if (!res.ok) {
-    await res.text().catch(() => ''); // libera el socket
-    throw httpError(502, `${name} ${res.status}`);
-  }
+  if (!res.ok) throw providerError(name, res.status, await res.text().catch(() => ''));
   return res;
+}
+
+/**
+ * Error de un proveedor de voz → mensaje que dice qué hacer. Formatos reales (2026-10-07):
+ *   ElevenLabs  { detail: { code: 'paid_plan_required' | 'quota_exceeded' | 'unauthorized', status, message } }
+ *   xAI         { code, error: 'Incorrect API key provided…' }  (¡clave inválida = 400, no 401!)
+ *   apuchat     { code: 'invalid_token', reason }  401 · sin token 402 (x402)
+ */
+export function providerError(name, status, raw) {
+  let j = {};
+  try {
+    j = JSON.parse(raw);
+  } catch {}
+  const d = j && typeof j.detail === 'object' && j.detail ? j.detail : j || {};
+  const code = String(d.code || d.status || '').toLowerCase();
+  const said = String((typeof d.message === 'string' && d.message) || (typeof j.error === 'string' && j.error) || (typeof j.error?.message === 'string' && j.error.message) || j.reason || (typeof j.detail === 'string' && j.detail) || '');
+  const detail = said ? `: ${said.replace(/[\w.+-]+@[\w-]+(\.[\w-]+)+/g, '[email]').replace(/\s+/g, ' ').trim().slice(0, 180)}` : '';
+  const err = (key, vars = {}) => Object.assign(i18nError(502, `server.tts.${key}`, { provider: name, status, detail, ...vars }), { providerStatus: status });
+  if (name === 'apuchat' && status === 401) return err('apuchatToken');
+  if (name === 'apuchat' && status === 402) return err('apuchatPay');
+  if (name === 'ElevenLabs' && (status === 402 || /paid_plan|payment_required/.test(code))) return err('elevenPaid');
+  if (name === 'ElevenLabs' && /quota|credit/.test(code)) return err('elevenQuota');
+  if (status === 401 || status === 403 || /api key|invalid_api_key|unauthorized|authentication/i.test(`${code} ${said}`)) return err('badKey');
+  return err('failed');
 }
 
 // Idiomas que admite xAI TTS (docs.x.ai); el resto se deja en 'auto'.

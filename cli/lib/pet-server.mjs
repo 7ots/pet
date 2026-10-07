@@ -58,8 +58,9 @@ import { sttProvider, transcribe } from './stt.mjs';
 import { localVoices, synthesizeLocal, warmLocal } from './tts-local.mjs';
 import { createScreenWatcher } from './screen.mjs';
 import { createSiteContext } from './prowl.mjs';
-import { SEVENOTS_URL, community, sync as syncOt, logout as accountLogout, me as accountMe, pull as pullOt, signedIn, startLogin, use as useOt } from './account.mjs';
+import { SEVENOTS_URL, cloudSpeak, community, sync as syncOt, logout as accountLogout, me as accountMe, pull as pullOt, signedIn, startLogin, use as useOt } from './account.mjs';
 import { openUrl } from './open.mjs';
+import { syncDesktop } from './desktop-sync.mjs';
 import { VM_KINDS } from './vm.mjs';
 import { cloudByte, cloudStatus, cloudWallet, createExtras, lettaSync, normalizeCharacter, normalizeIntegrations, redact, testCustom } from './integrations.mjs';
 import { spawn } from 'node:child_process';
@@ -173,6 +174,19 @@ export function startPetServer({ port = PET_PORT, log = () => {} } = {}) {
   };
   let brainImpl = createBrain(config.brain, config.home); // swapped live from the settings page
   const inferences = createInferenceLog();
+  /**
+   * Text → audio with a provider. apuchat without a token of its own: through the ot on 7ots.com when this computer is
+   * signed in (apuchat has no per-account voice tokens; that was the 401 testers hit pasting other keys).
+   */
+  const voiceAudio = async (kind, text, voice) => {
+    const keys = env();
+    if (kind === 'apuchat' && !keys.APUCHAT_VOICE_TOKEN && keys.SEVENOTS_TOKEN && config.account?.otsId) {
+      return cloudSpeak(config.account.otsId, { text: stripSpeechTags(text), voiceId: voice.voiceId || '', lang: voice.lang || '' });
+    }
+    const { synthesize } = await import('../../server/tts.mjs');
+    // process.env too: XAI_TTS_VOICE, FISH_VOICE_ID, APUCHAT_VOICE_URL… (the keys still come from env())
+    return synthesize({ text, voice, env: { ...process.env, ...keys } });
+  };
   if (config.voice.kind === 'local') warmLocal();
   const brain = inferences.wrap(() => brainImpl, () => brainLabel(config.brain)); // every call lands in the history
   const pet = tick(loadPet());
@@ -346,7 +360,8 @@ export function startPetServer({ port = PET_PORT, log = () => {} } = {}) {
     broadcast({});
   }, 60_000);
 
-  // Sync with its ot on 7ots.com (account.mjs sync): same look, mods, personality and sheet on both sides.
+  // Sync with its ot on 7ots.com (account.mjs sync): same look, mods, personality and sheet on both sides,
+  // and (desktop-sync.mjs) its settings, tamagotchi progress, notes, reminders and watchers.
   let syncing = false;
   let syncSoon = null;
   let syncErr = '';
@@ -355,9 +370,15 @@ export function startPetServer({ port = PET_PORT, log = () => {} } = {}) {
     syncing = true;
     try {
       const r = await syncOt();
+      // the rest of what this pet keeps (settings, progress, notes, reminders, watchers): desktop-sync.mjs
+      const d = await syncDesktop({ pet });
       syncErr = '';
       if (r.action === 'push' || r.action === 'pull') log(`sync: ${r.action} 7ots.com`);
-      if (r.action === 'pull') restart(); // its new look/personality, everywhere
+      if (d.action === 'push' || d.action === 'pull') log(`sync: desktop ${d.action} 7ots.com${d.wrote?.length ? ` (${d.wrote.join(', ')})` : ''}`);
+      if (d.wrote?.includes('progress')) savePet(pet);
+      // its new look/personality, settings or lists, everywhere (progress alone is already live)
+      if (r.action === 'pull' || d.wrote?.some((k) => k !== 'progress')) restart();
+      else if (d.wrote?.length) broadcast({});
     } catch (e) {
       if (e.message !== syncErr) log(`sync: ${(syncErr = e.message)}`);
     } finally {
@@ -542,10 +563,17 @@ export function startPetServer({ port = PET_PORT, log = () => {} } = {}) {
       return res.writeHead(200, { 'Content-Type': 'text/javascript; charset=utf-8', 'Cache-Control': 'no-cache' }).end(readFileSync(f));
     }
     if (req.method === 'GET' && /^\/mods\/[a-f0-9]{16}\.(vrm|glb)$/.test(p)) {
-      // 3D models of full-body mods, uploaded from settings (content-addressed, so cacheable)
+      // 3D models of full-body mods, uploaded from settings (content-addressed, so cacheable); one that is
+      // not here yet (a community mod you only browse) comes from 7ots.com, checked against its name, not kept
       const f = homeFile(p.slice(1));
-      if (!existsSync(f)) return res.writeHead(404).end();
-      return res.writeHead(200, { 'Content-Type': 'model/gltf-binary', 'Cache-Control': 'max-age=31536000, immutable' }).end(readFileSync(f));
+      let buf = existsSync(f) ? readFileSync(f) : null;
+      if (!buf) {
+        const r = await fetch(`${SEVENOTS_URL}${p}`, { signal: AbortSignal.timeout(60000) }).catch(() => null);
+        const b = r?.ok ? Buffer.from(await r.arrayBuffer()) : null;
+        if (b && createHash('sha256').update(b).digest('hex').slice(0, 16) === p.slice(6, 22)) buf = b;
+      }
+      if (!buf) return res.writeHead(404).end();
+      return res.writeHead(200, { 'Content-Type': 'model/gltf-binary', 'Cache-Control': 'max-age=31536000, immutable' }).end(buf);
     }
     if (req.method === 'GET' && p === '/favicon.svg') return res.writeHead(200, { 'Content-Type': 'image/svg+xml', 'Cache-Control': 'max-age=86400' }).end(readFileSync(join(PKG_ROOT, 'brand', 'favicon.svg')));
     const authed = okToken(url.searchParams.get('token') || req.headers['x-7ots-token']);
@@ -740,12 +768,7 @@ export function startPetServer({ port = PET_PORT, log = () => {} } = {}) {
           const { audio, contentType } = await synthesizeLocal(stripSpeechTags(data.text).slice(0, 600), { lang });
           return res.writeHead(200, { 'Content-Type': contentType }).end(audio);
         }
-        const { synthesize } = await import('../../server/tts.mjs');
-        // the identity's voice id/model belong to its own provider: not sent to another (an ElevenLabs id means nothing to Fish)
-        const iv = identity.voice || {};
-        const voice = voiceFor(kind);
-        // process.env too: XAI_TTS_VOICE, FISH_VOICE_ID, APUCHAT_VOICE_URL… (the keys still come from env())
-        const { audio, contentType } = await synthesize({ text: String(data.text || '').slice(0, 600), voice, env: { ...process.env, ...env() } });
+        const { audio, contentType } = await voiceAudio(kind, String(data.text || '').slice(0, 600), voiceFor(kind));
         return res.writeHead(200, { 'Content-Type': contentType }).end(audio);
       } catch (e) {
         return json(e.status || 502, { error: e.message });
@@ -756,10 +779,9 @@ export function startPetServer({ port = PET_PORT, log = () => {} } = {}) {
       const kind = String(data.kind || '');
       if (!VOICE_PROVIDERS.includes(kind)) return json(400, { error: 'kind' });
       try {
-        const { synthesize } = await import('../../server/tts.mjs');
         const over = Object.fromEntries(['voiceId', 'model', 'style'].map((f) => [f, String(data[f] ?? '').trim().slice(0, 600)]));
         const text = String(data.text || '').trim().slice(0, 300) || ({ es: `Hola, soy ${identity.name}. ¿Así me quieres oír?`, pt: `Oi, eu sou ${identity.name}. Quer me ouvir assim?` }[lang] || `Hi, I'm ${identity.name}. Is this how you want me to sound?`);
-        const { audio, contentType } = await synthesize({ text, voice: { ...voiceFor(kind), ...over }, env: { ...process.env, ...env() } });
+        const { audio, contentType } = await voiceAudio(kind, text, { ...voiceFor(kind), ...over });
         return res.writeHead(200, { 'Content-Type': contentType }).end(audio);
       } catch (e) {
         return json(e.status || 502, { error: e.message });
@@ -947,7 +969,10 @@ export function startPetServer({ port = PET_PORT, log = () => {} } = {}) {
         if (kind === 'elevenlabs') {
           if (!keys.ELEVENLABS_API_KEY) return json(400, { error: 'key' });
           const r = await fetch('https://api.elevenlabs.io/v1/voices', { headers: { 'xi-api-key': keys.ELEVENLABS_API_KEY }, signal: AbortSignal.timeout(15000) });
-          if (!r.ok) return json(502, { error: `ElevenLabs ${r.status}` });
+          if (!r.ok) {
+            const { providerError } = await import('../../server/tts.mjs');
+            return json(502, { error: providerError('ElevenLabs', r.status, await r.text().catch(() => '')).message });
+          }
           const j = await r.json();
           return json(200, { voices: (j.voices || []).map((v) => ({ id: v.voice_id, name: v.name, note: [v.category, v.labels?.accent, v.labels?.gender, v.labels?.age].filter(Boolean).join(' · '), preview: v.preview_url || '' })) });
         }
@@ -1064,7 +1089,7 @@ ${keys.map((k) => FIELDS[k]).join('\n')}`;
       clis: detectClis(),
       stt: sttProvider(keys),
       voice: config.voice,
-      voices: { local: localVoices(), keys: { elevenlabs: Boolean(keys.ELEVENLABS_API_KEY), openai: Boolean(keys.OPENAI_API_KEY), apuchat: Boolean(keys.APUCHAT_VOICE_TOKEN), grok: Boolean(keys.XAI_API_KEY), fish: Boolean(keys.FISH_API_KEY) } },
+      voices: { local: localVoices(), keys: { elevenlabs: Boolean(keys.ELEVENLABS_API_KEY), openai: Boolean(keys.OPENAI_API_KEY), apuchat: Boolean(keys.APUCHAT_VOICE_TOKEN), apuchatCloud: Boolean(keys.SEVENOTS_TOKEN && config.account?.otsId), grok: Boolean(keys.XAI_API_KEY), fish: Boolean(keys.FISH_API_KEY) } },
       uiLang: uiLangOf(config, lang),
       configLang: config.lang || '',
       otLook: identity.look?.character || null,

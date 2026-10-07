@@ -361,7 +361,7 @@ function rest(c, t) {
 
 /**
  * @param {object} spec look.character
- * @param {object} o { encodePng(rgba, w, h) → Uint8Array (obligatorio), textureSize = 2048, fps = 30, waitMs = 8000, quality }
+ * @param {object} o { encodePng(rgba, w, h) → Uint8Array (obligatorio), rasterSvg(svg, w, h) → RGBA (piezas SVG de mods; sin él no van), textureSize = 2048, fps = 30, waitMs = 8000, quality }
  * @returns {Promise<{ glb: ArrayBuffer, info: object } | null>} null si el ot es un modelo completo de mod (VRM/GLB ajeno)
  */
 export async function characterGlb(spec, o = {}) {
@@ -380,8 +380,10 @@ export async function characterGlb(spec, o = {}) {
 
   // ── objetos que se exportan ──
   const drop = [];
+  const planes = [];
   c.root.traverse((m) => {
-    if (m.isInstancedMesh || m.userData.modPlane) drop.push(m);
+    if (m.userData.modPlane && typeof o.rasterSvg === 'function') planes.push(m);
+    else if (m.isInstancedMesh || m.userData.modPlane) drop.push(m);
   });
   drop.push(c.fxg, c.shadow);
   for (const m of drop) m.removeFromParent();
@@ -588,6 +590,19 @@ export async function characterGlb(spec, o = {}) {
     p.mesh.material = pm;
     p.mesh.geometry = inflated(geo, p.off, false);
     textures.set(pm.name, { png: o.encodePng(baked.masks[i].rgba, baked.masks[i].w, baked.masks[i].h), mask: true });
+  });
+  // piezas SVG de mods: el SVG rasterizado (o.rasterSvg) como textura del plano
+  planes.forEach((m, i) => {
+    const { svg, w, h } = m.userData.modPlane;
+    let rgba = null;
+    try { rgba = o.rasterSvg(svg, w, h); } catch {}
+    if (!rgba) return m.removeFromParent();
+    const flip = new Uint8Array(rgba.length); // filas de abajo hacia arriba: el v de PlaneGeometry crece hacia arriba
+    for (let y = 0; y < h; y++) flip.set(rgba.subarray(y * w * 4, (y + 1) * w * 4), (h - 1 - y) * w * 4);
+    const pm = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, depthWrite: false, side: THREE.DoubleSide });
+    pm.name = `ot_mod${i}`;
+    m.material = pm;
+    textures.set(pm.name, { png: o.encodePng(flip, w, h) });
   });
   // shaders propios (pelo de manos/pompones, toon) → materiales estándar
   const conv = new Map();

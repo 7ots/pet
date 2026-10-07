@@ -12,6 +12,7 @@
  *        PLATFORM_APUCHAT_VOICE_TOKEN · PLATFORM_FREE_TTS (audios gratis por cuenta y mes, defecto 100)
  *        Partidas de byte (cupo aparte, no gastan los mensajes): PLATFORM_FREE_GAMES por cuenta y día
  *        (defecto 3) · PLATFORM_GAME_LLM_MODEL (modelo barato para las jugadas; defecto el de la plataforma)
+ *        PLATFORM_UNLIMITED_GAMES_EMAILS: cuentas (emails, separados por coma) cuyos ots juegan sin ese cupo
  * Así un ots nunca ve las claves del proceso ni las de otro ots.
  */
 
@@ -21,7 +22,7 @@ import { startAgentChannels } from '../channels/index.mjs';
 import { apumailConfigFromEnv } from '../channels/apumail.mjs';
 import { apuchatConfigFromEnv } from '../channels/apuchat.mjs';
 import { i18nError } from '../i18n.mjs';
-import { OTS_KEYS, accountUsage, addUsage, allLiveOts, getOts, logTurn, updateOts } from './store.mjs';
+import { OTS_KEYS, accountById, accountUsage, addUsage, allLiveOts, getOts, logTurn, updateOts } from './store.mjs';
 import { createFreeIdentity } from './apuchat.mjs';
 import { orquestaTools } from './orquesta.mjs';
 
@@ -49,6 +50,14 @@ export const freeMessages = () => Number(penv.PLATFORM_FREE_MESSAGES ?? 100);
 export const freeTts = () => Number(penv.PLATFORM_FREE_TTS ?? 100);
 export const freeGames = () => Number(penv.PLATFORM_FREE_GAMES ?? 3);
 const dayOf = () => new Date().toISOString().slice(0, 10);
+// Read on every call, like the other quotas, so changing the env + restart is all it takes.
+const unlimitedGamesEmails = () => (penv.PLATFORM_UNLIMITED_GAMES_EMAILS || '').split(/[,\s]+/).map((x) => x.trim().toLowerCase()).filter((x) => x.includes('@'));
+export function unlimitedGames(accountId) {
+  const list = unlimitedGamesEmails();
+  if (!list.length) return false;
+  const email = accountById(accountId)?.email;
+  return !!email && list.includes(email.toLowerCase());
+}
 
 /**
  * Entorno del ots.
@@ -167,12 +176,13 @@ function platformGameLlm() {
 
 /**
  * Takes one of today's free games for an ot on the platform's AI (402 `platform.quota.games` when used
- * up). Ots with their own key play without a cap. Called once per game, before it starts; returns refund().
+ * up). Ots with their own key, or from an account in PLATFORM_UNLIMITED_GAMES_EMAILS, play without a cap
+ * (the latter still counted). Called once per game, before it starts; returns refund().
  */
 export function takeGame(ots) {
   if (!rawLlm(ots).platformLlm) return;
   const limit = freeGames();
-  if (accountUsage(ots.accountId, 'byte_game', dayOf()) >= limit) throw i18nError(402, 'platform.quota.games', { count: limit });
+  if (!unlimitedGames(ots.accountId) && accountUsage(ots.accountId, 'byte_game', dayOf()) >= limit) throw i18nError(402, 'platform.quota.games', { count: limit });
   const day = dayOf();
   addUsage(ots, 'byte_game', 1, day);
   return () => addUsage(ots, 'byte_game', -1, day); // the game never started: give it back

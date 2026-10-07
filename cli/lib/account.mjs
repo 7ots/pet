@@ -23,7 +23,7 @@ import { defineIdentity } from '../../src/identity/schema.js';
 
 export const SEVENOTS_URL = (process.env.SEVENOTS_URL || 'https://7ots.com').replace(/\/+$/, '');
 
-async function api(path, { token = env().SEVENOTS_TOKEN, method = 'GET', body } = {}) {
+export async function api(path, { token = env().SEVENOTS_TOKEN, method = 'GET', body } = {}) {
   const res = await fetch(`${SEVENOTS_URL}/api/device${path}`, {
     method,
     headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}), ...(body ? { 'Content-Type': 'application/json' } : {}) },
@@ -32,7 +32,7 @@ async function api(path, { token = env().SEVENOTS_TOKEN, method = 'GET', body } 
   });
   const data = await res.json().catch(() => ({}));
   if (res.status === 401 && token) saveKey('SEVENOTS_TOKEN', ''); // revoked from the dashboard
-  if (!res.ok && res.status !== 202) throw Object.assign(new Error(data.error || `HTTP ${res.status}`), { status: res.status });
+  if (!res.ok && res.status !== 202) throw Object.assign(new Error(data.error || `HTTP ${res.status}`), { status: res.status, data });
   return { status: res.status, ...data };
 }
 
@@ -68,6 +68,26 @@ export async function startLogin({ open } = {}) {
 }
 
 export const me = () => api('/me');
+
+/**
+ * apuchat audio through the ot on 7ots.com (POST /api/device/ots/:id/tts): apuchat does not issue voice tokens per
+ * account, so a pet without APUCHAT_VOICE_TOKEN speaks with its ot's voice there (the account's monthly free quota).
+ * @returns {Promise<{ audio: Buffer, contentType: string }>}  or throws an Error with .status and the server's reason
+ */
+export async function cloudSpeak(otsId, { text, voiceId, lang }) {
+  const res = await fetch(`${SEVENOTS_URL}/api/device/ots/${encodeURIComponent(otsId)}/tts`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${env().SEVENOTS_TOKEN}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ text, voiceId, lang }),
+    signal: AbortSignal.timeout(25000),
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    if (res.status === 401) saveKey('SEVENOTS_TOKEN', ''); // revoked from the dashboard
+    throw Object.assign(new Error(`7ots.com ${res.status}${data.error ? `: ${data.error}` : ''}`), { status: res.status === 401 ? 401 : res.status === 402 || res.status === 429 ? res.status : 502 });
+  }
+  return { audio: Buffer.from(await res.arrayBuffer()), contentType: res.headers.get('content-type') || 'audio/mpeg' };
+}
 export const pull = (id) => api(`/ots/${encodeURIComponent(id)}`);
 
 export async function use(id) {

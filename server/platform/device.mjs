@@ -22,6 +22,12 @@
  *   GET  /api/device/ots/:id/wallet    → { linked, wallets: [{ network, address, usdc, native, symbol, explorerUrl }],
  *        payments: [{ amount, asset, to, status, txUrl, … }], manageUrl }  the ot's Notlogin subwallet,
  *        read only: approving a payment still happens on 7ots.com + Notlogin
+ *   GET  /api/device/ots/:id/desktop   → { state, rev }  what the desktop pet keeps of this ot (settings,
+ *        tamagotchi progress, notes, reminders, watchers), so a new computer gets it too; state null = none yet
+ *   PUT  /api/device/ots/:id/desktop   { state, rev } → { rev } · 409 { state, rev } when another computer
+ *        wrote since `rev` (the pet merges and tries again). No keys: those never leave the computer.
+ *   POST /api/device/ots/:id/tts       { text, voiceId?, lang? } → audio/mpeg: apuchat audio for the desktop pet
+ *        with the ot's apuchat token on 7ots.com or the platform's (account's monthly free voice quota)
  *
  * From the dashboard (session cookie, X-7ots-Admin: 1, same origin; see routes.mjs):
  *   GET  /api/platform/device/:code    → { name, expiresIn }  what is asking
@@ -42,6 +48,7 @@ import { getConversation, getOwnOts, listConversations, listOts, publicAccount }
 import { listProjects, orquestaAccountView, otsOrquesta, runTask, taskStatus } from './orquesta.mjs';
 import { walletView } from './wallet.mjs';
 import { createByte } from './byte.mjs';
+import { otsSynthesize } from './runtime.mjs';
 
 const CODE_TTL = 10 * 60_000;
 const PREFIX = '7d_'; // so a leaked token is recognizable
@@ -73,6 +80,7 @@ export function listDevices(accountId) {
 /** What the pet and 7ots.com keep in sync (the look goes only as look.character). */
 const SYNCED = ['name', 'role', 'tagline', 'bio', 'language', 'languages', 'personality'];
 const MAX_MODEL = 60 * 1024 * 1024;
+const MAX_DESKTOP = 1024 * 1024;
 
 export function createDevice({ send, readJson, base, rateLimit, summary, save }) {
   const byte = createByte({ send, readJson });
@@ -147,6 +155,42 @@ export function createDevice({ send, readJson, base, rateLimit, summary, save })
         mkdirSync(join(dataDir(), 'mods'), { recursive: true });
         writeFileSync(join(dataDir(), 'mods', `${h}.${ext}`), buf);
         return send(res, 200, { url: `/mods/${h}.${ext}` }), true;
+      }
+      // the desktop pet's own state of this ot, the same on every computer (cli/lib/desktop-sync.mjs merges it)
+      const dm = /^\/ots\/([a-z0-9_]{4,40})\/desktop$/.exec(path);
+      if (dm && (req.method === 'GET' || req.method === 'PUT')) {
+        if (!getOwnOts(account.id, dm[1])) return send(res, 404, { error: 'not found' }), true;
+        const db = getDb();
+        const row = db.prepare('SELECT data, updated_at FROM ots_desktop WHERE ots_id = ?').get(dm[1]);
+        const cur = { state: row ? JSON.parse(row.data) : null, rev: row?.updated_at || 0 };
+        if (req.method === 'GET') return send(res, 200, cur), true;
+        const inc = await readJson(req, MAX_DESKTOP).catch(() => null);
+        if (!inc?.state || typeof inc.state !== 'object' || Array.isArray(inc.state)) return send(res, 400, { error: 'state' }), true;
+        if (Number(inc.rev) !== cur.rev) return send(res, 409, cur), true;
+        const rev = Math.max(Date.now(), cur.rev + 1);
+        db.prepare('INSERT INTO ots_desktop (ots_id, data, updated_at) VALUES (?, ?, ?) ON CONFLICT(ots_id) DO UPDATE SET data = excluded.data, updated_at = excluded.updated_at').run(dm[1], JSON.stringify(inc.state), rev);
+        return send(res, 200, { rev }), true;
+      }
+      // the desktop pet speaking with apuchat audio through its ot on 7ots.com: the ot's own apuchat token there, or the
+      // platform's (the account's monthly free voice quota, like the web widget). apuchat does not issue voice tokens per
+      // account, so this is how a desktop ot gets that voice without one; the token never reaches the computer.
+      const vm = /^\/ots\/([a-z0-9_]{4,40})\/tts$/.exec(path);
+      if (vm && req.method === 'POST') {
+        const ots = getOwnOts(account.id, vm[1]);
+        if (!ots) return send(res, 404, { error: 'not found' }), true;
+        if (!rateLimit(req)) return send(res, 429, { error: 'rate' }), true;
+        const { text, voiceId, lang } = (await readJson(req, 16 * 1024)) || {};
+        const say = String(text || '').trim().slice(0, 600);
+        if (!say) return send(res, 400, { error: 'text' }), true;
+        const iv = ots.identity.voice || {};
+        const voice = { ...iv, provider: 'apuchat', model: '', voiceId: String(voiceId || (iv.provider === 'apuchat' ? iv.voiceId : '') || '').slice(0, 80), ...(lang ? { lang: String(lang).slice(0, 12) } : {}) };
+        try {
+          const { audio, contentType } = await otsSynthesize(ots, { text: say, voice });
+          res.writeHead(200, { 'Content-Type': contentType, 'Content-Length': audio.length, 'Cache-Control': 'no-store' });
+          return res.end(audio), true;
+        } catch (e) {
+          return send(res, e.status || 502, { error: e.message }), true;
+        }
       }
       const im = /^\/ots\/([a-z0-9_]{4,40})\/inbox$/.exec(path);
       if (im && req.method === 'GET') {

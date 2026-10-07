@@ -97,7 +97,7 @@ export function listMods({ sort = 'top', q = '', limit = 60 } = {}) {
   const like = `%${String(q).toLowerCase().replace(/[%_]/g, '').slice(0, 40)}%`;
   return db()
     .prepare(`SELECT * FROM community_mods WHERE status = 'approved' AND (lower(id) LIKE ? OR lower(mod) LIKE ? OR lower(author) LIKE ?) ORDER BY ${ORDER[sort] || ORDER.top} LIMIT ?`)
-    .all(like, like, like, Math.min(100, Math.max(1, Number(limit) || 60)));
+    .all(like, like, like, Math.min(300, Math.max(1, Number(limit) || 60)));
 }
 
 /** A model a mod points at must already be on 7ots.com (uploaded first through /mods/files). */
