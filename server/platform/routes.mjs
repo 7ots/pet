@@ -2,7 +2,7 @@
  * Rutas de la plataforma 7ots.com (PLATFORM=true).
  *
  * Públicas, una API de agente por ots (el widget las llama igual que /api/agent/*):
- *   GET  /api/o/:id/config · /embed.js · /identity · /identity.vcf · /portrait.svg · /3d   (cualquier origen)
+ *   GET  /api/o/:id/config · /embed.js · /identity · /identity.vcf · /portrait.svg · /model.glb · /3d   (cualquier origen)
  *   POST /api/o/:id/chat · /tts · /identity/call · /contact/*          (solo desde sus dominios)
  *
  * Dashboard (sesión de /auth/*; escrituras con X-7ots-Admin: 1 y mismo origen):
@@ -50,6 +50,7 @@ import { orquestaAccountView, orquestaUrl } from './orquesta.mjs';
 import { createMods } from './mods.mjs';
 import { createWallet } from './wallet.mjs';
 import { createByte } from './byte.mjs';
+import { characterOf, modelGlb, modelHash } from './model3d.mjs';
 import '../../src/i18n/messages/platform.js';
 
 const penv = process.env;
@@ -123,10 +124,43 @@ export function createPlatform({ send, readJson, rateLimit, callLimit, originOf,
     return true;
   }
 
+  /**
+   * The ot's 3D body as glTF binary (model3d.mjs), for byte arena and any glTF viewer. ?v=<hash> (the URL
+   * profileOf hands out) is immutable: a new look is a new hash. Without it (or with an old one) it is the
+   * current body, cached briefly. 404 when the ot has no drawn character (an outside VRM, a photo).
+   */
+  async function sendModel(req, res, ots) {
+    const ch = characterOf(ots.identity);
+    const hash = modelHash(ch);
+    if (!hash) return send(res, 404, { error: 'no 3d body' });
+    const etag = `"${hash}"`;
+    const v = new URL(req.url, 'http://x').searchParams.get('v');
+    const headers = {
+      'Content-Type': 'model/gltf-binary',
+      'Cache-Control': v === hash ? 'public, max-age=31536000, immutable' : 'public, max-age=300',
+      ETag: etag,
+      'X-Content-Type-Options': 'nosniff',
+    };
+    if (req.headers['if-none-match'] === etag) {
+      res.writeHead(304, headers);
+      return res.end();
+    }
+    let out;
+    try {
+      out = await modelGlb(ch);
+    } catch (e) {
+      console.error('[model3d]', ots.id, e.message);
+      return send(res, 500, { error: 'could not build the 3d body' });
+    }
+    if (!out) return send(res, 404, { error: 'no 3d body' });
+    res.writeHead(200, { ...headers, 'Content-Length': out.glb.length });
+    return res.end(req.method === 'HEAD' ? undefined : out.glb);
+  }
+
   async function publicApi(req, res, id, path) {
     const t = reqT(req);
     const ots = getOts(id);
-    const open = ['/config', '/embed.js', '/identity', '/identity.vcf', '/traits.json', '/portrait.svg', '/3d'].includes(path);
+    const open = ['/config', '/embed.js', '/identity', '/identity.vcf', '/traits.json', '/portrait.svg', '/model.glb', '/3d'].includes(path);
     if (open) {
       res.setHeader('Access-Control-Allow-Origin', '*');
       if (req.method === 'OPTIONS') return send(res, 204);
@@ -142,6 +176,7 @@ export function createPlatform({ send, readJson, rateLimit, callLimit, originOf,
         res.writeHead(200, stage3dHeaders());
         return res.end(req.method === 'HEAD' ? undefined : stage3dPage());
       }
+      if (path === '/model.glb') return sendModel(req, res, ots);
       if (path === '/traits.json') return send(res, 200, traitsMeta(ots, `${originOf(req)}/api/o/${ots.id}`));
       const card = publicIdentity(ots.identity, otsChannels(ots).live());
       if (path === '/portrait.svg') {

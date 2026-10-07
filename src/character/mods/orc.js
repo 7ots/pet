@@ -1,4 +1,4 @@
-// Mod de ejemplo: orco (piel verde, cejas fruncidas, colmillos y orejas puntiagudas).
+// Mod de ejemplo: orco (piel verde, cejas fruncidas, mandíbula ancha, frente baja, colmillos y orejas puntiagudas).
 // Los glb salen de scripts/mod-glb.mjs (orc-tusks, orc-ears).
 export default {
   "id": "orc",
@@ -28,9 +28,15 @@ export default {
       "type": "none"
     }
   },
+  "face": {
+    "jaw": 0.45,
+    "forehead": -0.35,
+    "width": 0.1
+  },
   "parts": [
     {
       "id": "tusks",
+      "slot": "face",
       "anchor": "mouth",
       "layer": "front",
       "svg": "<path d=\"M8 3Q11 -5 16 -13Q18.5 -4 14 5Z\" fill=\"{color}\" stroke=\"{line}\" stroke-width=\"1.6\" stroke-linejoin=\"round\"/><path d=\"M12 0Q14 -6 16 -10\" stroke=\"#fff\" stroke-width=\"1.4\" stroke-linecap=\"round\" fill=\"none\" opacity=\".55\"/><g transform=\"scale(-1 1)\"><path d=\"M8 3Q11 -5 16 -13Q18.5 -4 14 5Z\" fill=\"{color}\" stroke=\"{line}\" stroke-width=\"1.6\" stroke-linejoin=\"round\"/><path d=\"M12 0Q14 -6 16 -10\" stroke=\"#fff\" stroke-width=\"1.4\" stroke-linecap=\"round\" fill=\"none\" opacity=\".55\"/></g>",
@@ -47,6 +53,7 @@ export default {
     },
     {
       "id": "ears",
+      "slot": "none",
       "anchor": "eyes",
       "layer": "back",
       "svg": "<path d=\"M42 -12L86 -28L48 12Z\" fill=\"{body}\" stroke=\"{line}\" stroke-width=\"2.5\" stroke-linejoin=\"round\"/><path d=\"M52 -7L76 -20L53 4Z\" fill=\"{bodyDark}\" opacity=\".75\"/><g transform=\"scale(-1 1)\"><path d=\"M42 -12L86 -28L48 12Z\" fill=\"{body}\" stroke=\"{line}\" stroke-width=\"2.5\" stroke-linejoin=\"round\"/><path d=\"M52 -7L76 -20L53 4Z\" fill=\"{bodyDark}\" opacity=\".75\"/></g>",

@@ -34,8 +34,9 @@ export function otherInferences() {
   } catch {}
   const host = companion ? [{ home: root, id: readJson(join(root, 'config.json'))?.account?.otsId || 'local' }] : [];
   return [...host, ...ids.map((id) => ({ home: join(dir, id), id }))].flatMap(({ home, id }) => {
-    const name = readJson(join(home, 'identity.json'))?.name || id;
-    return readRows(join(home, 'inferences.jsonl')).map((r) => ({ ...r, ot: { id, name } }));
+    const idy = readJson(join(home, 'identity.json'));
+    const ot = { id, name: idy?.name || id, character: idy?.look?.character || null }; // its look: settings draws it on the filter
+    return readRows(join(home, 'inferences.jsonl')).map((r) => ({ ...r, ot }));
   });
 }
 

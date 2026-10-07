@@ -1458,4 +1458,4 @@ export function createCharacter(container, spec, opts = {}) {
 export { SHAPES, EYES, BROWS, MOUTHS, CHEEKS, PATTERNS, FINISHES, TEXTURES, ACCESSORIES, PRESETS, BODY_POINTS };
 export { ACCESSORY_GROUPS, partLabel } from './parts.js';
 export { STYLES as CHARACTER_STYLES } from './styles.js';
-export { normalizeMods, normalizeMod, sanitizeSvg, modName, MOD_ANCHORS, MAX_MODS } from './mods.js';
+export { normalizeMods, normalizeMod, sanitizeSvg, modName, MOD_ANCHORS, MOD_SLOTS, MOD_FACE, MAX_MODS } from './mods.js';

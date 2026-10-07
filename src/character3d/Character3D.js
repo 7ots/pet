@@ -207,6 +207,7 @@ export class Character3D {
       lip: s.mouth.color || shade(body, dark ? 0.6 : -0.55),
     });
     this.furs = [];
+    this.pending = []; // glb de los mods que aún cargan (export.js los espera)
     this.parts = [];
     this.anims = [];
     this.bodyMeshes = [];
@@ -1210,7 +1211,7 @@ export class Character3D {
     holder.scale.setScalar(sc);
     g.add(holder);
     const tint = p.tint === 'body' ? this.spec.body.color : p.tint === 'color' ? a.color : '';
-    loadGlb(p.glb).then((scene) => {
+    const job = loadGlb(p.glb).then((scene) => {
       const o = scene.clone(true);
       o.traverse((m) => {
         if (!m.isMesh) return;
@@ -1223,6 +1224,7 @@ export class Character3D {
       });
       holder.add(o);
     }).catch(() => g.add(plane()));
+    this.pending.push(job);
     return g;
   }
 
@@ -1246,6 +1248,7 @@ export class Character3D {
     const m = new THREE.Mesh(new THREE.PlaneGeometry(vw * sc, vh * sc), new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false, side: THREE.DoubleSide }));
     m.position.set((vx + vw / 2) * sc, -(vy + vh / 2) * sc, p.layer === 'back' ? -0.01 : 0.01);
     m.userData.ownMaterial = true;
+    m.userData.modPlane = true; // SVG en canvas: export.js no lo puede llevar a un glb
     return m;
   }
 

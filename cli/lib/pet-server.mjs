@@ -21,7 +21,7 @@
  *   POST /watchers/cancel              { id | 'all' }
  *   GET  /cloud                        7ots.com link + the cloud assistant's VM status (integrations.mjs)
  *   POST /integrations/test            { integration } → { ok, tools? (MCP), text?, error? } (a draft, not saved)
- *   GET  /byte · /byte/games · /byte/status · POST /byte/play { game } · /byte/stop   the twin ot plays byte arena (7ots.com)
+ *   GET  /byte · /byte/games · /byte/status · POST /byte/play { game } · /byte/stop · /byte/connect   the twin ot plays byte arena (7ots.com)
  *   GET  /wallet                       the twin ot's wallet on 7ots.com (read only): addresses, balances, payments + tx links
  *   GET  /orquesta/projects · POST /orquesta/send { projectId, text } · GET /orquesta/prompt?id=   your Orquesta agents
  *   POST /character/letta              write the character sheet into a Letta agent's persona (LETTA_API_KEY)
@@ -615,11 +615,12 @@ export function startPetServer({ port = PET_PORT, log = () => {} } = {}) {
     if (req.method === 'GET' && p === '/inferences') {
       // this ot's calls plus those of the ots visiting this desktop (the host sees all), each tagged with its ot
       const n = Number(url.searchParams.get('n')) || 100;
-      const me = { id: config.account?.otsId || 'local', name: identity.name || 'ot', self: true };
+      const me = { id: config.account?.otsId || 'local', name: identity.name || 'ot', character: identity.look?.character || null, self: true };
       const all = [...inferences.list(MAX_INF).map((r) => ({ ...r, ot: me })), ...otherInferences()].sort((a, b) => b.at - a.at);
       const ots = [...new Map(all.map((r) => [r.ot.id, r.ot])).values()];
       const want = url.searchParams.get('ot');
-      return json(200, { ots, inferences: (want ? all.filter((r) => r.ot.id === want) : all).slice(0, n) });
+      const rows = (want ? all.filter((r) => r.ot.id === want) : all).slice(0, n).map(({ ot, ...r }) => ({ ...r, ot: { id: ot.id, name: ot.name } }));
+      return json(200, { ots, inferences: rows });
     }
     if (req.method === 'GET' && p === '/memory') return json(200, { notes: assistant.notes, reminders: assistant.reminders, seen: watcher.seen, said: history, conversation: assistant.conversation, activity, pet: view(pet) });
     if (req.method === 'GET' && p === '/account') {
@@ -640,7 +641,7 @@ export function startPetServer({ port = PET_PORT, log = () => {} } = {}) {
       });
     if (req.method === 'GET' && p === '/reminders') return json(200, { reminders: assistant.reminders, notes: assistant.notes });
     if (req.method === 'GET' && p === '/cloud') return json(200, await cloudStatus(config));
-    const bm = /^\/byte(\/(?:games|status|play|stop))?$/.exec(p);
+    const bm = /^\/byte(\/(?:games|status|play|stop|connect))?$/.exec(p);
     if (bm && (req.method === 'GET' || req.method === 'POST')) {
       try {
         let body;

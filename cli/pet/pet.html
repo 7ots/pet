@@ -151,20 +151,17 @@
   .props .pyro { bottom: 6%; width: 16px; height: 120px; margin-left: -8px; transform-origin: 50% 100%; border-radius: 8px 8px 4px 4px; background: linear-gradient(0deg, #fff6c0, #ffb627 30%, #ff5a1f 65%, transparent); filter: blur(1px) drop-shadow(0 0 10px #ff8a1f); }
   .props .title { left: 50%; top: 4%; transform: translateX(-50%); font: 900 30px/1 Impact, 'Anton', system-ui, sans-serif; letter-spacing: 2px; text-transform: uppercase; white-space: nowrap; color: #fff; background: linear-gradient(180deg, #fff 30%, #ffd84a 55%, #ff8a1f); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; -webkit-text-stroke: 1.5px #2a0f00; filter: drop-shadow(0 3px 0 #1a0a00) drop-shadow(0 0 12px rgb(255 160 40 / .7)); }
   .props .pow { left: 50%; top: 6%; font: 900 22px/1 system-ui, sans-serif; color: #ffd400; -webkit-text-stroke: 2px #1a1020; transform: translateX(-50%); white-space: nowrap; }
-  /* a visiting ot: its own little menu (play, say goodbye, settings, move); feeding, talking and sleep are the host's */
+  /* a visiting ot: its own little menu (play, say goodbye, settings); feeding, talking and sleep are the host's */
   body.guest .ask, body.guest #gameBtn, body:not(.desktop) #gameBtn, body.guest #talkBtn, body.guest #micBtn, body.guest #sleepBtn { display: none !important; }
   .bye { display: none; }
   body.desktop.guest .bye { display: flex; }
   body.desktop .bubble { max-width: 220px; font-size: 12.5px; padding: 8px 12px; }
-  body.desktop .actions { position: absolute; right: auto; left: calc(50% + 70px * var(--pet-scale, 1) - 4px); /* beside the ot at any size: over it, it hid the corners that stretch it */ bottom: 14px; transform: translateX(6px); display: flex; flex-direction: column; gap: 4px; padding: 4px; border-radius: 99px;
+  body.desktop .actions { position: absolute; right: auto; left: calc(50% + 70px * var(--pet-scale, 1) - 4px); /* beside the ot at any size: over it, it hid the corners that stretch it */ bottom: 14px; transform: translateX(6px); display: grid; grid-template-columns: repeat(2, 30px); gap: 3px; padding: 4px; /* two columns: one ran taller than the ot */ border-radius: 18px;
     background: color-mix(in srgb, var(--panel) 86%, transparent); border: 1px solid var(--line); box-shadow: var(--shadow); backdrop-filter: blur(10px);
     opacity: 0; transition: none; /* a transition here never finished painting in the transparent window: the menu stayed invisible */ -webkit-app-region: no-drag; z-index: 5; } /* above the 3D stage canvas (z 3) */
   body.desktop.hover .actions, body.desktop.menu .actions { opacity: 1; transform: none; } /* .hover: set by the shell, which sees the cursor even when no mouse event reaches the page (no CSS :hover: it sticks in a click-through window that never gets the mouseleave) */
-  body.desktop .act { width: 32px; height: 32px; padding: 0; border-radius: 50%; border: 0; background: transparent; }
+  body.desktop .act { width: 30px; height: 30px; padding: 0; border-radius: 50%; border: 0; background: transparent; }
   body.desktop .act span { display: none; }
-  .grip { display: none; }
-  body.desktop .grip { display: flex; cursor: grab; touch-action: none; }
-  body.desktop .grip:active { cursor: grabbing; }
   body.desktop .act.primary { background: var(--accent); }
   body.desktop .badge { display: flex; }
   body.listening #micBtn { background: var(--err); color: #fff; animation: rec 1s ease-in-out infinite; }
@@ -220,7 +217,6 @@
     <button class="act" id="gameBtn" type="button"><svg viewBox="0 0 24 24"><path d="M7 8.5h10a4 4 0 0 1 4 4v1.5a3 3 0 0 1-5.4 1.8L14.5 14h-5l-1.1 1.8A3 3 0 0 1 3 14v-1.5a4 4 0 0 1 4-4z"/><path d="M7.5 11v2.5M6.25 12.25h2.5"/></svg><span data-t="game"></span></button>
     <a class="act" id="setBtn" target="_blank" rel="noopener"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1"/></svg><span data-t="settings"></span></a>
     <button class="act bye" id="byeBtn" type="button"><svg viewBox="0 0 24 24"><path d="M15 4h4v16h-4M10 8l-4 4 4 4M6 12h10"/></svg></button>
-    <button class="act grip" id="moveBtn" type="button" title="⇔"><svg viewBox="0 0 24 24"><path d="M12 3v18M3 12h18M12 3l-3 3M12 3l3 3M12 21l-3-3M12 21l3-3M3 12l3-3M3 12l3 3M21 12l-3-3M21 12l-3 3"/></svg></button>
   </nav>
 
   <section class="feed" aria-labelledby="feed-h">
@@ -342,7 +338,7 @@
     }
     if (document.body.classList.contains('talking')) (w = Math.max(w, 240)), (h = Math.max(h, st.height + 60));
     if (Date.now() < actUntil) (w = Math.max(w, actRoom * 2)), (h = Math.max(h, st.height + actTall));
-    w = Math.max(w, st.width + 2 * 58); // the menu beside it (shown on hover)
+    w = Math.max(w, st.width + 2 * 82); // the menu beside it (shown on hover, two columns)
     return { w: Math.ceil(w), h: Math.ceil(h) };
   };
   // The shell polls __need every 250 ms; when an effect starts it's told at once (a console line it listens
@@ -414,14 +410,13 @@
     });
     // on the document: in 3D the ot is drawn on a canvas above the page, so events don't target #stage
     addEventListener('pointerdown', (e) => {
-      // on the ot itself, or on the move handle in the menu (a sure grip while the ot is mid-animation)
-      const grip = e.target.closest?.('#moveBtn');
-      if (e.button !== 0 || (!grip && (e.target.closest?.('.actions, .ask, a, button') || !onOt(e)))) return;
+      // on the ot itself
+      if (e.button !== 0 || e.target.closest?.('.actions, .ask, a, button') || !onOt(e)) return;
       down = true;
       document.documentElement.setPointerCapture?.(e.pointerId);
-      const c = !grip && cornerAt(e);
+      const c = cornerAt(e);
       if (c) sizing = { c, x: e.screenX, y: e.screenY, k: scale };
-      else if (!grip) {
+      else {
         const r = $('#stage').getBoundingClientRect();
         const side = Math.abs(e.clientX - (r.left + r.width / 2)) / r.width > Math.abs(e.clientY - (r.top + r.height / 2)) / r.height;
         pulled = { m: side ? 'squish' : 'stretch', on: false };

@@ -251,6 +251,20 @@ comments on what happens and has needs (food, energy, fun, levels).
    `--shell` (bash/zsh). Remove with `npx -y @7ots/cli hooks remove`.
 4. Care: `7ots feed`, `7ots play`, `7ots sleep`, `7ots status`, `7ots say "<text>"`, `7ots stop`.
 
+## Make a mod (a look for any ot: "make my ot look like an orc / a pirate / <someone>")
+A mod is a JSON file the user imports in the pet (Settings → Mods → Import .json) or shares on 7ots.com.
+Full format and limits: src/character/mods.js (header). Shape:
+`{ id, name, character: {…patch}, face: {…}, replaces: [slots], parts: [{ id, slot, anchor, layer, svg, view, color, x, y, scale }] }`
+- It REPLACES, it doesn't stack: each slot it fills (head, eyes, face, neck, back, body, extra) loses whatever the ot
+  wore there. Give every part a `slot`; catalog accessories in `character.accessories` take their group's slot;
+  `replaces: ['eyes']` (or 'all') also empties slots the mod leaves bare. `slot: 'none'` adds on top without removing.
+- Resemble the person or creature physically before adding props: skin tone (`character.body.color`), body shape
+  (`character.body.shape`), eyes/brows/mouth type and colors, and relative `face` tweaks from -1 to 1:
+  width, height, jaw, chin, forehead, cheekbones, eyeSize, eyeSpacing, eyeHeight, mouthSize, mouthHeight.
+- Hair is a head-slot item: a catalog one (hair, curls, mohawk, hairbun, pigtails…) with its `color`, or your own SVG part.
+- Catalog ids: `SHAPES`, `EYES`, `BROWS`, `MOUTHS`, `CHEEKS`, `ACCESSORIES` (with `group`) in src/character/parts.js.
+- Check it renders: `renderCharacter({ …anOt, mods: [mod] })` from src/character/Character.js returns the SVG.
+
 ## Join an apuchat meet video call with this identity
 The ot joins meet.apuchat.com with its own meet avatar, scene and personality, and talks using the configured brain.
 - New call: `npx -y @7ots/cli meet --new` prints a private link for the user (it carries keys and PIN: give it only to them),

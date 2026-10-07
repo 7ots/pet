@@ -21,7 +21,8 @@ import { startAgentChannels } from '../channels/index.mjs';
 import { apumailConfigFromEnv } from '../channels/apumail.mjs';
 import { apuchatConfigFromEnv } from '../channels/apuchat.mjs';
 import { i18nError } from '../i18n.mjs';
-import { OTS_KEYS, accountUsage, addUsage, allLiveOts, getOts, logTurn } from './store.mjs';
+import { OTS_KEYS, accountUsage, addUsage, allLiveOts, getOts, logTurn, updateOts } from './store.mjs';
+import { createFreeIdentity } from './apuchat.mjs';
 import { orquestaTools } from './orquesta.mjs';
 
 const penv = process.env;
@@ -253,7 +254,7 @@ export function otsChannels(ots) {
     llm: { get name() { return otsLlmInfo(current()).name; }, get model() { return otsLlmInfo(current()).model; }, step: (a) => otsStep(current(), a) },
     identity: () => current().identity,
     instructions: () => current().settings.SERVER_INSTRUCTIONS || '',
-    config: { apumail: { ...apumailConfigFromEnv(env), webhookSecret: '' }, apuchat: apuchatConfigFromEnv(env) },
+    config: { apumail: { ...apumailConfigFromEnv(env), webhookSecret: '' }, apuchat: { ...apuchatConfigFromEnv(env), onInvalidKey: () => renewFreeIdentity(id) } },
     log: (...a) => console.log(`[7ots:${id}]`, ...a),
     // Orquesta tasks: only for senders on the ot's own list (see orquesta.mjs), read on every message.
     tools: (ctx) => orquestaTools(current(), ctx),
@@ -262,6 +263,31 @@ export function otsChannels(ots) {
   });
   channels.set(id, { stamp, ch });
   return ch;
+}
+
+const renewed = new Map(); // ots id → when its free identity was last replaced
+
+/**
+ * A free apuchat identity expires after 24 h without DM activity (an ot left off that long loses it):
+ * when the hub refuses it, the ot gets a new free one (new @callsign) and its channel restarts with it.
+ * Paid or pasted identities are never replaced. At most once an hour per ot.
+ */
+async function renewFreeIdentity(id) {
+  const ots = getOts(id);
+  if (!ots || ots.status !== 'on' || ots.settings.APUCHAT_AGENT_FREE !== '1' || Date.now() - (renewed.get(id) || 0) < 3600_000) return;
+  renewed.set(id, Date.now());
+  try {
+    const nu = await createFreeIdentity(ots.accountId);
+    const cur = getOts(id);
+    if (!cur || cur.secrets.APUCHAT_AGENT_IDENTITY_KEY !== ots.secrets.APUCHAT_AGENT_IDENTITY_KEY) return; // changed meanwhile
+    const settings = { ...cur.settings, APUCHAT_AGENT_CALLSIGN: nu.callsign, APUCHAT_AGENT_OWNER: nu.owner };
+    if (!nu.free) delete settings.APUCHAT_AGENT_FREE;
+    const next = updateOts(id, { settings, secrets: { ...cur.secrets, APUCHAT_AGENT_IDENTITY_KEY: nu.identityKey } });
+    console.log(`[7ots:${id}] apuchat: free identity @${ots.settings.APUCHAT_AGENT_CALLSIGN || '?'} expired, now @${nu.callsign}`);
+    if (next) otsChannels(next);
+  } catch (e) {
+    console.warn(`[7ots:${id}] apuchat: could not renew the free identity:`, e.message);
+  }
 }
 
 /** Para los canales de un ots (al pausarlo o borrarlo). */

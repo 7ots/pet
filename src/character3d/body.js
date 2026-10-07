@@ -92,6 +92,17 @@ export function bodyGeometry(pts, box, quality = 'high') {
   const Dc = depthK * mean;
 
   const [ws, hs] = quality === 'high' ? [96, 64] : [40, 26];
+  /** Dirección unitaria de la esfera → punto de la superficie (out). También la usa export.js para hornear. */
+  const surface = (x, y, z, out = new THREE.Vector3()) => {
+    const s2 = x * x + y * y;
+    const ang = Math.atan2(-y, x); // a coordenadas 2D (y hacia abajo)
+    const R = sampleTable(T, ang);
+    const Dt = depthK * Math.min(R, mean * 1.05);
+    const D = Dc + (Dt - Dc) * s2;
+    let py = (bottom - cy) * U + y * R * U;
+    if (py < 0.03) py = 0.03 + (py - 0.03) * 0.35; // asiento: aplana un poco la base para que «se apoye» en el suelo
+    return out.set(x * R * U, py, z * D * U);
+  };
   let g = new THREE.SphereGeometry(1, ws, hs);
   g.deleteAttribute('uv');
   g.deleteAttribute('normal');
@@ -100,23 +111,14 @@ export function bodyGeometry(pts, box, quality = 'high') {
   const v = new THREE.Vector3();
   for (let i = 0; i < pos.count; i++) {
     v.fromBufferAttribute(pos, i).normalize();
-    const s2 = v.x * v.x + v.y * v.y;
-    const ang = Math.atan2(-v.y, v.x); // a coordenadas 2D (y hacia abajo)
-    const R = sampleTable(T, ang);
-    const Dt = depthK * Math.min(R, mean * 1.05);
-    const D = Dc + (Dt - Dc) * s2;
-    pos.setXYZ(i, v.x * R * U, (bottom - cy) * U + v.y * R * U, v.z * D * U);
-  }
-  // asiento: aplana un poco la base para que «se apoye» en el suelo
-  for (let i = 0; i < pos.count; i++) {
-    const y = pos.getY(i);
-    if (y < 0.03) pos.setY(i, 0.03 + (y - 0.03) * 0.35);
+    surface(v.x, v.y, v.z, v);
+    pos.setXYZ(i, v.x, v.y, v.z);
   }
   g.computeVertexNormals();
   g.computeBoundingBox();
   g.computeBoundingSphere();
   g.userData.shared = true; // cacheada: no se libera con el personaje
-  const out = { geometry: g, table: T, cx, cy, bottom, mean, depth: Dc * U };
+  const out = { geometry: g, table: T, cx, cy, bottom, mean, depth: Dc * U, surface, segments: [ws, hs] };
   cache.set(key, out);
   if (cache.size > 160) cache.delete(cache.keys().next().value);
   return out;

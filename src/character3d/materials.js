@@ -358,6 +358,7 @@ export function surfaceMaterial(u, o) {
     uWobble: { value: o.wobble || 0 },
   };
   m.customProgramCacheKey = () => `ots3d-surf-${outline ? 'line' : o.kind || 'felt'}`;
+  m.userData.surface = { outline, off: own.uOff.value, box, round: own.uRound.value }; // para export.js (glb)
   m.onBeforeCompile = (sh) => {
     Object.assign(sh.uniforms, u, own);
     const head = `uniform float uOff; uniform vec3 uBoxC; uniform vec3 uBoxH; uniform float uBoxR; uniform float uRound; uniform float uWobble;`;

@@ -58,6 +58,7 @@ export function apuchatConfigured(cfg = apuchatConfigFromEnv()) {
 /**
  * @param {{ agent: ReturnType<import('./agent.mjs').createServerAgent>, persona: Function, log: Function, config?: object, tools?: Function }} deps
  *   tools: extra tools for a DM, decided by sender ({ channel:'dm', from } → { tools, run } | null)
+ *   config.onInvalidKey: called once when the hub rejects the identity key (401/403), e.g. to replace an expired free one
  */
 export function createApuchatChannel({ agent, persona, log, config = apuchatConfigFromEnv(), tools: extraTools = null }) {
   const cfg = { ...apuchatConfigFromEnv({}), ...config };
@@ -137,6 +138,7 @@ export function createApuchatChannel({ agent, persona, log, config = apuchatConf
         if (res.status === 401 || res.status === 403) {
           stats.lastError = `wait ${res.status}`;
           log(`apuchat: la identidad del agente no es válida (${res.status}); se deja de escuchar. ¿Caducó? Revisa APUCHAT_AGENT_IDENTITY_KEY.`);
+          cfg.onInvalidKey?.(res.status);
           return;
         }
         if (!res.ok) throw new Error(`wait ${res.status}`);

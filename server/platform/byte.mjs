@@ -2,7 +2,8 @@
  * The ot plays byte's games (app.bytearena.fun) as itself, with its own head.
  *
  * Account: the ot has its OWN byte account (byte's external agents, POST /api/ext/agents): its name,
- * its portrait (/api/o/<id>/portrait.svg) and its personality, in the arena and the ranking. The key
+ * its portrait (/api/o/<id>/portrait.svg), its 3D body (/api/o/<id>/model.glb?v=<hash>, model3d.mjs:
+ * the arena draws it instead of the portrait) and its personality, in the arena and the ranking. The key
  * (`byk_…`) is sealed in the ot's secrets (BYTE_KEY); settings.BYTE_AGENT keeps { agentId, claimUrl,
  * profileUrl }. The owner opens claimUrl once, signed in to byte any way (Google, Notlogin…), to be the
  * human responsible for it there. No Notlogin needed here.
@@ -25,6 +26,7 @@ import { identityPrompt } from '../identity.mjs';
 import { reqT } from '../i18n.mjs';
 import { getOts, updateOts } from './store.mjs';
 import { otsGameStep, takeGame } from './runtime.mjs';
+import { characterOf, modelGlb, modelHash } from './model3d.mjs';
 
 const penv = process.env;
 const byteUrl = () => (penv.BYTE_URL || 'https://app.bytearena.fun').replace(/\/+$/, '');
@@ -52,10 +54,13 @@ const linkOf = (ots) => {
 /** The ot's byte profile, from its identity. */
 function profileOf(ots) {
   const id = ots.identity || {};
+  const hash = modelHash(characterOf(id));
   return {
     name: String(id.name || ots.name || 'ot').slice(0, 24),
     personality: [id.tagline, id.personality?.tone, (id.personality?.traits || []).join(', ')].filter(Boolean).join('. ').slice(0, 600) || undefined,
     avatarImageUrl: `${platformUrl()}/api/o/${encodeURIComponent(ots.id)}/portrait.svg`,
+    // a new look → a new hash → a new URL: byte reloads the body on the next play
+    glbUrl: hash ? `${platformUrl()}/api/o/${encodeURIComponent(ots.id)}/model.glb?v=${hash}` : undefined,
     color: /^#[0-9a-f]{6}$/i.test(id.look?.color || '') ? id.look.color : undefined,
     language: id.language || undefined,
   };
@@ -181,7 +186,9 @@ export async function startPlay(ots, game, step = (a) => otsGameStep(ots, a)) {
   try {
     if (!keyOf(ots)) await connectByte(ots);
     const prof = profileOf(ots);
-    await call(ots, 'ensure_agent', { callsign: prof.name, personality: prof.personality, color: prof.color, language: prof.language, avatarImageUrl: prof.avatarImageUrl });
+    // build the glb now (cached after), so the arena's first fetch of it does not wait
+    if (prof.glbUrl) modelGlb(characterOf(ots.identity)).catch((e) => console.error('[byte] glb', ots.id, e.message));
+    await call(ots, 'ensure_agent', { callsign: prof.name, personality: prof.personality, color: prof.color, language: prof.language, avatarImageUrl: prof.avatarImageUrl, glbUrl: prof.glbUrl });
     first = await call(ots, 'play', { game: String(game || ''), language: prof.language, replace: true });
   } catch (e) {
     refund?.();
