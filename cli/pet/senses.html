@@ -171,7 +171,7 @@
     const s = {
       tired: clamp(clamp((perclos - 0.1) / 0.25) * 0.65 + Math.min(2, y) * 0.25 + droop * 0.2),
       tense: clamp((d.browDown * 2 + d.press * 2 + d.squint) / 0.5),
-      sad: clamp((d.frown * 2.5 + d.innerUp * 1.5 - d.smile * 2) / 0.5),
+      sad: clamp((d.frown * 2 + d.innerUp * 1.2 - d.smile * 2) / 0.6),
       happy: clamp((d.smile * 2) / 0.6),
       focused: 0,
       neutral: 0.35,
@@ -180,17 +180,20 @@
     return s;
   }
 
-  // a new state only when it leads clearly twice in a row (no flicker)
+  // Evaluated every 5 s. A new state needs to lead clearly (≥ 0.5, 0.15 over the current one) for 4 readings
+  // in a row (20 s); once in it, it holds while its score stays ≥ 0.3, so a resting face does not flicker
+  // between down and neutral.
   let state = 'neutral';
   let lead = null;
   let leadN = 0;
   function classify(s) {
+    const cur = state === 'neutral' ? s.neutral : s[state] >= 0.3 ? Math.max(s[state], s.neutral) : s.neutral - 0.01;
     const [best, v] = Object.entries(s).sort((a, b) => b[1] - a[1])[0];
-    if (best === state) return (lead = null), (leadN = 0), state;
-    if (v < (s[state] ?? 0) + 0.1) return state;
-    leadN = lead === best ? leadN + 1 : 1;
-    lead = best;
-    if (leadN >= 2) (state = best), (lead = null), (leadN = 0);
+    const want = best !== state && (best === 'neutral' ? v > cur : v >= 0.5 && v >= cur + 0.15) ? best : null;
+    if (!want) return (lead = null), (leadN = 0), state;
+    leadN = lead === want ? leadN + 1 : 1;
+    lead = want;
+    if (leadN >= 4) (state = want), (lead = null), (leadN = 0);
     return state;
   }
 

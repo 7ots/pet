@@ -9,6 +9,7 @@
 import { run } from '../util.mjs';
 
 const BROWSER = /firefox|chrom|brave|edge|opera|vivaldi|safari|librewolf/i;
+const KNOWN = /\b(Google (Calendar|Calendario|Agenda|Docs|Sheets|Drive|Meet)|Gmail|YouTube|GitHub|GitLab|WhatsApp|Slack|Discord|Notion|Figma|Jira|Linear|Trello|Netflix|Twitch|Spotify|Reddit|LinkedIn|Instagram|Facebook|ChatGPT|Claude|Stack Overflow|Wikipedia|Outlook|Teams|Zoom|Amazon|Mercado Libre)\b/;
 const SUFFIX = /\s[-—–|]\s(Mozilla Firefox|Firefox|Google Chrome|Chromium|Brave|Microsoft Edge|Opera|Vivaldi|LibreWolf|Zen Browser|Safari)\s*$/i;
 
 /** A browser window's title → the site it shows ("Video - YouTube — Mozilla Firefox" → "YouTube"). */
@@ -17,9 +18,12 @@ export function siteOf(title = '') {
   if (!t) return '';
   const dom = t.match(/\b([a-z0-9-]+\.)+(com|org|net|io|dev|app|ai|cl|ar|br|es|co|me|tv|gg|xyz)\b/i);
   if (dom) return dom[0].toLowerCase().replace(/^www\./, '');
+  const known = t.match(KNOWN);
+  if (known) return known[0].replace(/\s+/g, ' ');
+  // the site's name is usually the last part; skip parts that read like a page (dates, numbers, sentences)
   const parts = t.split(/\s[-—–|·]\s/).map((s) => s.trim()).filter(Boolean);
-  const last = parts.at(-1) || '';
-  return last.length <= 32 ? last : '';
+  if (parts.length < 2) return '';
+  return parts.reverse().find((p) => p.length <= 24 && !/\d/.test(p) && p.split(/\s+/).length <= 3) || '';
 }
 
 export function createActivity({ enabled, log = () => {} }) {
