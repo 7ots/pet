@@ -32,7 +32,8 @@
  *   POST /notes/forget                 { at | 'all' }
  *   POST /conversation/forget          drop the conversation memory (turns + summary)
  *   POST /quit    X-7ots-Token
- *   POST /dance   X-7ots-Token         { name?, ms?, music? } → dances (DANCES in motion.js) with music (beat.js or ~/.7ots/music) — { aura: true } elige un farmeo de aura
+ *   POST /aura    X-7ots-Token         { name?, music? } → farmea aura (AURA_MOVES): suma al contador de ~/.7ots/aura.json → { name, points, total }
+ *   POST /dance   X-7ots-Token         { name?, ms?, music? } → dances (DANCES in motion.js) with music (beat.js or ~/.7ots/music)
  *   POST /entrance X-7ots-Token        { dance? } → a wrestling-style entrance: walks in, spotlights, pyro, its name, a dance
  *   GET  /music?token=…                { files } your own tracks in ~/.7ots/music · GET /music/<file>?token=… plays one
  *   GET  /senses?token=…[&preview=1]   the camera page (face + gestures → labels; the desktop shell runs it hidden)
@@ -79,7 +80,7 @@ import { line } from './lines.mjs';
 import { defineIdentity, GROK_VOICES, OPENAI_VOICES, TTS_MODELS } from '../../src/identity/schema.js';
 import { normalizeMod, normalizeMods, MAX_MODS } from '../../src/character/mods.js';
 import { MOD_CATALOG } from '../../src/character/mods/index.js';
-import { DANCES, AURA_MOVES } from '../../src/character/motion.js';
+import { DANCES, AURA_MOVES, AURA_STYLE, AURA_POINTS } from '../../src/character/motion.js';
 import { stripSpeechTags } from '../../src/voice/tags.js';
 
 /** Mods importados en este pet (~/.7ots/mods/library.json), normalizados. */
@@ -94,6 +95,14 @@ const MUSIC_FILE = /^[^/\\\0]{1,160}\.(mp3|ogg|oga|opus|wav|m4a|aac|flac|webm)$/
 function musicFiles() {
   try {
     return readdirSync(homeFile('music')).filter((f) => MUSIC_FILE.test(f) && !f.startsWith('.') && statSync(homeFile(`music/${f}`)).isFile()).sort();
+  } catch {
+    return [];
+  }
+}
+/** Tus temas para farmear aura: ~/.7ots/music/aura/*, como «aura/<archivo>». */
+function auraFiles() {
+  try {
+    return readdirSync(homeFile('music/aura')).filter((f) => MUSIC_FILE.test(f) && !f.startsWith('.') && statSync(homeFile(`music/aura/${f}`)).isFile()).sort().map((f) => `aura/${f}`);
   } catch {
     return [];
   }
@@ -161,8 +170,7 @@ export function startPetServer({ port = PET_PORT, log = () => {} } = {}) {
   const sceneConf = (c = config) => ({ on: true, every: 'normal', list: SCENE_NAMES, ...c.pet?.scenes });
   // a dance to play: its name (or one at random), how long and the music under it, per the pet's music setting
   const musicFor = (d = {}) => {
-    const pool = d.aura ? AURA_MOVES : DANCES; // { aura: true } = farmeo de aura
-    const name = DANCES.includes(d.name) ? d.name : pool[Math.floor(Math.random() * pool.length)];
+    const name = DANCES.includes(d.name) ? d.name : DANCES[Math.floor(Math.random() * DANCES.length)];
     const ms = Math.max(1500, Math.min(60000, Number(d.ms) || 8000));
     const mode = d.music === false ? 'off' : config.pet.music || 'synth';
     const vol = Math.max(0, Math.min(1, Number(config.pet.musicVol ?? 0.5)));
@@ -763,7 +771,7 @@ export function startPetServer({ port = PET_PORT, log = () => {} } = {}) {
       try {
         name = decodeURIComponent(p.slice(7));
       } catch {}
-      if (!musicFiles().includes(name)) return res.writeHead(404).end();
+      if (!musicFiles().includes(name) && !auraFiles().includes(name)) return res.writeHead(404).end();
       const f = homeFile(`music/${name}`);
       const type = MUSIC_TYPES[name.split('.').pop().toLowerCase()];
       res.writeHead(200, { 'Content-Type': type, 'Content-Length': statSync(f).size, 'Cache-Control': 'no-cache' });
@@ -1218,6 +1226,22 @@ ${keys.map((k) => FIELDS[k]).join('\n')}`;
       } catch (e) {
         return json(e.status === 400 ? 400 : 502, { error: e.message });
       }
+    }
+    if (p === '/aura') {
+      // farmeo de aura: otra cosa que los bailes, con su música (phonk/montagem, o tus temas en ~/.7ots/music/aura) y su contador
+      const file = homeFile('aura.json');
+      const st = { total: 0, count: 0, best: 0, ...readJson(file) };
+      const name = AURA_MOVES.includes(data.name) ? data.name : AURA_MOVES[Math.floor(Math.random() * AURA_MOVES.length)];
+      const points = AURA_POINTS[Math.floor(Math.random() * AURA_POINTS.length)];
+      Object.assign(st, { total: st.total + points, count: st.count + 1, best: Math.max(st.best, points) });
+      writeJson(file, st);
+      const vol = Math.max(0, Math.min(1, Number(config.pet.musicVol ?? 0.5)));
+      const files = auraFiles();
+      const music = data.music === false || config.pet.music === 'off' ? null : files.length ? { file: files[Math.floor(Math.random() * files.length)], vol } : { style: AURA_STYLE[name], vol };
+      const aura = { name, ms: 8000, music, points, total: st.total };
+      broadcast({ aura });
+      log(`aura: ${name} +${points} (${st.total})${music ? ` ♪ ${music.file || music.style}` : ''}`);
+      return json(200, { ok: true, name, points, total: st.total });
     }
     if (p === '/dance' || p === '/entrance') {
       const dance = musicFor(data);

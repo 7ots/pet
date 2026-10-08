@@ -413,12 +413,19 @@ async function cmdCare(cmd, { pos, flags }) {
 
 async function cmdDance(cmd, { pos, flags }) {
   const { DANCES, AURA_MOVES } = await import('../src/character/motion.js');
-  const aura = cmd === 'aura';
-  if (flags.list) return console.log((aura ? AURA_MOVES : DANCES).join(' '));
-  const name = (cmd === 'entrance' ? flags.dance : pos[0]) || undefined;
-  const body = { name, aura: aura || undefined, ms: flags.ms ? Number(flags.ms) : undefined };
+  if (cmd === 'aura') {
+    if (flags.list) return console.log(AURA_MOVES.join(' '));
+    const body = { name: pos[0], music: flags['no-music'] || flags.music === false ? false : undefined };
+    const r = await fetch(`http://127.0.0.1:${PET_PORT}/aura`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-7ots-Token': petToken() }, body: JSON.stringify(body), signal: AbortSignal.timeout(1500) })
+      .then((x) => (x.ok ? x.json() : null))
+      .catch(() => null);
+    return console.log(r ? `+${r.points.toLocaleString('en-US')} aura (${r.total.toLocaleString('en-US')})` : dim(t('pet.notRunning')));
+  }
+  if (flags.list) return console.log(DANCES.join(' '));
+  const name = (cmd === 'dance' ? pos[0] : flags.dance) || undefined;
+  const body = { name, ms: flags.ms ? Number(flags.ms) : undefined };
   if (flags['no-music'] || flags.music === false) body.music = false;
-  if (!(await postPet(cmd === 'entrance' ? '/entrance' : '/dance', body))) console.log(dim(t('pet.notRunning')));
+  if (!(await postPet('/' + cmd, body))) console.log(dim(t('pet.notRunning')));
 }
 
 async function cmdStatus({ flags = {} } = {}) {

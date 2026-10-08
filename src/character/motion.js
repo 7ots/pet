@@ -414,13 +414,13 @@ export const GESTURES = {
       return { r: S(age, 0.9) * 7 * e, x: S(age, 0.9, 1.2) * 0.03 * e, lx: S(age, 1.4) * 0.8 * e, ly: Math.cos((age / 1000) * TAU * 1.4) * 0.6 * e, curve: -0.1 * e, open: 0.15 * e, msx: 1 - 0.2 * e };
     },
   },
-  // ── farmeo de aura: poses de meme que suman aura (también son bailes: van con música y salen en `7ots dance`) ──
+  // ── farmeo de aura: poses de meme que suman aura. No son bailes: van aparte (`7ots aura`, su botón, su contador)
+  // y `aura` es su música (phonk o montagem de beat.js) ──
   // six-seven: las palmas arriba, una sube y la otra baja, al compás, con cara de nada
   sixseven: {
     ms: 6000,
     hold: true,
-    dance: 'trap',
-    aura: true,
+    aura: 'montagem',
     legs: 'wide',
     hands: 'sixseven',
     fx: [[0.04, 'aura'], [0.5, 'aura']],
@@ -434,8 +434,7 @@ export const GESTURES = {
   mewing: {
     ms: 6000,
     hold: true,
-    dance: 'trap',
-    aura: true,
+    aura: 'phonk',
     legs: 'wide',
     hands: 'hips',
     fx: [[0.05, 'aura'], [0.55, 'aura']],
@@ -449,8 +448,7 @@ export const GESTURES = {
   tikio: {
     ms: 6000,
     hold: true,
-    dance: 'trap',
-    aura: true,
+    aura: 'montagem',
     legs: 'stomp',
     hands: 'tikio',
     fx: [[0.04, 'aura']],
@@ -466,8 +464,7 @@ export const GESTURES = {
   garza: {
     ms: 6000,
     hold: true,
-    dance: 'trap',
-    aura: true,
+    aura: 'phonk',
     legs: 'garza',
     hands: 'garza',
     fx: [[0.05, 'aura'], [0.55, 'aura']],
@@ -482,8 +479,7 @@ export const GESTURES = {
   deal: {
     ms: 6000,
     hold: true,
-    dance: 'trap',
-    aura: true,
+    aura: 'montagem',
     legs: 'deal',
     hands: 'deal',
     fx: [[0.04, 'aura']],
@@ -498,8 +494,7 @@ export const GESTURES = {
   siu: {
     ms: 6000,
     hold: true,
-    dance: 'hype',
-    aura: true,
+    aura: 'phonk',
     legs: 'siu',
     hands: 'siu',
     fx: [[0.3, 'aura'], [0.32, 'confetti']],
@@ -531,8 +526,12 @@ export const GESTURE_ALIAS = {
 export const DANCES = Object.keys(GESTURES).filter((k) => GESTURES[k].dance);
 /** Baile → estilo de música (beat.js). */
 export const DANCE_STYLE = Object.fromEntries(DANCES.map((k) => [k, GESTURES[k].dance]));
-/** Los bailes de farmeo de aura (six-seven, mewing, tikio, garza, deal, siu). */
-export const AURA_MOVES = DANCES.filter((k) => GESTURES[k].aura);
+/** El farmeo de aura (six-seven, mewing, tikio, garza, deal, siu): gestos con `aura`, aparte de los bailes. */
+export const AURA_MOVES = Object.keys(GESTURES).filter((k) => GESTURES[k].aura);
+/** Farmeo → su música (phonk o montagem, beat.js). */
+export const AURA_STYLE = Object.fromEntries(AURA_MOVES.map((k) => [k, GESTURES[k].aura]));
+/** Lo que suma cada farmeo (el número que flota: +67, +6.700…). */
+export const AURA_POINTS = [67, 100, 420, 1000, 6700];
 
 // ───────────────────────────── manos ─────────────────────────────
 
@@ -983,7 +982,6 @@ export const EFFECTS = {
   aura: {
     ms: 2600,
     draw: (c, p, age, o, rnd) => {
-      const pts = o.aura ?? [67, 100, 420, 1000, 6700][Math.floor(rnd() * 5)];
       const e = Math.min(clamp(p / 0.15), fade(p, 0.3));
       let out = `<ellipse cx="${R(c.cx)}" cy="${R(c.top + c.H * 0.55)}" rx="${R(c.W * 0.62)}" ry="${R(c.H * 0.6)}" fill="none" stroke="#a78bfa" stroke-width="${R(c.W * 0.03)}" opacity="${R(0.35 * e)}"/>`;
       for (let i = 0; i < 7; i++) {
@@ -996,7 +994,8 @@ export const EFFECTS = {
       }
       const k = c.W / 120;
       const q = clamp(p / 0.8);
-      out += `<g opacity="${R(Math.min(clamp(p / 0.1), fade(p, 0.35)))}">${at(c.cx + c.dir * c.W * 0.5, c.top - c.H * 0.1 - c.H * 0.25 * EASE.out(q), `<text text-anchor="middle" font-family="system-ui,sans-serif" font-weight="900" font-size="15" fill="#7c3aed" stroke="#fff" stroke-width="3" paint-order="stroke">+${pts.toLocaleString('en-US')} aura</text>`, ` scale(${R(k)})`)}</g>`;
+      // el «+N aura» solo si te lo pasan (o.aura): el pet lo muestra él, encima del ot en 2D y en 3D
+      if (typeof o.aura === 'number') out += `<g opacity="${R(Math.min(clamp(p / 0.1), fade(p, 0.35)))}">${at(c.cx + c.dir * c.W * 0.5, c.top - c.H * 0.1 - c.H * 0.25 * EASE.out(q), `<text text-anchor="middle" font-family="system-ui,sans-serif" font-weight="900" font-size="15" fill="#7c3aed" stroke="#fff" stroke-width="3" paint-order="stroke">+${o.aura.toLocaleString('en-US')} aura</text>`, ` scale(${R(k)})`)}</g>`;
       return out;
     },
   },

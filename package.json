@@ -1,6 +1,6 @@
 {
   "name": "@7ots/cli",
-  "version": "0.1.29",
+  "version": "0.1.30",
   "description": "7ots.com — your AI companion with a face of its own: a desktop pet that watches over your coding agent (Claude Code and shell hooks), a personal assistant (reminders, alerts, notes, opens sites, sees your screen if allowed) and a reproducible identity (face, personality, voice) for any agent — in apuchat meet calls, Orquesta projects or your own server.",
   "homepage": "https://7ots.com",
   "repository": {

@@ -16,7 +16,7 @@ const M = {
   7ots pet --tmux                          the terminal pet in a tmux side pane
   7ots feed | play | sleep | wake | say <text> | stop
   7ots dance [name] [--ms N] [--no-music] [--list] | entrance [--dance name]
-  7ots aura [sixseven|mewing|tikio|garza|deal|siu]   aura farming (+aura)
+  7ots aura [sixseven|mewing|tikio|garza|deal|siu] [--no-music] [--list]   aura farming (+aura, its own counter; phonk, or your tracks in ~/.7ots/music/aura)
   7ots status [--line|--json]                pet state (--line: one line for tmux)
   7ots ask <text>                            talk to it: "remind me to check email in 10 min", "open my calendar", "remember that…"
   7ots reminders [--cancel <id>]             pending reminders and what it remembers
@@ -210,7 +210,7 @@ Docs: https://7ots.com/llms.txt`,
   7ots pet --tmux                          la mascota de terminal en un panel de tmux
   7ots feed | play | sleep | wake | say <texto> | stop
   7ots dance [nombre] [--ms N] [--no-music] [--list] | entrance [--dance nombre]
-  7ots aura [sixseven|mewing|tikio|garza|deal|siu]   farmeo de aura (+aura)
+  7ots aura [sixseven|mewing|tikio|garza|deal|siu] [--no-music] [--list]   farmeo de aura (+aura, su propio contador; phonk, o tus temas en ~/.7ots/music/aura)
   7ots status [--line|--json]                estado (--line: una línea para tmux)
   7ots ask <texto>                           háblale: "recuérdame ver el correo en 10 min", "abre mi calendario", "anota que…"
   7ots reminders [--cancel <id>]             recordatorios pendientes y lo que recuerda
@@ -404,7 +404,7 @@ Docs: https://7ots.com/llms.txt`,
   7ots pet --tmux                          o bichinho de terminal num painel do tmux
   7ots feed | play | sleep | wake | say <texto> | stop
   7ots dance [nombre] [--ms N] [--no-music] [--list] | entrance [--dance nombre]
-  7ots aura [sixseven|mewing|tikio|garza|deal|siu]   farmar aura (+aura)
+  7ots aura [sixseven|mewing|tikio|garza|deal|siu] [--no-music] [--list]   farmar aura (+aura, seu próprio contador; phonk, ou suas músicas em ~/.7ots/music/aura)
   7ots status [--line|--json]                estado (--line: uma linha para tmux)
   7ots ask <texto>                           fale com ele: "me lembre de ver o e-mail em 10 min", "abra minha agenda", "anote que…"
   7ots reminders [--cancel <id>]             lembretes pendentes e o que ele lembra

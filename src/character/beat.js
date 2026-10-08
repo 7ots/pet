@@ -7,13 +7,15 @@
  *   hype   electrónica de cuatro en el piso      funk   bajo sincopado y guitarra rítmica
  *   chip   8 bits (cuadradas y triangular)       trap   808 largo, hats con redobles
  *   entrance  público que ruge, dos golpes con pirotecnia y un riff de rock (entradas tipo lucha libre)
+ *   phonk  (farmeo de aura) cowbell 808 en menor, 808 saturado que se desliza, hats en tresillo, medio tiempo
+ *   montagem  (farmeo de aura) funk brasileño: tamborzão, cowbell distorsionado repitiendo el riff
  *
  * playBeat(style, { ms, volume }) → { stop(), done: Promise, analyser } (solo en el navegador).
  */
 
 import { DANCE_BPM } from './motion.js';
 
-export const BEAT_STYLES = ['hype', 'funk', 'chip', 'trap', 'entrance'];
+export const BEAT_STYLES = ['hype', 'funk', 'chip', 'trap', 'entrance', 'phonk', 'montagem'];
 
 const hz = (m) => 440 * 2 ** ((m - 69) / 12);
 let shared = null;
@@ -60,6 +62,19 @@ function filt(ctx, type, f, q, dest) {
   b.Q.value = q;
   b.connect(dest);
   return b;
+}
+/** Saturación (tanh) que se reusa por contexto y cantidad. */
+function drive(ctx, amt, dest) {
+  const key = `__drive${amt}`;
+  if (!ctx[key]) {
+    const c = new Float32Array(1024);
+    for (let i = 0; i < c.length; i++) c[i] = Math.tanh(((i / c.length) * 2 - 1) * amt);
+    ctx[key] = c;
+  }
+  const ws = ctx.createWaveShaper();
+  ws.curve = ctx[key];
+  ws.connect(dest);
+  return ws;
 }
 const I = {
   kick(ctx, out, t, v = 1, low = 45) {
@@ -125,6 +140,18 @@ const I = {
       o.frequency.linearRampToValueAtTime(o.frequency.value * 1.3, s + 0.3);
     }
   },
+  // el cowbell de la 808: dos cuadradas desafinadas (≈ 540 y 800 Hz en el original), aquí afinado a la nota
+  cowbell(ctx, out, t, m, dur, v = 1, dist = 0) {
+    const g = env(ctx, out, t, 0.16 * v, 0.002, dur);
+    const bp = filt(ctx, 'bandpass', hz(m) * 1.8, 1.4, dist ? drive(ctx, dist, g) : g);
+    for (const k of [1, 1.48]) osc(ctx, 'square', hz(m) * k, t, dur, bp);
+  },
+  // 808 largo y saturado, con glide desde otra nota
+  bass808(ctx, out, t, m, dur, v = 1, from = null) {
+    const g = env(ctx, out, t, 0.5 * v, 0.004, dur);
+    const o = osc(ctx, 'sine', hz(from ?? m), t, dur, drive(ctx, 3.5, filt(ctx, 'lowpass', 900, 0.7, g)));
+    if (from != null) o.frequency.exponentialRampToValueAtTime(hz(m), t + 0.14);
+  },
   boom(ctx, out, t, v = 1) {
     I.kick(ctx, out, t, 1.2 * v, 30);
     noise(ctx, t, 1.4, filt(ctx, 'lowpass', 900, 0.5, env(ctx, out, t, 0.5 * v, 0.005, 1.3)));
@@ -182,6 +209,39 @@ const STYLES = {
       if (i >= 12 && bar % 2) for (let k = 0; k < 3; k++) I.hat(ctx, out, t + (k * sd) / 3, 0.4 + k * 0.1);
       else if (i % 2 === 0) I.hat(ctx, out, t, 0.5);
       if (i === 0 && bar % 2 === 0) I.chord(ctx, out, t, [r + 12, r + 15, r + 19], sd * 30, 0.7, 'triangle');
+    },
+  },
+  // farmeo de aura: phonk de drift en medio tiempo (caja en el 3), el riff de cowbell va cambiando por compás
+  phonk: {
+    roots: [49, 49, 45, 47], // do#, do#, la, si (menor)
+    riff: [
+      [12, null, 12, null, 15, null, 12, null, 19, null, 17, 15, null, 12, null, null],
+      [12, null, 12, null, 15, null, 12, null, 10, null, 12, null, 7, null, null, null],
+    ],
+    step(ctx, out, t, i, bar, sd) {
+      const r = this.roots[bar % 4];
+      if (on('x......xx.x.....', i)) (I.kick(ctx, out, t, 1.1, 40), I.bass808(ctx, out, t, r - 24, sd * (i === 0 ? 6 : 3), 1, i === 10 ? r - 19 : null));
+      if (i === 8) (I.clap(ctx, out, t, 1.2), I.snare(ctx, out, t, 0.6));
+      // hats en tresillo de corchea, más fuertes a contratiempo
+      if (i % 4 === 0) for (let k = 0; k < 3; k++) I.hat(ctx, out, t + (k * sd * 4) / 3, k === 1 ? 0.55 : 0.3);
+      const n = this.riff[bar % 2][i];
+      if (n != null) I.cowbell(ctx, out, t, r + n, sd * 1.6, 1);
+      if (i === 0 && bar % 4 === 0) I.chord(ctx, out, t, [r + 12, r + 15, r + 19], sd * 60, 0.45, 'triangle'); // colchón oscuro
+    },
+  },
+  // farmeo de aura: montagem (funk brasileño), tamborzão y el cowbell distorsionado repitiendo el mismo riff
+  montagem: {
+    roots: [50, 50, 53, 48],
+    riff: [0, null, 0, 3, null, 0, null, 7, null, 5, 3, null, 0, null, 3, null],
+    step(ctx, out, t, i, bar, sd) {
+      const r = this.roots[bar % 4];
+      if (on('x..x..x...x..x..', i)) I.kick(ctx, out, t, 1.15, 42); // tamborzão
+      if (on('x.....x...x.....', i)) I.bass808(ctx, out, t, r - 24, sd * 2.5, 0.8);
+      if (i === 4 || i === 12) I.clap(ctx, out, t, 1.1);
+      if (on('..x...x...x.x..x', i)) I.snare(ctx, out, t, 0.35);
+      if (i % 2) I.hat(ctx, out, t, 0.3);
+      const n = this.riff[i];
+      if (n != null) I.cowbell(ctx, out, t, r + 24 + n, sd * 1.2, 1.1, 4);
     },
   },
   entrance: {

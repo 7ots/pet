@@ -81,7 +81,7 @@ export {
   CHARACTER_MOODS, CHARACTER_GESTURES, CHARACTER_MORPHS, CHARACTER_EFFECTS, CHARACTER_GESTURE_ALIAS, VISEMES, textToVisemes, SHAPES, EYES, BROWS, MOUTHS, CHEEKS, PATTERNS, FINISHES, ACCESSORIES, ACCESSORY_GROUPS, PRESETS, partLabel,
   resolveCharacter, normalizeMods, normalizeMod, sanitizeSvg, modName, MOD_ANCHORS, MOD_SLOTS, MOD_FACE, MAX_MODS,
 } from './character/Character.js';
-export { DANCES, DANCE_STYLE, DANCE_BPM, AURA_MOVES } from './character/motion.js';
+export { DANCES, DANCE_STYLE, DANCE_BPM, AURA_MOVES, AURA_STYLE, AURA_POINTS } from './character/motion.js';
 export { playBeat, BEAT_STYLES } from './character/beat.js';
 import { createAvatarEditor, AvatarEditor } from './character/AvatarEditor.js';
 import { renderCharacter as _renderCharacter, createCharacter as _createCharacter } from './character/Character.js';
