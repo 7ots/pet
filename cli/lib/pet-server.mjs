@@ -32,7 +32,7 @@
  *   POST /notes/forget                 { at | 'all' }
  *   POST /conversation/forget          drop the conversation memory (turns + summary)
  *   POST /quit    X-7ots-Token
- *   POST /dance   X-7ots-Token         { name?, ms?, music? } → dances (DANCES in motion.js) with music (beat.js or ~/.7ots/music)
+ *   POST /dance   X-7ots-Token         { name?, ms?, music? } → dances (DANCES in motion.js) with music (beat.js or ~/.7ots/music) — { aura: true } elige un farmeo de aura
  *   POST /entrance X-7ots-Token        { dance? } → a wrestling-style entrance: walks in, spotlights, pyro, its name, a dance
  *   GET  /music?token=…                { files } your own tracks in ~/.7ots/music · GET /music/<file>?token=… plays one
  *   GET  /senses?token=…[&preview=1]   the camera page (face + gestures → labels; the desktop shell runs it hidden)
@@ -79,7 +79,7 @@ import { line } from './lines.mjs';
 import { defineIdentity, GROK_VOICES, OPENAI_VOICES, TTS_MODELS } from '../../src/identity/schema.js';
 import { normalizeMod, normalizeMods, MAX_MODS } from '../../src/character/mods.js';
 import { MOD_CATALOG } from '../../src/character/mods/index.js';
-import { DANCES } from '../../src/character/motion.js';
+import { DANCES, AURA_MOVES } from '../../src/character/motion.js';
 import { stripSpeechTags } from '../../src/voice/tags.js';
 
 /** Mods importados en este pet (~/.7ots/mods/library.json), normalizados. */
@@ -161,7 +161,8 @@ export function startPetServer({ port = PET_PORT, log = () => {} } = {}) {
   const sceneConf = (c = config) => ({ on: true, every: 'normal', list: SCENE_NAMES, ...c.pet?.scenes });
   // a dance to play: its name (or one at random), how long and the music under it, per the pet's music setting
   const musicFor = (d = {}) => {
-    const name = DANCES.includes(d.name) ? d.name : DANCES[Math.floor(Math.random() * DANCES.length)];
+    const pool = d.aura ? AURA_MOVES : DANCES; // { aura: true } = farmeo de aura
+    const name = DANCES.includes(d.name) ? d.name : pool[Math.floor(Math.random() * pool.length)];
     const ms = Math.max(1500, Math.min(60000, Number(d.ms) || 8000));
     const mode = d.music === false ? 'off' : config.pet.music || 'synth';
     const vol = Math.max(0, Math.min(1, Number(config.pet.musicVol ?? 0.5)));

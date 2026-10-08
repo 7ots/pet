@@ -300,6 +300,19 @@ export const FX3D = {
       done(f.m);
     },
   },
+  aura: {
+    ms: 2600,
+    make: (c, f) => (f.m = inst('drop', mat('gloss', '#c4b5fd'), 8)),
+    draw: (c, f, p, age, a, rnd) => {
+      const e = Math.min(clamp(p / 0.15), fade(p)) * a;
+      for (let i = 0; i < 8; i++) {
+        const an = rnd() * TAU, d = 0.5 + rnd() * 0.12;
+        const q = (p * 1.6 + i / 8) % 1;
+        put(f.m, i, Math.cos(an) * c.W * d, c.H * (0.1 + 0.95 * q), Math.sin(an) * c.D * d, c.W * 0.045 * Math.sin(Math.PI * q) * e, Math.PI);
+      }
+      done(f.m);
+    },
+  },
   dizzy: {
     ms: 1600,
     loop: true,

@@ -412,12 +412,13 @@ async function cmdCare(cmd, { pos, flags }) {
 }
 
 async function cmdDance(cmd, { pos, flags }) {
-  const { DANCES } = await import('../src/character/motion.js');
-  if (flags.list) return console.log(DANCES.join(' '));
-  const name = (cmd === 'dance' ? pos[0] : flags.dance) || undefined;
-  const body = { name, ms: flags.ms ? Number(flags.ms) : undefined };
+  const { DANCES, AURA_MOVES } = await import('../src/character/motion.js');
+  const aura = cmd === 'aura';
+  if (flags.list) return console.log((aura ? AURA_MOVES : DANCES).join(' '));
+  const name = (cmd === 'entrance' ? flags.dance : pos[0]) || undefined;
+  const body = { name, aura: aura || undefined, ms: flags.ms ? Number(flags.ms) : undefined };
   if (flags['no-music'] || flags.music === false) body.music = false;
-  if (!(await postPet('/' + cmd, body))) console.log(dim(t('pet.notRunning')));
+  if (!(await postPet(cmd === 'entrance' ? '/entrance' : '/dance', body))) console.log(dim(t('pet.notRunning')));
 }
 
 async function cmdStatus({ flags = {} } = {}) {
@@ -588,6 +589,8 @@ async function main() {
       return cmdAsk(args);
     case 'dance':
     case 'entrance':
+      return cmdDance(cmd, args);
+    case 'aura':
       return cmdDance(cmd, args);
     case 'reminders':
       return cmdReminders(args);

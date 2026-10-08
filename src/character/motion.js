@@ -414,6 +414,110 @@ export const GESTURES = {
       return { r: S(age, 0.9) * 7 * e, x: S(age, 0.9, 1.2) * 0.03 * e, lx: S(age, 1.4) * 0.8 * e, ly: Math.cos((age / 1000) * TAU * 1.4) * 0.6 * e, curve: -0.1 * e, open: 0.15 * e, msx: 1 - 0.2 * e };
     },
   },
+  // ── farmeo de aura: poses de meme que suman aura (también son bailes: van con música y salen en `7ots dance`) ──
+  // six-seven: las palmas arriba, una sube y la otra baja, al compás, con cara de nada
+  sixseven: {
+    ms: 6000,
+    hold: true,
+    dance: 'trap',
+    aura: true,
+    legs: 'wide',
+    hands: 'sixseven',
+    fx: [[0.04, 'aura'], [0.5, 'aura']],
+    pose: (t, age) => {
+      const e = env(t, 0.06, 0.08);
+      const w = snap(S(age, BEAT / 2));
+      return { r: w * 4 * e, x: w * 0.015 * e, y: -0.015 * Math.abs(S(age, BEAT)) * e, blink: 0.35 * e, curve: 0.15 * e, msx: 1 - 0.15 * e, lx: 0.2 * e };
+    },
+  },
+  // mirada sigma (mewing): quieto, mentón arriba, ojos a media asta, boca apretada; mira de reojo y vuelve a ti
+  mewing: {
+    ms: 6000,
+    hold: true,
+    dance: 'trap',
+    aura: true,
+    legs: 'wide',
+    hands: 'hips',
+    fx: [[0.05, 'aura'], [0.55, 'aura']],
+    pose: (t, age) => {
+      const e = env(t, 0.12, 0.1);
+      const side = ((age / 1000) * (BEAT / 8)) % 1 < 0.5 ? 0.6 : 0;
+      return { r: -3 * e, y: -0.01 * e, sy: 1 + 0.02 * e, sx: 1 - 0.01 * e, blink: 0.45 * e, eye: 1 - 0.08 * e, lx: side * e, ly: -0.15 * e, curve: -0.05 * e, msx: 1 - 0.35 * e, lift: -1.5 * e };
+    },
+  },
+  // paso tikio: una mano arriba de reloj y la otra le marca la hora a golpes, mientras da una vuelta entera
+  tikio: {
+    ms: 6000,
+    hold: true,
+    dance: 'trap',
+    aura: true,
+    legs: 'stomp',
+    hands: 'tikio',
+    fx: [[0.04, 'aura']],
+    pose: (t, age) => {
+      const e = env(t, 0.06, 0.08);
+      const f = ((age / 1000) * (BEAT / 8)) % 1; // una vuelta cada 8 tiempos
+      const turn = f > 0.5 ? EASE.inOut((f - 0.5) / 0.5) : 0;
+      const tick = Math.abs(S(age, BEAT));
+      return { sx: lerp(1, Math.cos(turn * TAU), e) * (1 - 0.02 * tick * e), sy: 1 + 0.02 * tick * e, y: -0.015 * tick * e, curve: 0.3 * e, blink: 0.3 * e };
+    },
+  },
+  // la garza: en una pata, las manos en triángulo sobre la cabeza, mirando con sospecha
+  garza: {
+    ms: 6000,
+    hold: true,
+    dance: 'trap',
+    aura: true,
+    legs: 'garza',
+    hands: 'garza',
+    fx: [[0.05, 'aura'], [0.55, 'aura']],
+    pose: (t, age) => {
+      const e = env(t, 0.1, 0.08);
+      const wob = S(age, 0.7) * 0.6 + S(age, 1.9) * 0.4; // se balancea para no caerse
+      const look = ((age / 1000) * (BEAT / 4)) % 1 < 0.5 ? 0.7 : -0.7;
+      return { r: wob * 3 * e, x: wob * 0.01 * e, y: -0.02 * e, sy: 1 + 0.03 * e, blink: 0.5 * e, lx: look * e, curve: -0.25 * e, lift: -2 * e, msx: 1 - 0.25 * e };
+    },
+  },
+  // paso deal: pies rápidos coordinados y los codos que entran y salen juntos
+  deal: {
+    ms: 6000,
+    hold: true,
+    dance: 'trap',
+    aura: true,
+    legs: 'deal',
+    hands: 'deal',
+    fx: [[0.04, 'aura']],
+    pose: (t, age) => {
+      const e = env(t, 0.06, 0.08);
+      const hop = Math.abs(S(age, BEAT * 2));
+      const side = snap(S(age, BEAT / 2));
+      return { x: side * 0.03 * e, r: -side * 3 * e, y: -0.025 * hop * e, sy: 1 + 0.03 * hop * e, curve: 0.4 * e, blink: 0.25 * e };
+    },
+  },
+  // festejo de futbolista: carrera, salto con giro y el «¡siuuu!» con los brazos abiertos; después, el dedo al cielo
+  siu: {
+    ms: 6000,
+    hold: true,
+    dance: 'hype',
+    aura: true,
+    legs: 'siu',
+    hands: 'siu',
+    fx: [[0.3, 'aura'], [0.32, 'confetti']],
+    pose: (t, age) => {
+      const e = env(t, 0.04, 0.08);
+      const f = (age % 4000) / 4000;
+      if (f < 0.2) return { x: lerp(-0.05, 0.03, f / 0.2) * e, y: -0.02 * Math.abs(S(age, BEAT * 2)) * e, r: 6 * e, curve: 0.6 * e }; // corre
+      if (f < 0.4) {
+        const k = (f - 0.2) / 0.2; // salta y gira en el aire
+        return { x: 0.03 * e, y: -0.16 * Math.sin(Math.PI * k) * e, sx: lerp(1, Math.cos(EASE.inOut(k) * TAU), e), sy: 1 + 0.06 * Math.sin(Math.PI * k) * e, curve: 0.5 * e };
+      }
+      if (f < 0.75) {
+        const k = clamp((f - 0.4) / 0.06); // cae abierto: ¡siuuu!
+        return { x: 0.03 * e, sy: 1 - 0.08 * (1 - k) * e, sx: 1 + 0.06 * e, open: 0.85 * k * e, msx: 1 - 0.45 * e, curve: 0.1 * e, blink: 0.2 * e, lift: 2 * e };
+      }
+      return { x: 0.03 * e, ly: -0.8 * e, curve: 0.7 * e, lift: 1.5 * e, open: 0.1 * e }; // el dedo al cielo
+    },
+  },
 };
 
 /** Nombres alternativos (incluidos los gestos del avatar 3D de TalkingHead). */
@@ -427,6 +531,8 @@ export const GESTURE_ALIAS = {
 export const DANCES = Object.keys(GESTURES).filter((k) => GESTURES[k].dance);
 /** Baile → estilo de música (beat.js). */
 export const DANCE_STYLE = Object.fromEntries(DANCES.map((k) => [k, GESTURES[k].dance]));
+/** Los bailes de farmeo de aura (six-seven, mewing, tikio, garza, deal, siu). */
+export const AURA_MOVES = DANCES.filter((k) => GESTURES[k].aura);
 
 // ───────────────────────────── manos ─────────────────────────────
 
@@ -491,6 +597,28 @@ export const HAND_POSES = {
     return { u: lerp(p0.u, p1.u, k), v: lerp(p0.v, p1.v, k), ang: lerp(p0.ang, p1.ang, k), type: 'open' };
   },
   cover: (s, a, dir, c) => ({ x: c.cx + s * c.sp, y: c.eyeY, ang: -8, type: 'open', s: 1.3 }),
+  // farmeo de aura
+  sixseven: (s, a) => {
+    const w = snap(S(a, BEAT / 2)) * s; // una palma sube mientras la otra baja
+    return { u: 1.32, v: -0.05 - w * 0.32, ang: 90, type: 'open', s: 1.05 };
+  },
+  tikio: (s, a, dir) => {
+    if (s !== dir) return { u: 0.35, v: -1.0, ang: s * 10, type: 'open' }; // el reloj, arriba
+    const k = Math.max(0, S(a, BEAT)) ** 1.5; // la otra le golpea la palma a cada tiempo
+    return { u: lerp(0.95, -0.15, k), v: lerp(-0.7, -0.95, k), ang: lerp(-20, -80, k), type: 'open' };
+  },
+  garza: (s, a) => ({ u: 0.28, v: -1.3 + 0.03 * S(a, 0.7), ang: -s * 38, type: 'open' }), // las puntas de los dedos se tocan sobre la cabeza
+  deal: (s, a) => {
+    const k = Math.max(0, S(a, BEAT * 2)) ** 1.2; // los dos codos a la vez, rápido
+    return { u: lerp(0.95, 1.3, k), v: lerp(0.2, 0.0, k), ang: lerp(150, 100, k), type: 'fist' };
+  },
+  siu: (s, a, dir) => {
+    const f = (a % 4000) / 4000;
+    if (f < 0.2) return { u: 1.1, v: 0.2 + s * S(a, BEAT * 2) * 0.25, ang: 160, type: 'fist' };
+    if (f < 0.4) return { u: 1.0, v: -0.6, ang: 20, type: 'open' };
+    if (f < 0.75) return { u: 1.45, v: 0.55, ang: 140, type: 'open' }; // brazos abiertos hacia abajo
+    return s === dir ? { u: 0.9, v: -1.25, ang: 0, type: 'point' } : { u: 1.0, v: 0.45, ang: 170, type: 'open' };
+  },
 };
 
 function handPos(pose, s, age, dir, c) {
@@ -635,6 +763,20 @@ export const LEG_POSES = {
   disco: (s, a, dir) => (s === dir ? { dx: 0.12, lift: 0.22 * tap(a, BEAT, 0), ang: -25 * tap(a, BEAT, 0) } : { dx: -0.03, lift: 0, ang: 0 }),
   // bien abiertas y firmes
   wide: (s) => ({ dx: s * 0.1, lift: 0, ang: 0 }),
+  // en una pata: la otra recogida a la altura de la rodilla
+  garza: (s, a, dir) => (s === dir ? { dx: -0.06, lift: 0.85, ang: -70 } : { dx: 0.02, lift: 0, ang: 0 }),
+  // pasos cortos y rápidos, cruzando y abriendo
+  deal: (s, a) => {
+    const ph = s > 0 ? 0 : Math.PI;
+    return { dx: 0.08 * snap(S(a, BEAT, ph)), lift: 0.25 * tap(a, BEAT * 2, ph), ang: -10 * tap(a, BEAT * 2, ph) };
+  },
+  // corre, salta con las dos y cae abierto
+  siu: (s, a) => {
+    const f = (a % 4000) / 4000;
+    if (f < 0.2) return { dx: 0.1 * S(a, BEAT * 2, s > 0 ? 0 : Math.PI), lift: 0.4 * tap(a, BEAT * 2, s > 0 ? 0 : Math.PI), ang: -15 };
+    if (f < 0.4) return { dx: 0, lift: 0.5 * Math.sin(Math.PI * ((f - 0.2) / 0.2)), ang: -20 };
+    return { dx: s * 0.14, lift: 0, ang: 0 };
+  },
 };
 
 /**
@@ -837,6 +979,27 @@ const at = (x, y, inner, extra = '') => `<g transform="translate(${R(x)} ${R(y)}
 
 /** Efectos: { ms, loop?, layer: 'face'|'front', draw(c, p 0..1, ageMs, o, rnd) }. */
 export const EFFECTS = {
+  // farmeo de aura: un halo que sube en llamitas violetas y el «+aura» flotando
+  aura: {
+    ms: 2600,
+    draw: (c, p, age, o, rnd) => {
+      const pts = o.aura ?? [67, 100, 420, 1000, 6700][Math.floor(rnd() * 5)];
+      const e = Math.min(clamp(p / 0.15), fade(p, 0.3));
+      let out = `<ellipse cx="${R(c.cx)}" cy="${R(c.top + c.H * 0.55)}" rx="${R(c.W * 0.62)}" ry="${R(c.H * 0.6)}" fill="none" stroke="#a78bfa" stroke-width="${R(c.W * 0.03)}" opacity="${R(0.35 * e)}"/>`;
+      for (let i = 0; i < 7; i++) {
+        const a = rnd() * TAU;
+        const q = ((p * 1.6 + i / 7) % 1);
+        const x = c.cx + Math.cos(a) * c.W * (0.45 + 0.1 * rnd());
+        const y = c.top + c.H * (0.9 - 0.9 * q);
+        const sz = c.W * 0.05 * Math.sin(Math.PI * q);
+        if (sz > 0.3) out += at(x, y, `<path d="M0 ${R(-sz * 2)}Q${R(sz)} 0 0 ${R(sz)}Q${R(-sz)} 0 0 ${R(-sz * 2)}Z" fill="#c4b5fd" opacity="${R(0.85 * e)}"/>`);
+      }
+      const k = c.W / 120;
+      const q = clamp(p / 0.8);
+      out += `<g opacity="${R(Math.min(clamp(p / 0.1), fade(p, 0.35)))}">${at(c.cx + c.dir * c.W * 0.5, c.top - c.H * 0.1 - c.H * 0.25 * EASE.out(q), `<text text-anchor="middle" font-family="system-ui,sans-serif" font-weight="900" font-size="15" fill="#7c3aed" stroke="#fff" stroke-width="3" paint-order="stroke">+${pts.toLocaleString('en-US')} aura</text>`, ` scale(${R(k)})`)}</g>`;
+      return out;
+    },
+  },
   sparkles: {
     ms: 1300,
     draw: (c, p, age, o, rnd) => {
