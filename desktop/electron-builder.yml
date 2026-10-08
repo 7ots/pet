@@ -33,7 +33,7 @@ mac:
   entitlementsInherit: build/entitlements.mac.plist
   extendInfo:
     NSMicrophoneUsageDescription: Your 7ots pet listens when you ask it to (Ctrl+Alt+Space).
-    NSCameraUsageDescription: Your 7ots pet only uses the camera if you allow it in its settings.
+    NSCameraUsageDescription: Your 7ots pet reads your face and hand gestures only if you turn on Senses → Camera in its settings. The video never leaves your computer.
 dmg:
   artifactName: 7ots-mac.${ext}
 

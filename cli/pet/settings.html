@@ -199,6 +199,8 @@
   .tabs { display: flex; gap: 6px; margin-bottom: 10px; flex-wrap: wrap; }
   .sub { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; grid-column: 1 / span 2; margin-top: 6px; font-size: 12.5px; color: var(--muted); }
   .sub select { width: auto; height: 30px; padding: 0 8px; }
+  #senses .row select, #senses .row input:not([type=checkbox]) { width: auto; height: 32px; padding: 0 8px; }
+  #senses .row label { display: inline-flex; gap: 6px; align-items: center; }
   .sub button { min-height: 30px; padding: 0 10px; font-size: 12.5px; }
   .sh { display: flex; align-items: center; gap: 8px; margin: 18px 0 6px; font-size: 11.5px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
   .sh:first-of-type { margin-top: 4px; }
@@ -299,6 +301,12 @@
     <h2 id="hInteg" data-t="integH"></h2>
     <p class="hint" data-t="integHint"></p>
     <div id="integ"></div>
+  </section>
+
+  <section aria-labelledby="hSenses">
+    <h2 id="hSenses" data-t="sensesH"></h2>
+    <p class="hint" data-t="sensesHint"></p>
+    <div id="senses"></div>
   </section>
 
   <section aria-labelledby="hPet">
@@ -580,7 +588,88 @@
       e_customName: 'cada integração precisa de um nome', e_customUrl: 'a URL deve começar com http:// ou https://', e_customEnv: 'a variável deve parecer MEU_TOKEN', e_inbox: 'esse endereço de caixa não é válido', e_lettaAgent: 'ID de agente Letta inválido', e_custom: 'no máximo 20 integrações', e_project: 'projeto inválido',
     },
   };
-  for (const k of Object.keys(T2)) Object.assign(T[k], T2[k]);
+  // senses (camera, activity, mail, calendar → moods, rules, gestures)
+  const T3 = {
+    en: {
+      sensesH: 'Senses', sensesHint: 'What your ot may notice by itself: your face and hands through the camera, which app or site you are on, your mail and calendar. Everything is read and kept on this computer; only short hints reach its brain. Off by default.',
+      sSrc: 'Sources', sCamera: 'Camera: face and hands', sCameraD: 'Reads tiredness, tension, focus and mood from your face (numbers, never pictures), and hand gestures as quick commands. No image is stored or sent.',
+      sActivity: 'Apps and sites', sActivityD: 'Which window and site you are on and for how long, breaks, battery. Only names and minutes, per day, kept 14 days.',
+      sMail: 'New mail', sMailD: 'Notices new and urgent-looking apumail mail (set it up in Integrations). Only sender and subject.',
+      sCal: 'Calendar', sCalD: 'Your next events, from a private calendar link (.ics: Google Calendar → Settings → Secret address in iCal format).',
+      sWa: 'WhatsApp', sWaD: 'Personal WhatsApp has no official API, and unofficial clients can get the number banned. It will come through the Business API or a bridge you run.',
+      sIcs: 'Calendar link (.ics)', sVendor: 'The camera needs its models once (~13 MB from jsDelivr and Google, checked by hash).', sVendorGet: 'Download models', sVendorBusy: 'Downloading {done}/{total}…', sVendorOk: 'Models ready',
+      sPreview: 'See what it sees', sRecal: 'Recalibrate my neutral face', sRecalOk: 'It will learn your neutral face again over the next minutes.', sPause: 'Pause camera 1 h', sResume: 'Resume camera', sPausedTill: 'Paused until {t}',
+      sCamOn: 'Camera on', sCamOff: 'Camera off (the pet opens it when the app is running)', sNoBase: 'calibrating', sNow: 'Right now',
+      sOpts: 'Options', sArm: 'Wake gesture first', sArmD: 'Commands (media, keys, programs, questions) only run after an open palm, so a hand passing by does nothing.',
+      sReflect: 'Helps on its own', sReflectD: 'Now and then it looks at what it knows and says one useful thing, or proposes a rule. How often follows “How chatty”.',
+      sHold: 'Hold a gesture', sFps: 'Frames per second', sAskNow: 'Ask it now', sNothing: 'Nothing to say right now.',
+      sToday: 'Today', sActive: 'active {a} · away {w} · {b} breaks · longest {l}', sApps: 'Apps', sSites: 'Sites', sMoods: 'Face',
+      sRules: 'Rules', sRulesHint: 'When something holds, your ot reacts. The ones it proposes start only when you accept them.', sProposed: 'Proposed by {name}', sAccept: 'Accept', sReject: 'Decline', sRemove: 'Remove',
+      sBy7ots: '7ots', sByUser: 'you', sByOt: 'ot', sAdd: 'Add rule', sWhen: 'When', sThen: 'Then', sValue: 'value', sText: 'what to say or do', sCooldown: 'at most every',
+      w_state: 'face reads', w_streak: 'non-stop for', w_app: 'app contains', w_site: 'site contains', w_appFor: 'on that app/site for', w_hour: 'hour between', w_meetingIn: 'meeting in', w_battery: 'battery below', w_mail: 'mail arrives',
+      t_say: 'say', t_notify: 'notify', t_remind: 'remind me', t_quiet: 'quiet for',
+      st_tired: 'tired', st_tense: 'tense', st_focused: 'focused', st_sad: 'down', st_happy: 'happy', st_neutral: 'neutral',
+      sGest: 'Gestures', sGestHint: 'What each hand sign does. Programs ask you once before their first run.', sSaveG: 'Save gestures',
+      g_thumb_up: '👍 Thumb up', g_thumb_down: '👎 Thumb down', g_open_palm: '✋ Open palm', g_closed_fist: '✊ Fist', g_victory: '✌️ Victory', g_pointing_up: '☝️ Pointing up', g_iloveyou: '🤟 Love you',
+      a_none: 'nothing', a_confirm: 'say yes', a_reject: 'say no', a_media: 'media', a_key: 'key combo', a_command: 'run program', a_ask: 'ask it', a_pause: 'pause camera (min)', a_react: 'it reacts', a_arm: 'wake gesture',
+      m_play_pause: 'play / pause', m_next: 'next', m_prev: 'previous', m_mute: 'mute', m_up: 'volume up', m_down: 'volume down',
+      sCmds: 'Programs', sCmdAdd: 'Add program', sCmdId: 'id', sCmdLabel: 'name', sCmdRun: 'command (no shell)', sApproved: 'approved', sNotApproved: 'asks first',
+      sForget: 'Forget everything it noticed', sForgetSure: 'Sure? Click again', sForgot: 'Forgotten: days, baseline and rule history.',
+    },
+    es: {
+      sensesH: 'Sentidos', sensesHint: 'Lo que tu ot puede notar por sí mismo: tu cara y manos por la cámara, en qué app o sitio estás, tu correo y calendario. Todo se lee y guarda en este computador; a su cerebro sólo llegan pistas cortas. Apagado por defecto.',
+      sSrc: 'Fuentes', sCamera: 'Cámara: cara y manos', sCameraD: 'Lee cansancio, tensión, concentración y ánimo en tu cara (números, nunca fotos), y gestos de la mano como comandos rápidos. No se guarda ni envía ninguna imagen.',
+      sActivity: 'Apps y sitios', sActivityD: 'En qué ventana y sitio estás y cuánto rato, pausas, batería. Sólo nombres y minutos por día, se guardan 14 días.',
+      sMail: 'Correo nuevo', sMailD: 'Nota el correo nuevo y el que parece urgente en apumail (se configura en Integraciones). Sólo remitente y asunto.',
+      sCal: 'Calendario', sCalD: 'Tus próximos eventos, desde un enlace privado de calendario (.ics: Google Calendar → Configuración → Dirección secreta en formato iCal).',
+      sWa: 'WhatsApp', sWaD: 'WhatsApp personal no tiene API oficial, y los clientes no oficiales pueden hacer que bloqueen el número. Llegará por la API Business o un puente que corras tú.',
+      sIcs: 'Enlace del calendario (.ics)', sVendor: 'La cámara necesita sus modelos una vez (~13 MB de jsDelivr y Google, verificados por hash).', sVendorGet: 'Descargar modelos', sVendorBusy: 'Descargando {done}/{total}…', sVendorOk: 'Modelos listos',
+      sPreview: 'Ver lo que ve', sRecal: 'Recalibrar mi cara neutra', sRecalOk: 'Volverá a aprender tu cara neutra en los próximos minutos.', sPause: 'Pausar cámara 1 h', sResume: 'Reanudar cámara', sPausedTill: 'En pausa hasta {t}',
+      sCamOn: 'Cámara encendida', sCamOff: 'Cámara apagada (la abre la mascota cuando la app está corriendo)', sNoBase: 'calibrando', sNow: 'Ahora',
+      sOpts: 'Opciones', sArm: 'Primero el gesto de atención', sArmD: 'Los comandos (multimedia, teclas, programas, preguntas) sólo corren tras una palma abierta, así una mano que pasa no hace nada.',
+      sReflect: 'Ayuda por su cuenta', sReflectD: 'Cada tanto mira lo que sabe y dice una cosa útil, o propone una regla. La frecuencia sigue a “Qué tan conversador”.',
+      sHold: 'Mantener un gesto', sFps: 'Cuadros por segundo', sAskNow: 'Preguntarle ahora', sNothing: 'Nada que decir por ahora.',
+      sToday: 'Hoy', sActive: 'activo {a} · fuera {w} · {b} pausas · tramo más largo {l}', sApps: 'Apps', sSites: 'Sitios', sMoods: 'Cara',
+      sRules: 'Reglas', sRulesHint: 'Cuando algo se cumple, tu ot reacciona. Las que propone él empiezan sólo cuando las aceptas.', sProposed: 'Propuesta por {name}', sAccept: 'Aceptar', sReject: 'Rechazar', sRemove: 'Quitar',
+      sBy7ots: '7ots', sByUser: 'tú', sByOt: 'ot', sAdd: 'Agregar regla', sWhen: 'Cuando', sThen: 'Entonces', sValue: 'valor', sText: 'qué decir o hacer', sCooldown: 'como mucho cada',
+      w_state: 'la cara se ve', w_streak: 'sin parar hace', w_app: 'la app contiene', w_site: 'el sitio contiene', w_appFor: 'en esa app/sitio hace', w_hour: 'hora entre', w_meetingIn: 'reunión en', w_battery: 'batería bajo', w_mail: 'llega correo',
+      t_say: 'decir', t_notify: 'notificar', t_remind: 'recordarme', t_quiet: 'silencio por',
+      st_tired: 'cansado', st_tense: 'tenso', st_focused: 'concentrado', st_sad: 'bajoneado', st_happy: 'contento', st_neutral: 'neutro',
+      sGest: 'Gestos', sGestHint: 'Qué hace cada seña de la mano. Los programas te preguntan una vez antes de correr por primera vez.', sSaveG: 'Guardar gestos',
+      g_thumb_up: '👍 Pulgar arriba', g_thumb_down: '👎 Pulgar abajo', g_open_palm: '✋ Palma abierta', g_closed_fist: '✊ Puño', g_victory: '✌️ Victoria', g_pointing_up: '☝️ Índice arriba', g_iloveyou: '🤟 Te quiero',
+      a_none: 'nada', a_confirm: 'decir sí', a_reject: 'decir no', a_media: 'multimedia', a_key: 'combinación de teclas', a_command: 'correr programa', a_ask: 'preguntarle', a_pause: 'pausar cámara (min)', a_react: 'reacciona', a_arm: 'gesto de atención',
+      m_play_pause: 'reproducir / pausa', m_next: 'siguiente', m_prev: 'anterior', m_mute: 'silenciar', m_up: 'subir volumen', m_down: 'bajar volumen',
+      sCmds: 'Programas', sCmdAdd: 'Agregar programa', sCmdId: 'id', sCmdLabel: 'nombre', sCmdRun: 'comando (sin shell)', sApproved: 'aprobado', sNotApproved: 'pregunta antes',
+      sForget: 'Olvidar todo lo que notó', sForgetSure: '¿Seguro? Haz clic otra vez', sForgot: 'Olvidado: días, cara neutra e historial de reglas.',
+    },
+    pt: {
+      sensesH: 'Sentidos', sensesHint: 'O que seu ot pode notar sozinho: seu rosto e mãos pela câmera, em que app ou site você está, seu e-mail e agenda. Tudo é lido e guardado neste computador; ao cérebro chegam só dicas curtas. Desligado por padrão.',
+      sSrc: 'Fontes', sCamera: 'Câmera: rosto e mãos', sCameraD: 'Lê cansaço, tensão, foco e humor no seu rosto (números, nunca fotos), e gestos da mão como comandos rápidos. Nenhuma imagem é guardada ou enviada.',
+      sActivity: 'Apps e sites', sActivityD: 'Em que janela e site você está e por quanto tempo, pausas, bateria. Só nomes e minutos por dia, guardados 14 dias.',
+      sMail: 'E-mail novo', sMailD: 'Percebe e-mail novo e o que parece urgente no apumail (configure em Integrações). Só remetente e assunto.',
+      sCal: 'Agenda', sCalD: 'Seus próximos eventos, de um link privado de agenda (.ics: Google Agenda → Configurações → Endereço secreto em formato iCal).',
+      sWa: 'WhatsApp', sWaD: 'O WhatsApp pessoal não tem API oficial, e clientes não oficiais podem fazer o número ser banido. Virá pela API Business ou por uma ponte que você roda.',
+      sIcs: 'Link da agenda (.ics)', sVendor: 'A câmera precisa dos modelos uma vez (~13 MB do jsDelivr e Google, verificados por hash).', sVendorGet: 'Baixar modelos', sVendorBusy: 'Baixando {done}/{total}…', sVendorOk: 'Modelos prontos',
+      sPreview: 'Ver o que ele vê', sRecal: 'Recalibrar meu rosto neutro', sRecalOk: 'Vai aprender seu rosto neutro de novo nos próximos minutos.', sPause: 'Pausar câmera 1 h', sResume: 'Retomar câmera', sPausedTill: 'Pausada até {t}',
+      sCamOn: 'Câmera ligada', sCamOff: 'Câmera desligada (o pet a abre quando o app está rodando)', sNoBase: 'calibrando', sNow: 'Agora',
+      sOpts: 'Opções', sArm: 'Gesto de atenção primeiro', sArmD: 'Comandos (mídia, teclas, programas, perguntas) só rodam depois de uma palma aberta, assim uma mão passando não faz nada.',
+      sReflect: 'Ajuda por conta própria', sReflectD: 'De vez em quando olha o que sabe e diz uma coisa útil, ou propõe uma regra. A frequência segue “Quão falante”.',
+      sHold: 'Segurar um gesto', sFps: 'Quadros por segundo', sAskNow: 'Perguntar agora', sNothing: 'Nada a dizer agora.',
+      sToday: 'Hoje', sActive: 'ativo {a} · fora {w} · {b} pausas · trecho mais longo {l}', sApps: 'Apps', sSites: 'Sites', sMoods: 'Rosto',
+      sRules: 'Regras', sRulesHint: 'Quando algo acontece, seu ot reage. As que ele propõe só começam quando você aceita.', sProposed: 'Proposta por {name}', sAccept: 'Aceitar', sReject: 'Recusar', sRemove: 'Remover',
+      sBy7ots: '7ots', sByUser: 'você', sByOt: 'ot', sAdd: 'Adicionar regra', sWhen: 'Quando', sThen: 'Então', sValue: 'valor', sText: 'o que dizer ou fazer', sCooldown: 'no máximo a cada',
+      w_state: 'o rosto parece', w_streak: 'sem parar há', w_app: 'o app contém', w_site: 'o site contém', w_appFor: 'nesse app/site há', w_hour: 'hora entre', w_meetingIn: 'reunião em', w_battery: 'bateria abaixo de', w_mail: 'chega e-mail',
+      t_say: 'dizer', t_notify: 'notificar', t_remind: 'lembrar-me', t_quiet: 'silêncio por',
+      st_tired: 'cansado', st_tense: 'tenso', st_focused: 'focado', st_sad: 'pra baixo', st_happy: 'feliz', st_neutral: 'neutro',
+      sGest: 'Gestos', sGestHint: 'O que cada sinal da mão faz. Programas perguntam uma vez antes da primeira execução.', sSaveG: 'Salvar gestos',
+      g_thumb_up: '👍 Joinha', g_thumb_down: '👎 Polegar para baixo', g_open_palm: '✋ Palma aberta', g_closed_fist: '✊ Punho', g_victory: '✌️ Vitória', g_pointing_up: '☝️ Indicador para cima', g_iloveyou: '🤟 Te amo',
+      a_none: 'nada', a_confirm: 'dizer sim', a_reject: 'dizer não', a_media: 'mídia', a_key: 'atalho de teclas', a_command: 'rodar programa', a_ask: 'perguntar', a_pause: 'pausar câmera (min)', a_react: 'ele reage', a_arm: 'gesto de atenção',
+      m_play_pause: 'tocar / pausar', m_next: 'próxima', m_prev: 'anterior', m_mute: 'mudo', m_up: 'aumentar volume', m_down: 'diminuir volume',
+      sCmds: 'Programas', sCmdAdd: 'Adicionar programa', sCmdId: 'id', sCmdLabel: 'nome', sCmdRun: 'comando (sem shell)', sApproved: 'aprovado', sNotApproved: 'pergunta antes',
+      sForget: 'Esquecer tudo o que notou', sForgetSure: 'Certeza? Clique de novo', sForgot: 'Esquecido: dias, rosto neutro e histórico de regras.',
+    },
+  };
+  for (const k of Object.keys(T2)) Object.assign(T[k], T2[k], T3[k]);
   // The system's language (LANG, or the one picked below) first, then the browser's, then the ot's.
   const nav = (navigator.language || '').slice(0, 2);
   const lang = T[BOOT.uiLang] ? BOOT.uiLang : T[nav] ? nav : T[BOOT.lang] ? BOOT.lang : 'en';
@@ -739,9 +828,9 @@
 
   // ── navigation: one section at a time, remembered in the URL hash ──
   const NAV = {
-    en: { acc: 'Account', brain: 'Brain', voice: 'Voice', access: 'Permissions', integ: 'Integrations', wal: 'Wallet', pet: 'Personality', com: 'Community', notes: 'Memory', rem: 'Processes', inf: 'Activity' },
-    es: { acc: 'Cuenta', brain: 'Cerebro', voice: 'Voz', access: 'Permisos', integ: 'Integraciones', wal: 'Billetera', pet: 'Personalidad', com: 'Comunidad', notes: 'Memoria', rem: 'Procesos', inf: 'Actividad' },
-    pt: { acc: 'Conta', brain: 'Cérebro', voice: 'Voz', access: 'Permissões', integ: 'Integrações', wal: 'Carteira', pet: 'Personalidade', com: 'Comunidade', notes: 'Memória', rem: 'Processos', inf: 'Atividade' },
+    en: { acc: 'Account', brain: 'Brain', voice: 'Voice', access: 'Permissions', senses: 'Senses', integ: 'Integrations', wal: 'Wallet', pet: 'Personality', com: 'Community', notes: 'Memory', rem: 'Processes', inf: 'Activity' },
+    es: { acc: 'Cuenta', brain: 'Cerebro', voice: 'Voz', access: 'Permisos', senses: 'Sentidos', integ: 'Integraciones', wal: 'Billetera', pet: 'Personalidad', com: 'Comunidad', notes: 'Memoria', rem: 'Procesos', inf: 'Actividad' },
+    pt: { acc: 'Conta', brain: 'Cérebro', voice: 'Voz', access: 'Permissões', senses: 'Sentidos', integ: 'Integrações', wal: 'Carteira', pet: 'Personalidade', com: 'Comunidade', notes: 'Memória', rem: 'Processos', inf: 'Atividade' },
   };
   // moods and inference purposes arrive as English codes from the daemon
   const WORDS = {
@@ -786,8 +875,8 @@
     s.classList.add('ico', `logo-${name}`);
     return s;
   };
-  const ICON = { acc: 'user-round', brain: 'cpu', voice: 'mic', access: 'shield-check', integ: 'plug', wal: 'wallet', pet: 'message-circle', com: 'users', notes: 'notebook-pen', rem: 'activity', inf: 'scroll-text' };
-  const SECS = { acc: 'hAcc', brain: 'hBrain', voice: 'hVoice', access: 'hAccess', integ: 'hInteg', wal: 'hWal', pet: 'hPet', com: 'hCom', notes: 'hNotes', rem: 'hRem', inf: 'hInf' };
+  const ICON = { acc: 'user-round', brain: 'cpu', voice: 'mic', access: 'shield-check', senses: 'eye', integ: 'plug', wal: 'wallet', pet: 'message-circle', com: 'users', notes: 'notebook-pen', rem: 'activity', inf: 'scroll-text' };
+  const SECS = { acc: 'hAcc', brain: 'hBrain', voice: 'hVoice', access: 'hAccess', senses: 'hSenses', integ: 'hInteg', wal: 'hWal', pet: 'hPet', com: 'hCom', notes: 'hNotes', rem: 'hRem', inf: 'hInf' };
   const navT = NAV[lang] || NAV.en;
   $('#nav').replaceChildren(...Object.keys(SECS).map((k) => el('a', { href: `#${k}` }, el('span', {}, ico(ICON[k])), el('b', { textContent: navT[k] }))));
   function go() {
@@ -800,6 +889,7 @@
     if (k === 'acc') loadAccount();
     if (k === 'rem') loadProcesses();
     if (k === 'notes') loadMemory();
+    if (k === 'senses') loadSenses();
     if (k === 'com') setTimeout(renderCommunity); // after the script ran (com is declared further down)
     window.scrollTo(0, 0);
   }
@@ -916,6 +1006,274 @@
       btn.textContent = t('test');
     }
   });
+
+  // ── senses: sources, camera, rules, gestures (cli/lib/senses) ──
+  const hm = (ms) => {
+    const m = Math.round((ms || 0) / 60000);
+    return m < 60 ? `${m} min` : `${Math.floor(m / 60)} h ${String(m % 60).padStart(2, '0')}`;
+  };
+  // "notify-send 'hi there'" → ['notify-send', 'hi there'] (quotes group, no shell)
+  const argv = (s) => [...String(s).matchAll(/"([^"]*)"|'([^']*)'|(\S+)/g)].map((m) => m[1] ?? m[2] ?? m[3]);
+  const showArgv = (a) => a.map((x) => (/\s/.test(x) ? `"${x}"` : x)).join(' ');
+  let SN = null;
+  let snTimer = 0;
+  async function loadSenses() {
+    try {
+      SN = await api('/senses/status');
+    } catch (e) {
+      $('#senses').replaceChildren(el('p', { className: 'empty', textContent: t('err', { e: e.message }) }));
+      return;
+    }
+    renderSenses();
+  }
+  function renderSenses() {
+    const box = $('#senses');
+    const msg = el('span', { className: 'msg', id: 'sensesMsg', role: 'status' });
+    const acc = SN.access;
+    const sw = (key, label, desc, on, onChange, soon) => {
+      const input = el('input', { type: 'checkbox', checked: on, disabled: !!soon });
+      input.setAttribute('role', 'switch');
+      input.setAttribute('aria-label', label);
+      if (!soon) input.addEventListener('change', () => onChange(input.checked));
+      return el('div', { className: `sw${soon ? ' soon' : ''}` }, el('b', {}, label, soon ? el('span', { className: 'tag', textContent: t('soon') }) : null), el('small', { textContent: desc }), el('span', { className: 'tog' }, input, el('span')));
+    };
+    const access = (k) => (on) => save({ access: { [k]: on } }, msg).then(loadSenses);
+    const btn = (text, fn, cls = '') => {
+      const b = el('button', { textContent: text, className: cls });
+      b.addEventListener('click', async () => {
+        b.disabled = true;
+        try {
+          await fn(b);
+        } catch (e) {
+          flash($('#sensesMsg'), t('err', { e: errText(e) }), 'err');
+        }
+        b.disabled = false;
+      });
+      return b;
+    };
+
+    // sources
+    const src = el('div');
+    const cam = sw('camera', t('sCamera'), t('sCameraD'), acc.camera, access('camera'));
+    if (acc.camera) cam.append(cameraRow(btn));
+    src.append(cam, sw('activity', t('sActivity'), t('sActivityD'), acc.activity, access('activity')));
+    src.append(sw('mail', t('sMail'), t('sMailD'), acc.mail, access('mail')));
+    const cal = sw('calendar', t('sCal'), t('sCalD'), acc.calendar, access('calendar'));
+    if (acc.calendar) {
+      const has = S.keys.SENSES_ICS_URL;
+      const url = el('input', { type: 'password', placeholder: has ? t('keySaved') : 'https://…/basic.ics', autocomplete: 'off' });
+      const err = SN.sources.find((s) => s.id === 'calendar')?.error;
+      cal.append(el('div', { className: 'sub' }, `${t('sIcs')} · ${has ? '✓' : t('keyNone')}`, url, btn(t('save'), async () => {
+        S = await api('/config', { keys: { SENSES_ICS_URL: url.value.trim() } });
+        flash(msg, t('saved'));
+        loadSenses();
+      }), err ? el('span', { className: 'msg err', textContent: err }) : null));
+    }
+    src.append(cal, sw('whatsapp', t('sWa'), t('sWaD'), false, null, true));
+
+    // options
+    const c = SN.config;
+    const opts = el('div');
+    opts.append(sw('arm', t('sArm'), t('sArmD'), c.arm, (on) => save({ senses: { arm: on } }, msg).then(loadSenses)));
+    opts.append(sw('reflect', t('sReflect'), t('sReflectD'), c.reflect, (on) => save({ senses: { reflect: on } }, msg)));
+    const pick = (vals, cur, fmtV, key) => {
+      const s = el('select', {}, ...vals.map((v) => el('option', { value: v, textContent: fmtV(v), selected: v === cur })));
+      s.addEventListener('change', () => save({ senses: { [key]: Number(s.value) } }, msg));
+      return s;
+    };
+    const say = el('span', { className: 'msg' });
+    opts.append(el('div', { className: 'row' },
+      el('label', {}, `${t('sHold')} `, pick([300, 600, 1000, 1500], c.holdMs, (v) => `${v / 1000} s`, 'holdMs')),
+      el('label', {}, `${t('sFps')} `, pick([2, 5, 10], c.fps, String, 'fps')),
+      btn(t('sAskNow'), async () => {
+        const r = await api('/senses/reflect', {});
+        say.textContent = r.say || (r.rule ? r.rule.name : t('sNothing'));
+        if (r.rule) loadSenses();
+      }), say));
+
+    // today
+    const d = SN.today;
+    const top = (list) => list.length ? el('ul', { className: 'list' }, ...list.slice(0, 6).map(([n, ms]) => el('li', {}, el('span', { textContent: n }), el('time', { textContent: hm(ms) })))) : el('p', { className: 'empty', textContent: '—' });
+    const moods = Object.entries(d.states || {}).sort((a, b) => b[1] - a[1]);
+    const today = el('div', {},
+      el('p', { className: 'total', textContent: t('sActive', { a: hm(d.active), w: hm(d.away), b: d.breaks, l: hm(d.longest) }) }),
+      acc.activity ? el('div', {}, el('h3', { className: 'sh', textContent: t('sApps') }), top(d.apps), d.sites.length ? el('h3', { className: 'sh', textContent: t('sSites') }) : null, d.sites.length ? top(d.sites) : null) : null,
+      moods.length ? el('div', {}, el('h3', { className: 'sh', textContent: t('sMoods') }), top(moods.map(([k, v]) => [t(`st_${k}`), v]))) : null);
+
+    box.replaceChildren(
+      el('h3', { className: 'sh', textContent: t('sSrc') }), src,
+      el('h3', { className: 'sh', textContent: t('sOpts') }), opts,
+      el('h3', { className: 'sh', textContent: t('sToday') }), today,
+      el('h3', { className: 'sh', textContent: t('sRules') }), el('p', { className: 'hint', textContent: t('sRulesHint') }), rulesBox(btn, msg),
+      el('h3', { className: 'sh', textContent: t('sGest') }), el('p', { className: 'hint', textContent: t('sGestHint') }), gesturesBox(btn, msg),
+      el('div', { className: 'row' }, forgetBtn(msg), msg),
+    );
+    // live while the section is open (camera state, vendor download)
+    clearTimeout(snTimer);
+    if (location.hash === '#senses') snTimer = setTimeout(() => location.hash === '#senses' && !box.contains(document.activeElement) && loadSenses(), SN.vendor.busy ? 2000 : 15000);
+  }
+  function cameraRow(btn) {
+    const v = SN.vendor;
+    const row = el('div', { className: 'sub' });
+    if (!v.ready) {
+      row.append(el('span', { textContent: t('sVendor') }));
+      if (v.busy) row.append(el('span', { className: 'wait' }, el('span', { className: 'spin' }), t('sVendorBusy', { done: v.done, total: v.total })));
+      else row.append(btn(t('sVendorGet'), async () => {
+        await api('/senses/vendor', {});
+        loadSenses();
+      }, 'primary'));
+      if (v.error) row.append(el('span', { className: 'msg err', textContent: v.error }));
+      return row;
+    }
+    const k = SN.camera;
+    const now = k.paused ? t('sPausedTill', { t: new Date(k.pausedUntil).toLocaleTimeString(lang, { hour: '2-digit', minute: '2-digit' }) }) : k.on ? `${t('sCamOn')} · ${t('sNow')}: ${k.state ? t(`st_${k.state}`) : '—'}${SN.baseline ? '' : ` (${t('sNoBase')})`}` : t('sCamOff');
+    row.append(el('span', { textContent: now }));
+    row.append(el('a', { href: `/senses?preview=1&token=${encodeURIComponent(BOOT.token)}`, target: '_blank', rel: 'noopener', textContent: t('sPreview') }));
+    row.append(btn(t('sRecal'), async () => {
+      await api('/senses/baseline', { baseline: null });
+      flash($('#sensesMsg'), t('sRecalOk'));
+    }));
+    row.append(k.paused ? btn(t('sResume'), async () => {
+      await api('/senses/pause', { resume: true });
+      loadSenses();
+    }) : btn(t('sPause'), async () => {
+      await api('/senses/pause', { min: 60 });
+      loadSenses();
+    }));
+    return row;
+  }
+  const W_KEYS = ['state', 'streak', 'app', 'site', 'appFor', 'hour', 'meetingIn', 'battery', 'mail'];
+  const STATES_UI = ['tired', 'tense', 'focused', 'sad', 'happy'];
+  function ruleText(r) {
+    const w = Object.entries(r.when).filter(([k]) => k !== 'for').map(([k, v]) => `${t(`w_${k}`)} ${k === 'state' ? t(`st_${v}`) + (r.when.for ? ` ${r.when.for}` : '') : v}`).join(' + ');
+    const th = r.then;
+    return `${t('sWhen')} ${w} → ${t(`t_${th.type}`)}${th.for ? ` ${th.for}` : ''}${th.text ? ` «${th.text}»` : ''}`;
+  }
+  function rulesBox(btn, msg) {
+    const act = (id, action) => async () => {
+      await api('/senses/rules', { id, action });
+      loadSenses();
+    };
+    const by = { '7ots': t('sBy7ots'), user: t('sByUser'), ot: S.name || t('sByOt') };
+    const list = el('ul', { className: 'list' });
+    const rules = SN.rules.slice().sort((a, b) => (a.status === 'proposed' ? -1 : 0) - (b.status === 'proposed' ? -1 : 0));
+    for (const r of rules) {
+      const info = el('span', {}, el('b', { textContent: r.name }), el('br'), el('small', { className: 'hint', textContent: `${ruleText(r)} · ${t('sCooldown')} ${r.cooldown} · ${by[r.by] || r.by}${r.why ? ` · ${r.why}` : ''}` }));
+      if (r.status === 'proposed') {
+        list.append(el('li', {}, el('span', { className: 'tag', textContent: t('sProposed', { name: S.name || 'ot' }) }), info, btn(t('sAccept'), act(r.id, 'accept'), 'primary'), btn(t('sReject'), act(r.id, 'reject'))));
+        continue;
+      }
+      const on = el('input', { type: 'checkbox', checked: r.status === 'active' });
+      on.setAttribute('role', 'switch');
+      on.setAttribute('aria-label', r.name);
+      on.addEventListener('change', () => act(r.id, on.checked ? 'on' : 'off')());
+      list.append(el('li', {}, info, el('span', { className: 'tog', style: 'flex:none' }, on, el('span')), btn(t('sRemove'), act(r.id, 'remove'), 'x')));
+    }
+    // add: one condition + one action (more combinations come from the ot's proposals or ~/.7ots/rules.json)
+    const wk = el('select', {}, ...W_KEYS.map((k) => el('option', { value: k, textContent: t(`w_${k}`) })));
+    const wv = el('span');
+    const PH = { streak: '>90m', app: 'code', site: 'youtube', appFor: '>45m', hour: '18-23', meetingIn: '<15m', battery: '<20' };
+    const drawW = () => {
+      const k = wk.value;
+      if (k === 'state') wv.replaceChildren(el('select', { name: 'v' }, ...STATES_UI.map((s) => el('option', { value: s, textContent: t(`st_${s}`) }))), el('input', { name: 'for', value: '5m', size: 4 }));
+      else if (k === 'mail') wv.replaceChildren(el('select', { name: 'v' }, el('option', { value: 'urgent', textContent: 'urgent' }), el('option', { value: 'new', textContent: 'new' })));
+      else wv.replaceChildren(el('input', { name: 'v', placeholder: PH[k], value: PH[k], size: 9 }));
+    };
+    wk.addEventListener('change', drawW);
+    drawW();
+    const tk = el('select', {}, ...['say', 'notify', 'remind', 'quiet'].map((k) => el('option', { value: k, textContent: t(`t_${k}`) })));
+    const tv = el('input', { placeholder: t('sText'), style: 'flex:1;min-width:180px' });
+    tk.addEventListener('change', () => (tv.placeholder = tk.value === 'quiet' ? '25m' : t('sText')));
+    const cd = el('input', { value: '60m', size: 4 });
+    const add = btn(t('sAdd'), async () => {
+      const k = wk.value;
+      const when = { [k]: wv.querySelector('[name=v]').value.trim() };
+      if (k === 'state') when.for = wv.querySelector('[name=for]').value.trim() || '3m';
+      const v = tv.value.trim();
+      const then = tk.value === 'quiet' ? { type: 'quiet', for: v || '25m' } : tk.value === 'remind' ? { type: 'remind', text: v, in: '0m' } : { type: tk.value, text: v };
+      const name = `${t(`w_${k}`)} ${k === 'state' ? t(`st_${when.state}`) : when[k]} → ${t(`t_${then.type}`)}${v ? ` «${v.slice(0, 40)}»` : ''}`;
+      await api('/senses/rules', { action: 'add', rule: { name, when, then, cooldown: cd.value.trim() || '60m' } });
+      flash(msg, t('saved'));
+      loadSenses();
+    }, 'primary');
+    return el('div', {}, list, el('div', { className: 'row' }, `${t('sWhen')} `, wk, wv, ` ${t('sThen')} `, tk, tv, ` ${t('sCooldown')} `, cd, add));
+  }
+  function gesturesBox(btn, msg) {
+    const G = SN.gestures;
+    const cmds = { ...G.commands };
+    const rows = el('div', { className: 'rows' });
+    const pickers = {};
+    for (const g of ['thumb_up', 'thumb_down', 'open_palm', 'closed_fist', 'victory', 'pointing_up', 'iloveyou']) {
+      if (g === 'open_palm' && SN.config.arm) {
+        rows.append(el('div', { className: 'row', style: 'margin:0' }, el('b', { textContent: t(`g_${g}`), style: 'min-width:150px' }), el('span', { className: 'hint', style: 'margin:0', textContent: t('a_arm') })));
+        continue;
+      }
+      const a = G.map[g] || { type: 'none' };
+      const type = el('select', {}, ...['none', 'confirm', 'reject', 'media', 'key', 'command', 'ask', 'pause', 'react'].map((k) => el('option', { value: k, textContent: t(`a_${k}`), selected: a.type === k })));
+      const extra = el('span');
+      const draw = () => {
+        const k = type.value;
+        if (k === 'media') extra.replaceChildren(el('select', { name: 'x' }, ...['play-pause', 'next', 'prev', 'mute', 'up', 'down'].map((m) => el('option', { value: m, textContent: t(`m_${m.replace('-', '_')}`), selected: a.do === m }))));
+        else if (k === 'key') extra.replaceChildren(el('input', { name: 'x', value: a.keys || 'super+d', size: 14 }));
+        else if (k === 'command') extra.replaceChildren(el('select', { name: 'x' }, ...Object.entries(cmds).map(([id, c]) => el('option', { value: id, textContent: c.label, selected: a.id === id }))));
+        else if (k === 'ask') extra.replaceChildren(el('input', { name: 'x', value: a.text || '', size: 28 }));
+        else if (k === 'pause') extra.replaceChildren(el('input', { name: 'x', type: 'number', min: 1, max: 240, value: a.for || 15, style: 'width:70px' }));
+        else extra.replaceChildren();
+      };
+      type.addEventListener('change', draw);
+      draw();
+      pickers[g] = { type, extra };
+      rows.append(el('div', { className: 'row', style: 'margin:0' }, el('b', { textContent: t(`g_${g}`), style: 'min-width:150px' }), type, extra));
+    }
+    const collect = () => {
+      const map = {};
+      for (const [g, { type, extra }] of Object.entries(pickers)) {
+        const k = type.value;
+        const x = extra.querySelector('[name=x]')?.value?.trim();
+        if (k === 'none') continue;
+        map[g] = k === 'media' ? { type: k, do: x } : k === 'key' ? { type: k, keys: x } : k === 'command' ? { type: k, id: x } : k === 'ask' ? { type: k, text: x } : k === 'pause' ? { type: k, for: Number(x) } : { type: k };
+      }
+      if (SN.config.arm && G.map.open_palm) map.open_palm = G.map.open_palm;
+      return { map, commands: Object.fromEntries(Object.entries(cmds).map(([id, c]) => [id, { label: c.label, run: c.run, approved: c.approved }])) };
+    };
+    const saveG = async () => {
+      SN.gestures = await api('/senses/gestures', collect());
+      flash(msg, t('saved'));
+      loadSenses();
+    };
+    // programs: an argv list (never a shell); a new or changed one asks once before its first run
+    const list = el('ul', { className: 'list' }, ...Object.entries(cmds).map(([id, c]) => el('li', {}, el('span', {}, el('b', { textContent: c.label }), ' ', el('code', { textContent: showArgv(c.run) })), el('small', { className: 'hint', style: 'margin:0', textContent: c.approved ? t('sApproved') : t('sNotApproved') }), btn(t('sRemove'), async () => {
+      delete cmds[id];
+      await saveG();
+    }, 'x'))));
+    const cid = el('input', { placeholder: t('sCmdId'), size: 8 });
+    const clabel = el('input', { placeholder: t('sCmdLabel'), size: 14 });
+    const crun = el('input', { placeholder: t('sCmdRun'), style: 'flex:1;min-width:180px' });
+    const cadd = btn(t('sCmdAdd'), async () => {
+      const id = cid.value.trim().toLowerCase().replace(/[^a-z0-9_-]/g, '-').slice(0, 30);
+      const run = argv(crun.value);
+      if (!id || !run.length) return;
+      cmds[id] = { label: clabel.value.trim() || id, run };
+      await saveG();
+    });
+    return el('div', {}, rows, el('div', { className: 'row' }, btn(t('sSaveG'), saveG, 'primary')),
+      el('h3', { className: 'sh', textContent: t('sCmds') }), list, el('div', { className: 'row' }, cid, clabel, crun, cadd));
+  }
+  function forgetBtn(msg) {
+    let armed = false;
+    const b = el('button', { textContent: t('sForget') });
+    b.addEventListener('click', async () => {
+      if (!armed) {
+        armed = true;
+        b.textContent = t('sForgetSure');
+        return;
+      }
+      await api('/senses/forget', {});
+      flash(msg, t('sForgot'));
+      loadSenses();
+    });
+    return b;
+  }
 
   // ── access ──
   function renderAccess() {

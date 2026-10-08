@@ -222,7 +222,7 @@ export async function readLogs({ source, target }) {
 const isAcctToken = (t) => typeof t === 'string' && t.startsWith('acct_');
 
 /** An inbox token reads that inbox; an account token (`acct_…`) reads that inbox, or all of the account's when none is set. */
-export async function readMail(inbox, { n = 8 } = {}) {
+export async function mailMessages(inbox, { n = 8 } = {}) {
   const token = env().APUMAIL_TOKEN;
   const all = !inbox && isAcctToken(token);
   if (!token || (!inbox && !all)) throw new Error('email is not connected');
@@ -231,9 +231,18 @@ export async function readMail(inbox, { n = 8 } = {}) {
   if (!res.ok) throw new Error(`apumail ${res.status}`);
   const { messages = [] } = await res.json();
   // all-mail comes newest first; an inbox's wait, oldest first.
-  return (all ? messages.slice(0, n) : messages.slice(-n).reverse())
-    .map((m) => `- ${new Date(Number(m.received_at) || m.received_at).toLocaleString()} · ${all && m._addr ? `${m._addr} ← ` : ''}${str(m.from, 120)} · ${str(m.subject, 160) || '(no subject)'}\n  ${str(m.text, 300).replace(/\s+/g, ' ')}`)
-    .join('\n');
+  return (all ? messages.slice(0, n) : messages.slice(-n).reverse()).map((m) => ({
+    id: String(m.id ?? m.message_id ?? `${m.received_at}|${m.from}|${m.subject}`),
+    at: Number(m.received_at) || Date.parse(m.received_at) || 0,
+    to: all ? str(m._addr, 120) : '',
+    from: str(m.from, 120),
+    subject: str(m.subject, 160),
+    text: str(m.text, 300).replace(/\s+/g, ' '),
+  }));
+}
+
+export async function readMail(inbox, { n = 8 } = {}) {
+  return (await mailMessages(inbox, { n })).map((m) => `- ${new Date(m.at).toLocaleString()} · ${m.to ? `${m.to} ← ` : ''}${m.from} · ${m.subject || '(no subject)'}\n  ${m.text}`).join('\n');
 }
 
 /** The ot's apuchat / email conversations on 7ots.com (device token), as text for the brain. */

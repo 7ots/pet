@@ -12,7 +12,7 @@
 
 const path = require('node:path');
 const { execFile } = require('node:child_process');
-const { app, BrowserWindow, Menu, Tray, globalShortcut, nativeImage, screen, session, shell } = require('electron');
+const { app, BrowserWindow, Menu, Tray, globalShortcut, nativeImage, screen, session, shell, systemPreferences } = require('electron');
 
 const URL_ = process.env.SEVENOTS_PET_URL;
 const TOKEN = process.env.SEVENOTS_PET_TOKEN;
@@ -142,6 +142,32 @@ function start() {
   setTimeout(syncVisitors, 2500);
   setInterval(syncVisitors, 4000);
   require('./director.cjs').createDirector({ ots, lang: LANG, url: URL_, token: TOKEN });
+  setInterval(syncSenses, 5000);
+  setTimeout(syncSenses, 4000);
+}
+
+// The ot's eyes (settings → Senses → camera): /senses in a hidden window while the daemon wants the camera.
+// Closing the window is what turns the camera off (its light goes out), so off and paused destroy it.
+let sensesWin = null;
+let askedCamera = false;
+async function syncSenses() {
+  const st = await fetch(new URL('/senses/status', URL_), { headers: { 'X-7ots-Token': TOKEN } }).then((r) => (r.ok ? r.json() : null), () => null);
+  const want = Boolean(st?.wantCamera);
+  if (!want) {
+    if (sensesWin && !sensesWin.isDestroyed()) sensesWin.destroy();
+    sensesWin = null;
+    return;
+  }
+  if (sensesWin && !sensesWin.isDestroyed()) return;
+  if (process.platform === 'darwin' && !askedCamera) {
+    askedCamera = true;
+    if (systemPreferences.getMediaAccessStatus('camera') !== 'granted' && !(await systemPreferences.askForMediaAccess('camera').catch(() => false))) return;
+  }
+  sensesWin = new BrowserWindow({ show: false, width: 640, height: 480, skipTaskbar: true, webPreferences: { contextIsolation: true, sandbox: true, backgroundThrottling: false } });
+  sensesWin.webContents.on('will-navigate', (e) => e.preventDefault());
+  sensesWin.webContents.on('console-message', (e, level, msg) => ['warning', 'error', 2, 3].includes(e?.level ?? level) && console.log(`[7ots senses] ${msg ?? e?.message}`));
+  sensesWin.on('closed', () => (sensesWin = null));
+  sensesWin.loadURL(`${URL_}/senses?token=${encodeURIComponent(TOKEN)}`).catch(() => {});
 }
 
 // Settings in a window of our own (not a browser tab); links elsewhere open in the browser.

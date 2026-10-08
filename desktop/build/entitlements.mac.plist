@@ -15,6 +15,9 @@
     <!-- "Listen" (voice) -->
     <key>com.apple.security.device.audio-input</key>
     <true/>
+    <!-- Senses: face and hand gestures, only when allowed in settings -->
+    <key>com.apple.security.device.camera</key>
+    <true/>
     <key>com.apple.security.network.client</key>
     <true/>
     <key>com.apple.security.network.server</key>

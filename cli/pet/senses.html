@@ -1,0 +1,316 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>7ots senses</title>
+<!--
+  The ot's eyes. The desktop shell runs this page in a hidden window while access.camera is on; with ?preview=1
+  (settings → Senses → Preview) it shows the camera and what it reads, and sends nothing.
+
+  Frames never leave this page: MediaPipe (served by the daemon from ~/.7ots/senses/vendor, pinned by hash) runs
+  here, and only labels go to the daemon: { kind: 'state', state, score, scores, present }, { kind: 'gesture' },
+  { kind: 'presence' }, { kind: 'status' }. The baseline (your neutral face, a few numbers) is saved so the
+  reading is relative to you, not to an average face.
+-->
+<style>
+  :root { --ink: #17141f; --muted: #8a8399; --bg: #f3f1f8; --panel: #fff; --line: #e8e4f0; --accent: #6d5dfc; --font: ui-sans-serif, -apple-system, 'Segoe UI', Inter, Roboto, system-ui, sans-serif; color-scheme: light; }
+  @media (prefers-color-scheme: dark) { :root { --ink: #f2f0f8; --muted: #8d86a0; --bg: #0f0d14; --panel: #18151f; --line: #2a2535; color-scheme: dark; } }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; font: 14px/1.5 var(--font); color: var(--ink); background: var(--bg); }
+  main { width: min(760px, 100%); margin: 0 auto; padding: 20px 16px; display: grid; gap: 14px; }
+  h1 { margin: 0; font-size: 20px; letter-spacing: -.02em; }
+  .muted { color: var(--muted); }
+  .stage { position: relative; border-radius: 18px; overflow: hidden; background: #000; aspect-ratio: 4 / 3; border: 1px solid var(--line); }
+  video, canvas { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 14px; display: grid; gap: 8px; }
+  .bars { display: grid; grid-template-columns: 90px 1fr 40px; gap: 6px 10px; align-items: center; }
+  .bar { height: 8px; border-radius: 99px; background: var(--line); overflow: hidden; }
+  .bar i { display: block; height: 100%; background: var(--accent); width: 0; transition: width .3s; }
+  .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+  .pill { padding: 3px 10px; border-radius: 99px; background: var(--line); font-weight: 600; }
+  .pill.on { background: var(--accent); color: #fff; }
+  body:not(.preview) main { display: none; }
+</style>
+</head>
+<body>
+<main>
+  <h1 data-t="title"></h1>
+  <p class="muted" data-t="intro"></p>
+  <div class="stage"><video id="v" muted playsinline></video><canvas id="c"></canvas></div>
+  <div class="card">
+    <div class="row"><span data-t="state"></span> <span class="pill" id="state">…</span> <span data-t="gesture"></span> <span class="pill" id="gesture">–</span> <span class="pill" id="present">–</span></div>
+    <div class="bars" id="bars"></div>
+    <p class="muted" id="msg"></p>
+  </div>
+</main>
+<script type="module">
+  const BOOT = __BOOT__;
+  const S = BOOT.senses || {};
+  const PREVIEW = !!BOOT.preview;
+  const ui = ['en', 'es', 'pt'].includes(BOOT.uiLang) ? BOOT.uiLang : ['en', 'es', 'pt'].includes(BOOT.lang) ? BOOT.lang : 'en';
+  const TX = {
+    en: { title: 'What the camera reads', intro: 'Nothing is sent from this preview. The video never leaves this page: only labels (tired, focused, a thumbs up…) reach the ot.', state: 'Face', gesture: 'Gesture', present: 'here', away: 'away', calib: (n) => `Learning your neutral face… ${n}%`, novendor: 'The camera models are not downloaded yet (settings → Senses).', nocam: 'No camera, or permission denied.', paused: 'Camera paused.', off: 'The camera sense is off (settings → Senses).', tired: 'tired', tense: 'tense', focused: 'focused', sad: 'down', happy: 'happy', neutral: 'neutral' },
+    es: { title: 'Lo que lee la cámara', intro: 'Esta vista previa no envía nada. El video nunca sale de esta página: al ot solo le llegan etiquetas (cansado, concentrado, un pulgar arriba…).', state: 'Cara', gesture: 'Gesto', present: 'presente', away: 'ausente', calib: (n) => `Aprendiendo tu cara neutral… ${n}%`, novendor: 'Faltan los modelos de la cámara (ajustes → Sentidos).', nocam: 'No hay cámara o se negó el permiso.', paused: 'Cámara en pausa.', off: 'El sentido de la cámara está apagado (ajustes → Sentidos).', tired: 'cansado', tense: 'tenso', focused: 'concentrado', sad: 'decaído', happy: 'contento', neutral: 'neutral' },
+    pt: { title: 'O que a câmera lê', intro: 'Esta prévia não envia nada. O vídeo nunca sai desta página: o ot só recebe rótulos (cansado, concentrado, um joinha…).', state: 'Rosto', gesture: 'Gesto', present: 'presente', away: 'ausente', calib: (n) => `Aprendendo seu rosto neutro… ${n}%`, novendor: 'Faltam os modelos da câmera (ajustes → Sentidos).', nocam: 'Sem câmera, ou permissão negada.', paused: 'Câmera pausada.', off: 'O sentido da câmera está desligado (ajustes → Sentidos).', tired: 'cansado', tense: 'tenso', focused: 'concentrado', sad: 'pra baixo', happy: 'feliz', neutral: 'neutro' },
+  }[ui];
+  document.documentElement.lang = ui;
+  if (PREVIEW) document.body.classList.add('preview');
+  for (const el of document.querySelectorAll('[data-t]')) el.textContent = TX[el.dataset.t];
+  const $ = (id) => document.getElementById(id);
+  const msg = (t) => ($('msg').textContent = t || '');
+
+  const STATES = ['tired', 'tense', 'focused', 'sad', 'happy', 'neutral'];
+  const GMAP = { Thumb_Up: 'thumb_up', Thumb_Down: 'thumb_down', Open_Palm: 'open_palm', Closed_Fist: 'closed_fist', Victory: 'victory', Pointing_Up: 'pointing_up', ILoveYou: 'iloveyou' };
+  const FEATURES = ['blink', 'jaw', 'browDown', 'press', 'frown', 'innerUp', 'smile', 'squint'];
+  const CALIB = 600; // face frames (~2 min at 5 fps) to learn your neutral face
+  const fps = Math.max(1, Math.min(15, Number(S.fps) || 5));
+  const holdMs = Math.max(200, Number(S.holdMs) || 600);
+  $('bars').innerHTML = STATES.map((s) => `<span>${TX[s]}</span><span class="bar"><i id="b-${s}"></i></span><span id="n-${s}" class="muted">0</span>`).join('');
+
+  // ── to the daemon (labels only) ──
+  const post = (events) => {
+    if (PREVIEW) return Promise.resolve();
+    return fetch('/senses', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-7ots-Token': BOOT.token }, body: JSON.stringify({ events }) }).catch(() => {});
+  };
+  const getConf = () => fetch('/senses/config', { headers: { 'X-7ots-Token': BOOT.token } }).then((r) => r.json()).catch(() => null);
+  addEventListener('pagehide', () => {
+    if (!PREVIEW) navigator.sendBeacon(`/senses?token=${encodeURIComponent(BOOT.token)}`, new Blob([JSON.stringify({ events: [{ kind: 'status', on: false }] })], { type: 'application/json' }));
+  });
+
+  if (!BOOT.vendor?.ready) throw (msg(TX.novendor), new Error('vendor'));
+  if (!S.on && !PREVIEW) throw (msg(TX.off), new Error('off'));
+
+  const V = '/senses/vendor/';
+  const { FaceLandmarker, GestureRecognizer } = await import(`${V}vision_bundle.mjs`);
+  const fileset = { wasmLoaderPath: `${location.origin}${V}vision_wasm_internal.js`, wasmBinaryPath: `${location.origin}${V}vision_wasm_internal.wasm` };
+  async function make(Kind, model, extra) {
+    for (const delegate of ['GPU', 'CPU']) {
+      try {
+        return await Kind.createFromOptions(fileset, { baseOptions: { modelAssetPath: `${V}${model}`, delegate }, runningMode: 'VIDEO', ...extra });
+      } catch (e) {
+        if (delegate === 'CPU') throw e;
+      }
+    }
+  }
+  const face = await make(FaceLandmarker, 'face_landmarker.task', { numFaces: 1, outputFaceBlendshapes: true, outputFacialTransformationMatrixes: true });
+  const hands = await make(GestureRecognizer, 'gesture_recognizer.task', { numHands: 1 });
+
+  // ── the camera ──
+  const video = $('v');
+  let stream = null;
+  async function camOn() {
+    if (stream) return true;
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ video: { width: { ideal: 640 }, height: { ideal: 480 }, frameRate: { ideal: 15 } }, audio: false });
+    } catch {
+      msg(TX.nocam);
+      return false;
+    }
+    video.srcObject = stream;
+    await video.play().catch(() => {});
+    msg('');
+    post([{ kind: 'status', on: true }]);
+    return true;
+  }
+  function camOff(why) {
+    if (stream) for (const t of stream.getTracks()) t.stop();
+    stream = null;
+    video.srcObject = null;
+    if (why) msg(why);
+    post([{ kind: 'status', on: false }]);
+  }
+
+  // ── reading the face ──
+  let base = S.baseline && typeof S.baseline === 'object' ? S.baseline : null;
+  let calib = { n: 0, sum: Object.fromEntries(FEATURES.map((k) => [k, 0])) };
+  const win = []; // last 30 s of frames: { t, f (features) | null, pose }
+  const yawns = [];
+  let jawSince = 0;
+  const avg = (c, a, b) => ((c[a] || 0) + (c[b] || 0)) / 2;
+
+  function features(r) {
+    const c = Object.fromEntries((r.faceBlendshapes?.[0]?.categories || []).map((x) => [x.categoryName, x.score]));
+    return {
+      blink: avg(c, 'eyeBlinkLeft', 'eyeBlinkRight'),
+      jaw: c.jawOpen || 0,
+      browDown: avg(c, 'browDownLeft', 'browDownRight'),
+      press: avg(c, 'mouthPressLeft', 'mouthPressRight'),
+      frown: avg(c, 'mouthFrownLeft', 'mouthFrownRight'),
+      innerUp: c.browInnerUp || 0,
+      smile: avg(c, 'mouthSmileLeft', 'mouthSmileRight'),
+      squint: avg(c, 'eyeSquintLeft', 'eyeSquintRight'),
+    };
+  }
+  function pose(r) {
+    const d = r.facialTransformationMatrixes?.[0]?.data;
+    if (!d) return null;
+    const deg = 180 / Math.PI;
+    return { pitch: Math.atan2(d[6], d[10]) * deg, yaw: Math.asin(Math.max(-1, Math.min(1, -d[2]))) * deg };
+  }
+  const clamp = (x) => Math.max(0, Math.min(1, x));
+  const mean = (rows, k) => rows.reduce((a, r) => a + r.f[k], 0) / (rows.length || 1);
+  const sd = (xs) => {
+    const m = xs.reduce((a, b) => a + b, 0) / (xs.length || 1);
+    return Math.sqrt(xs.reduce((a, b) => a + (b - m) ** 2, 0) / (xs.length || 1));
+  };
+
+  function scores() {
+    const now = performance.now();
+    const rows = win.filter((r) => r.f && now - r.t < 30_000);
+    if (rows.length < fps * 5) return null;
+    const b = base || Object.fromEntries(FEATURES.map((k) => [k, mean(rows, k)])); // no baseline yet: relative to now (flat)
+    const d = Object.fromEntries(FEATURES.map((k) => [k, mean(rows, k) - (b[k] || 0)]));
+    const perclos = rows.filter((r) => r.f.blink > 0.55).length / rows.length; // share of time with eyes closed
+    const y = yawns.filter((t) => now - t < 5 * 60_000).length;
+    const ps = rows.map((r) => r.pose).filter(Boolean);
+    const motion = ps.length ? sd(ps.map((p) => p.yaw)) + sd(ps.map((p) => p.pitch)) : 10;
+    const away = ps.length ? ps.filter((p) => Math.abs(p.yaw) > 30 || p.pitch < -25).length / ps.length : 0;
+    const droop = ps.length ? clamp((-ps.reduce((a, p) => a + p.pitch, 0) / ps.length - 8) / 20) : 0;
+    const s = {
+      tired: clamp(clamp((perclos - 0.1) / 0.25) * 0.65 + Math.min(2, y) * 0.25 + droop * 0.2),
+      tense: clamp((d.browDown * 2 + d.press * 2 + d.squint) / 0.5),
+      sad: clamp((d.frown * 2.5 + d.innerUp * 1.5 - d.smile * 2) / 0.5),
+      happy: clamp((d.smile * 2) / 0.6),
+      focused: 0,
+      neutral: 0.35,
+    };
+    s.focused = clamp((1 - clamp(motion / 6)) * (1 - away) * (1 - s.tense) * (1 - s.happy) * (1 - s.tired) * 0.85);
+    return s;
+  }
+
+  // a new state only when it leads clearly twice in a row (no flicker)
+  let state = 'neutral';
+  let lead = null;
+  let leadN = 0;
+  function classify(s) {
+    const [best, v] = Object.entries(s).sort((a, b) => b[1] - a[1])[0];
+    if (best === state) return (lead = null), (leadN = 0), state;
+    if (v < (s[state] ?? 0) + 0.1) return state;
+    leadN = lead === best ? leadN + 1 : 1;
+    lead = best;
+    if (leadN >= 2) (state = best), (lead = null), (leadN = 0);
+    return state;
+  }
+
+  // ── presence ──
+  let lastFace = 0;
+  let present = null;
+  function presence(now) {
+    const p = now - lastFace < 10_000 ? true : now - lastFace > 20_000 ? false : present;
+    if (p !== present && p !== null) {
+      present = p;
+      post([{ kind: 'presence', present }]);
+      $('present').textContent = present ? TX.present : TX.away;
+      $('present').classList.toggle('on', present);
+    }
+  }
+
+  // ── gestures: held for holdMs, then once ──
+  let gNow = '';
+  let gSince = 0;
+  let gSent = '';
+  function gesture(name, now) {
+    $('gesture').textContent = name || '–';
+    $('gesture').classList.toggle('on', !!name && name === gSent);
+    if (name !== gNow) return (gNow = name), (gSince = now), (gSent = '');
+    if (name && !gSent && now - gSince >= holdMs) {
+      gSent = name;
+      post([{ kind: 'gesture', gesture: name }]);
+    }
+  }
+
+  // ── the loop ──
+  const ctx = $('c').getContext('2d');
+  let lastEval = 0;
+  let lastSent = 0;
+  let sentState = '';
+  let lastT = 0;
+  function frame() {
+    if (!stream || video.readyState < 2) return;
+    let now = performance.now();
+    if (now <= lastT) now = lastT + 1; // the tasks want rising timestamps
+    lastT = now;
+    const r = face.detectForVideo(video, now);
+    const g = hands.recognizeForVideo(video, now);
+    const ok = r.faceBlendshapes?.length > 0;
+    const f = ok ? features(r) : null;
+    if (ok) lastFace = now;
+    win.push({ t: now, f, pose: ok ? pose(r) : null });
+    while (win.length && now - win[0].t > 30_000) win.shift();
+    if (f) {
+      if (f.jaw > 0.6) {
+        jawSince ||= now;
+        if (now - jawSince > 1500 && now - (yawns.at(-1) || 0) > 6000) yawns.push(now);
+      } else jawSince = 0;
+      while (yawns.length && now - yawns[0] > 10 * 60_000) yawns.shift();
+      if (!base) {
+        calib.n++;
+        for (const k of FEATURES) calib.sum[k] += f[k];
+        if (calib.n % 30 === 0) msg(TX.calib(Math.round((calib.n / CALIB) * 100)));
+        if (calib.n >= CALIB) {
+          base = Object.fromEntries(FEATURES.map((k) => [k, calib.sum[k] / calib.n]));
+          msg('');
+          if (!PREVIEW) fetch('/senses/baseline', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-7ots-Token': BOOT.token }, body: JSON.stringify({ baseline: base }) }).catch(() => {});
+        }
+      }
+    }
+    const top = g.gestures?.[0]?.[0];
+    gesture(top && top.score > 0.6 ? GMAP[top.categoryName] || '' : '', now);
+    presence(now);
+    if (now - lastEval > 5000) {
+      lastEval = now;
+      const s = scores();
+      if (s) {
+        const st = classify(s);
+        $('state').textContent = TX[st];
+        for (const k of STATES) ($(`b-${k}`).style.width = `${Math.round(s[k] * 100)}%`), ($(`n-${k}`).textContent = s[k].toFixed(2));
+        // on a change, and every 10 s so the daemon knows the camera is alive
+        if (st !== sentState || now - lastSent > 10_000) {
+          sentState = st;
+          lastSent = now;
+          post([{ kind: 'state', state: st, score: Math.round(s[st] * 100) / 100, scores: s, present: present !== false }]);
+        }
+      } else if (now - lastSent > 10_000) (lastSent = now), post([{ kind: 'presence', present: present !== false && now - lastFace < 20_000 }]);
+    }
+    if (PREVIEW) draw(r, g);
+  }
+  function draw(r, g) {
+    const c = $('c');
+    c.width = video.videoWidth;
+    c.height = video.videoHeight;
+    ctx.clearRect(0, 0, c.width, c.height);
+    ctx.fillStyle = '#6d5dfc';
+    for (const p of r.faceLandmarks?.[0] || []) ctx.fillRect(p.x * c.width, p.y * c.height, 1.5, 1.5);
+    ctx.fillStyle = '#12a150';
+    for (const p of g.landmarks?.[0] || []) ctx.fillRect(p.x * c.width - 2, p.y * c.height - 2, 4, 4);
+  }
+  let timer = 0;
+  const loop = () => {
+    try {
+      frame();
+    } catch (e) {
+      console.warn('senses', e);
+    }
+    timer = setTimeout(loop, 1000 / fps);
+  };
+
+  // follow the settings: off, paused, recalibrate (polled; the desktop shell also closes this window when off)
+  async function follow() {
+    const c = await getConf();
+    if (!c) return;
+    if (!c.on && !PREVIEW) {
+      if (stream) camOff(c.pausedUntil > Date.now() ? TX.paused : TX.off);
+      return;
+    }
+    if (!c.baseline && base && S.baseline !== null) (base = null), (calib = { n: 0, sum: Object.fromEntries(FEATURES.map((k) => [k, 0])) }); // recalibrate
+    S.baseline = c.baseline;
+    if (!stream) await camOn();
+  }
+  if (await camOn()) loop();
+  setInterval(follow, 15_000);
+  if (!stream) setTimeout(() => camOn().then((ok) => ok && !timer && loop()), 30_000);
+</script>
+</body>
+</html>

@@ -35,6 +35,12 @@
  *   POST /dance   X-7ots-Token         { name?, ms?, music? } → dances (DANCES in motion.js) with music (beat.js or ~/.7ots/music)
  *   POST /entrance X-7ots-Token        { dance? } → a wrestling-style entrance: walks in, spotlights, pyro, its name, a dance
  *   GET  /music?token=…                { files } your own tracks in ~/.7ots/music · GET /music/<file>?token=… plays one
+ *   GET  /senses?token=…[&preview=1]   the camera page (face + gestures → labels; the desktop shell runs it hidden)
+ *   GET  /senses/status · /senses/config   what it notices now, rules, gestures, today · what the camera page needs
+ *   GET  /senses/vendor/<file>         MediaPipe code and models (no token; downloaded by POST /senses/vendor)
+ *   POST /senses                       { events: [{ kind: state|presence|gesture|status, … }] } from the camera page
+ *   POST /senses/rules { action: add|set|remove|accept|reject|on|off, id?, rule? } · /senses/gestures { map, commands }
+ *   POST /senses/baseline { baseline|null } · /senses/pause { min | resume } · /senses/forget · /senses/reflect
  *
  * Only listens on 127.0.0.1 and only answers to Host 127.0.0.1/localhost (no DNS rebinding).
  * The token lives in ~/.7ots/pet.token (0600): other users of the machine can't drive the pet.
@@ -58,6 +64,8 @@ import { sttProvider, transcribe } from './stt.mjs';
 import { localVoices, synthesizeLocal, warmLocal } from './tts-local.mjs';
 import { createScreenWatcher } from './screen.mjs';
 import { createSiteContext } from './prowl.mjs';
+import { createSenses } from './senses/index.mjs';
+import { ensureVendor, vendorFile, vendorStatus } from './senses/vendor.mjs';
 import { SEVENOTS_URL, cloudSpeak, community, sync as syncOt, logout as accountLogout, me as accountMe, pull as pullOt, signedIn, startLogin, use as useOt } from './account.mjs';
 import { openUrl } from './open.mjs';
 import { syncDesktop } from './desktop-sync.mjs';
@@ -131,7 +139,7 @@ export async function postPet(path, body, port = PET_PORT) {
 }
 
 const VOICE_PROVIDERS = ['elevenlabs', 'openai', 'apuchat', 'grok', 'fish'];
-const SETTABLE_KEYS = ['ANTHROPIC_API_KEY', 'OPENAI_API_KEY', 'ORQUESTA_TOKEN', 'ELEVENLABS_API_KEY', 'APUCHAT_VOICE_TOKEN', 'XAI_API_KEY', 'FISH_API_KEY', 'LETTA_API_KEY', 'APUMAIL_TOKEN'];
+const SETTABLE_KEYS = ['ANTHROPIC_API_KEY', 'OPENAI_API_KEY', 'ORQUESTA_TOKEN', 'ELEVENLABS_API_KEY', 'APUCHAT_VOICE_TOKEN', 'XAI_API_KEY', 'FISH_API_KEY', 'LETTA_API_KEY', 'APUMAIL_TOKEN', 'SENSES_ICS_URL'];
 // The settings page speaks the human's language: SEVENOTS_LANG, config.lang, the system's, then the ot's.
 const uiLangOf = (c, fallback) => [process.env.SEVENOTS_LANG, c.lang, String(process.env.LC_ALL || process.env.LC_MESSAGES || process.env.LANG || '').slice(0, 2).toLowerCase(), fallback].find((l) => ['en', 'es', 'pt'].includes(l)) || 'en';
 const brainLabel = (b = {}) => (b.kind === 'cli' ? `${b.cli}${b.model ? ` · ${b.model}` : ''}` : b.kind === 'api' ? `${b.provider || 'api'}${b.model ? ` · ${b.model}` : ''}` : b.kind || 'lines');
@@ -253,7 +261,7 @@ export function startPetServer({ port = PET_PORT, log = () => {} } = {}) {
 
   async function speak(kind, vars = {}, situation = '', { force = false, gesture = null } = {}) {
     const now = Date.now();
-    const quiet = now < chatUntil || (kind === 'hello' && now - lastHello < HELLO_GAP) || (force ? now - lastSpoke < IMPORTANT_GAP[annoy] : pet.asleep || now - lastSpoke < GAP[annoy]);
+    const quiet = now < chatUntil || (!force && senses?.quiet()) || (kind === 'hello' && now - lastHello < HELLO_GAP) || (force ? now - lastSpoke < IMPORTANT_GAP[annoy] : pet.asleep || now - lastSpoke < GAP[annoy]);
     if (quiet) {
       broadcast({ gesture });
       return;
@@ -414,6 +422,7 @@ export function startPetServer({ port = PET_PORT, log = () => {} } = {}) {
     system: (said) => petSystem(identity, { lang: said || 'auto', role: 'assistant' }),
     // offload to the ot's cloud worker (access.vm): needs this computer signed in to 7ots.com
     cloud: () => (env().SEVENOTS_TOKEN && config.account?.otsId) || null,
+    context: () => senses.prompt(),
     say: (text) => {
       lastSpoke = Date.now();
       pet.lastTalk = lastSpoke;
@@ -463,6 +472,75 @@ export function startPetServer({ port = PET_PORT, log = () => {} } = {}) {
       history.push(row.say);
       if (history.length > 6) history.shift();
       broadcast({ say: row.say, gesture: 'point', ambient: true });
+    },
+  });
+
+  // Senses (senses/): camera (face + gestures, from the hidden /senses page), activity, the computer, email,
+  // calendar → rules and gesture commands, and a reflector that now and then proposes something.
+  async function senseTalk({ text = '', about = '', exact = false, kind = 'senses', important = false, gesture = 'wave' }) {
+    const now = Date.now();
+    if (now < chatUntil || thinking || asks.size || (pet.asleep && !important)) return false;
+    if (now - lastSpoke < (important ? IMPORTANT_GAP : GAP)[annoy]) return false;
+    let say = exact ? text : '';
+    if (!say && about && brain.kind !== 'lines') {
+      thinking = true;
+      try {
+        say = await brain.think({
+          purpose: kind,
+          system: petSystem(identity, { lang }),
+          messages: [{ role: 'user', content: `${about}\nOne short line to them, in character.${history.length ? `\n(Things you already said: ${history.join(' | ')})` : ''}` }],
+          timeoutMs: 30000,
+        });
+      } catch (e) {
+        log(`brain: ${e.message}`);
+      }
+      thinking = false;
+    }
+    say = String(say || text || '').trim();
+    if (!say || Date.now() < chatUntil) return false;
+    lastSpoke = Date.now();
+    pet.lastTalk = lastSpoke;
+    history.push(say);
+    if (history.length > 6) history.shift();
+    if (important && config.access.notify !== false) notify(`${identity.name} · 7ots`, say);
+    broadcast({ say, gesture, effect: important ? 'exclaim' : null, point: 'user', stir: important && pet.asleep, ambient: !important });
+    return true;
+  }
+  async function senseAsk(text) {
+    chatUntil = Date.now() + CHAT_QUIET;
+    broadcast({ thinking: true, activity: track({ type: 'prompt', text }) });
+    const r = await assistant.ask(text);
+    lastSpoke = Date.now();
+    chatUntil = Date.now() + CHAT_QUIET;
+    broadcast({ thinking: false, say: r.reply, gesture: r.actions.length ? 'nod' : null, point: r.actions.some((a) => a.type === 'open') ? 'browser' : null });
+  }
+  const senses = createSenses({
+    config: () => config,
+    brain,
+    lang,
+    log,
+    system: () => petSystem(identity, { lang }),
+    annoy: () => annoy,
+    busy: () => Date.now() < chatUntil || thinking || asks.size > 0 || pet.asleep,
+    talk: senseTalk,
+    confirm,
+    asking: () => asks.size > 0,
+    answer: (ok) => {
+      const a = [...asks.values()].at(-1);
+      if (a) a.done(ok);
+      return Boolean(a);
+    },
+    remind: (r) => assistant.remind(r),
+    ask: (text) => senseAsk(String(text).slice(0, 300)).catch((e) => log(`senses ask: ${e.message}`)),
+    notify: (text) => config.access.notify !== false && notify(`${identity.name} · 7ots`, text),
+    broadcast,
+  });
+  senses.bind({
+    setConfig: (patch) => {
+      const next = loadConfig();
+      next.senses = { ...next.senses, ...patch };
+      saveConfig(next);
+      config = loadConfig();
     },
   });
 
@@ -576,6 +654,13 @@ export function startPetServer({ port = PET_PORT, log = () => {} } = {}) {
       return res.writeHead(200, { 'Content-Type': 'model/gltf-binary', 'Cache-Control': 'max-age=31536000, immutable' }).end(buf);
     }
     if (req.method === 'GET' && p === '/favicon.svg') return res.writeHead(200, { 'Content-Type': 'image/svg+xml', 'Cache-Control': 'max-age=86400' }).end(readFileSync(join(PKG_ROOT, 'brand', 'favicon.svg')));
+    // the camera's libraries and models (MediaPipe, pinned by hash in senses/vendor.mjs): public files
+    if (req.method === 'GET' && p.startsWith('/senses/vendor/')) {
+      const v = vendorFile(p.slice(15));
+      if (!v || !existsSync(v.file)) return res.writeHead(404).end();
+      res.writeHead(200, { 'Content-Type': v.type, 'Content-Length': statSync(v.file).size, 'Cache-Control': 'max-age=86400' });
+      return createReadStream(v.file).pipe(res);
+    }
     const authed = okToken(url.searchParams.get('token') || req.headers['x-7ots-token']);
     if (!authed) return json(401, { error: 'token' });
 
@@ -613,10 +698,16 @@ export function startPetServer({ port = PET_PORT, log = () => {} } = {}) {
       }
     }
     if (req.method === 'GET' && p === '/config') return json(200, settingsView());
+    if (req.method === 'GET' && p === '/senses') {
+      const preview = url.searchParams.get('preview') === '1';
+      return res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store', 'Referrer-Policy': 'no-referrer', 'X-Frame-Options': 'DENY' }).end(page('senses.html', { senses: senses.pageConfig(), vendor: vendorStatus(), preview, uiLang: uiLangOf(config, lang) }));
+    }
+    if (req.method === 'GET' && p === '/senses/config') return json(200, { ...senses.pageConfig(), vendor: vendorStatus() });
+    if (req.method === 'GET' && p === '/senses/status') return json(200, { ...senses.status(), vendor: vendorStatus(), wantCamera: senses.pageConfig().on && vendorStatus().ready });
     if (req.method === 'GET' && p === '/state') return json(200, { identity, state: view(pet), config: { voice: config.voice, pet: config.pet, brain: config.brain.kind } });
     if (req.method === 'GET' && p === '/events') {
       res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', Connection: 'keep-alive' });
-      res.write(`data: ${JSON.stringify({ state: view(pet), ...(viewSet ? { view: viewSet } : {}) })}\n\n`);
+      res.write(`data: ${JSON.stringify({ state: view(pet), ...(viewSet ? { view: viewSet } : {}), ...(senses.cameraOn() ? { senses: { camera: 'on' } } : {}) })}\n\n`);
       for (const [id, a] of asks) res.write(`data: ${JSON.stringify({ ask: { id, text: a.text } })}\n\n`); // still waiting for you
       clients.add(res);
       req.on('close', () => clients.delete(res));
@@ -787,6 +878,38 @@ export function startPetServer({ port = PET_PORT, log = () => {} } = {}) {
         return json(e.status || 502, { error: e.message });
       }
     }
+    if (p === '/senses') return json(200, senses.ingest(data.events || data));
+    if (p === '/senses/vendor') {
+      // downloads the camera's models once (~13 MB, from jsDelivr and Google), checked by hash
+      if (!vendorStatus().ready && !vendorStatus().busy) ensureVendor(log).catch((e) => log(`senses vendor: ${e.message}`));
+      return json(200, vendorStatus());
+    }
+    if (p === '/senses/baseline') return json(200, { ok: senses.setBaseline(data.baseline ?? null) });
+    if (p === '/senses/gestures') return json(200, senses.setGestures(data));
+    if (p === '/senses/rules') {
+      try {
+        const id = String(data.id || '');
+        if (data.action === 'add') return json(200, { rule: senses.addRule(data.rule || {}) });
+        if (data.action === 'remove') return json(200, { ok: senses.removeRule(id) });
+        if (['accept', 'reject', 'on', 'off'].includes(data.action)) return json(200, { rule: senses.setRule(id, { status: ['accept', 'on'].includes(data.action) ? 'active' : 'off' }) });
+        if (data.action === 'set') return json(200, { rule: senses.setRule(id, data.rule || {}) });
+        return json(400, { error: 'action' });
+      } catch (e) {
+        return json(400, { error: e.message });
+      }
+    }
+    if (p === '/senses/forget') return json(200, { ok: senses.forget() });
+    if (p === '/senses/pause') {
+      if (data.resume) {
+        const next = loadConfig();
+        next.senses = { ...next.senses, pausedUntil: 0 };
+        saveConfig(next);
+        config = loadConfig();
+        return json(200, { pausedUntil: 0 });
+      }
+      return json(200, { pausedUntil: senses.pause(data.min) });
+    }
+    if (p === '/senses/reflect') return json(200, (await senses.reflect({ force: true })) || { say: '', rule: null });
     if (p === '/ask') {
       const text = String(data.text || '').trim().slice(0, 800);
       if (!text) return json(400, { error: 'text' });
@@ -1084,7 +1207,7 @@ ${keys.map((k) => FIELDS[k]).join('\n')}`;
       name: identity.name,
       lang,
       visitor: !!process.env.SEVENOTS_COMPANION, // a visiting ot: the host's settings rule shared things (scenes)
-      config: { brain: config.brain, pet: { ...config.pet, scenes: sceneConf() }, access: config.access, voice: config.voice, screen: config.screen, memory: config.memory },
+      config: { brain: config.brain, pet: { ...config.pet, scenes: sceneConf() }, access: config.access, voice: config.voice, screen: config.screen, memory: config.memory, senses: config.senses },
       brain: brainLabel(config.brain),
       clis: detectClis(),
       stt: sttProvider(keys),
@@ -1175,6 +1298,13 @@ ${keys.map((k) => FIELDS[k]).join('\n')}`;
       const n = Math.round(Number(d.memory.tokens)) || 0;
       next.memory.tokens = n <= 0 ? 0 : Math.max(2000, Math.min(200000, n));
     }
+    if (d.senses && typeof d.senses === 'object') {
+      const n = d.senses;
+      if (typeof n.arm === 'boolean') next.senses.arm = n.arm;
+      if (typeof n.reflect === 'boolean') next.senses.reflect = n.reflect;
+      if (n.holdMs !== undefined) next.senses.holdMs = Math.max(200, Math.min(3000, Math.round(Number(n.holdMs)) || 600));
+      if (n.fps !== undefined) next.senses.fps = Math.max(1, Math.min(15, Math.round(Number(n.fps)) || 5));
+    }
     if (d.screen?.every !== undefined) next.screen.every = Math.max(1, Math.min(60, Math.round(Number(d.screen.every)) || 5));
     let reload = false;
     if (d.voice) {
@@ -1199,7 +1329,7 @@ ${keys.map((k) => FIELDS[k]).join('\n')}`;
     }
     if (d.keys) {
       for (const [k, v] of Object.entries(d.keys)) {
-        if (!SETTABLE_KEYS.includes(k) || typeof v !== 'string' || v.length > 400) return 'key';
+        if (!SETTABLE_KEYS.includes(k) || typeof v !== 'string' || v.length > (k === 'SENSES_ICS_URL' ? 2000 : 400)) return 'key';
         saveKey(k, v.trim()); // '' removes it
       }
     }
@@ -1233,6 +1363,7 @@ ${keys.map((k) => FIELDS[k]).join('\n')}`;
     clearTimeout(syncFirst);
     clearTimeout(syncSoon);
     assistant.stop();
+    senses.stop();
     watchers.stop();
     stopWatch();
     savePet(pet);

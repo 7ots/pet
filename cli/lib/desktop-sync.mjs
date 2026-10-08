@@ -25,6 +25,9 @@ import { homeFile, readJson, writeJson } from './paths.mjs';
 import { xpForLevel } from './pet-core.mjs';
 
 const SETTINGS = ['brain', 'voice', 'pet', 'access', 'screen', 'memory', 'integrations'];
+// what the senses may read is decided per computer (a camera allowed at home is not allowed at the office)
+const LOCAL_ACCESS = ['camera', 'activity', 'mail', 'calendar', 'whatsapp'];
+const shared = (k, v) => (k === 'access' && v && typeof v === 'object' ? Object.fromEntries(Object.entries(v).filter(([a]) => !LOCAL_ACCESS.includes(a))) : v);
 const STATS = ['ok', 'fail', 'turns'];
 const MAX_NOTES = 200;
 const LISTS = {
@@ -56,7 +59,7 @@ export function localState(pet = readJson(homeFile('pet.json')) || {}) {
   const config = loadConfig();
   const lists = Object.fromEntries(Object.entries(LISTS).map(([k, l]) => [k, (readJson(homeFile(l.file), []) || []).filter(l.keep)]));
   return {
-    settings: Object.fromEntries(SETTINGS.map((k) => [k, config[k]])),
+    settings: Object.fromEntries(SETTINGS.map((k) => [k, shared(k, config[k])])),
     progress: { born: pet.born || Date.now(), xp: totalXp(pet), stats: Object.fromEntries(STATS.map((k) => [k, Number(pet.stats?.[k]) || 0])) },
     ...lists,
   };
@@ -99,7 +102,7 @@ export function merge(base, local, remote, localAt = Date.now()) {
     let useLocal;
     if (r === undefined) useLocal = true;
     // first sync here: what 7ots.com has wins (your settings from another computer), unless only this side was customized
-    else if (!base) useLocal = same(r, CONFIG_DEFAULTS[k]) && !same(l, CONFIG_DEFAULTS[k]);
+    else if (!base) useLocal = same(shared(k, r), shared(k, CONFIG_DEFAULTS[k])) && !same(l, shared(k, CONFIG_DEFAULTS[k]));
     else {
       const lc = !same(l, b);
       const rc = !same(r, b);
@@ -121,7 +124,9 @@ export function merge(base, local, remote, localAt = Date.now()) {
 function apply(next, local, pet) {
   const wrote = [];
   if (!same(next.settings, local.settings)) {
-    saveConfig({ ...loadConfig(), ...next.settings });
+    const now = loadConfig();
+    const mine = Object.fromEntries(LOCAL_ACCESS.map((a) => [a, now.access[a]]));
+    saveConfig({ ...now, ...next.settings, access: { ...shared('access', next.settings.access), ...mine } });
     wrote.push('settings');
   }
   if (!same(next.progress, local.progress)) {

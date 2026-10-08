@@ -25,7 +25,14 @@
  *            logs: false,   it may read the logs of running processes (journal, pm2, docker, a log file) when asked
  *            inbox: false,  it may read your email (apumail inbox) when asked
             vm: false,     it may send long jobs to its worker on your own server (vm.mjs; context filtered by the above)
-            vmKinds: ['research','browse','long'] }  which kinds (code and shell only if you add them)
+            vmKinds: ['research','browse','long'],  which kinds (code and shell only if you add them)
+            camera: false,   senses: it reads your face and hand gestures (on this computer; only labels reach it)
+            activity: false, senses: active app, site and idle time, added up per day (~/.7ots/senses)
+            mail: false,     senses: it notices new email (apumail) and tells you about urgent-looking ones
+            calendar: false, senses: your calendar's ICS address (key SENSES_ICS_URL), for upcoming events
+            whatsapp: false }  not available yet (see senses/sources/index.mjs)
+ *   senses { arm: true, holdMs: 600, fps: 5, reflect: true, pausedUntil? }  camera gestures need the open
+ *          palm first (arm), held holdMs; reflect = now and then it asks the brain if something is worth doing
  *   integrations { orquesta: { on, projectId?, projectName? }   talk to your Orquesta agents
  *                  apumail: { on, inbox }                         email (APUMAIL_TOKEN)
  *                  custom: [{ id, name, instructions, url?, command?, envVar?, on }] }  told to the brain
@@ -40,7 +47,7 @@
 
 import { homeFile, readJson, writeJson } from './paths.mjs';
 
-export const KEY_NAMES = ['SEVENOTS_TOKEN', 'ANTHROPIC_API_KEY', 'OPENAI_API_KEY', 'ORQUESTA_TOKEN', 'APUCHAT_VOICE_TOKEN', 'ELEVENLABS_API_KEY', 'XAI_API_KEY', 'FISH_API_KEY', 'LETTA_API_KEY', 'APUMAIL_TOKEN', 'SEVENOTS_VM_TOKEN'];
+export const KEY_NAMES = ['SEVENOTS_TOKEN', 'ANTHROPIC_API_KEY', 'OPENAI_API_KEY', 'ORQUESTA_TOKEN', 'APUCHAT_VOICE_TOKEN', 'ELEVENLABS_API_KEY', 'XAI_API_KEY', 'FISH_API_KEY', 'LETTA_API_KEY', 'APUMAIL_TOKEN', 'SEVENOTS_VM_TOKEN', 'SENSES_ICS_URL'];
 export const ORQUESTA_URL = (process.env.ORQUESTA_URL || 'https://getorquesta.com').replace(/\/+$/, '');
 
 export const CONFIG_DEFAULTS = Object.freeze({
@@ -49,7 +56,8 @@ export const CONFIG_DEFAULTS = Object.freeze({
   brain: { kind: 'lines' },
   voice: { kind: 'browser' },
   pet: { mode: 'ask', annoy: 2, music: 'synth', musicVol: 0.5, entrance: { onStart: false, kind: 'wwe', dance: '' } },
-  access: { agent: true, memory: true, open: true, notify: true, sites: true, screen: false, processes: false, logs: false, inbox: false, vm: false, vmKinds: ['research', 'browse', 'long'] },
+  access: { agent: true, memory: true, open: true, notify: true, sites: true, screen: false, processes: false, logs: false, inbox: false, vm: false, vmKinds: ['research', 'browse', 'long'], camera: false, activity: false, mail: false, calendar: false, whatsapp: false },
+  senses: { arm: true, holdMs: 600, fps: 5, reflect: true },
   screen: { every: 5 },
   // conversation memory: recent turns up to `tokens` (≈chars/4), older ones compacted into a summary; 0 = off
   memory: { tokens: 20000 },
@@ -68,6 +76,7 @@ export function loadConfig() {
     pet: { ...CONFIG_DEFAULTS.pet, ...c.pet },
     access: { ...CONFIG_DEFAULTS.access, ...c.access },
     screen: { ...CONFIG_DEFAULTS.screen, ...c.screen },
+    senses: { ...CONFIG_DEFAULTS.senses, ...c.senses },
     memory: { ...CONFIG_DEFAULTS.memory, ...c.memory },
     integrations: {
       orquesta: { ...CONFIG_DEFAULTS.integrations.orquesta, ...c.integrations?.orquesta },

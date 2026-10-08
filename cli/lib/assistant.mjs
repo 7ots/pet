@@ -286,7 +286,7 @@ export function notify(title, body) {
  *             vm + vmKinds (offload to the ot's cloud worker; off unless explicitly true)
  *   cloud()   the ot id of this computer (signed in to 7ots.com) or null · say(line) speaks later
  */
-export function createAssistant({ brain, system, lang, name, onFire, watchers = null, procs = async () => '', access = () => ({}), memoryTokens = () => 20000, extra = null, sites = null, cloud = () => null, say = () => {}, log = () => {} }) {
+export function createAssistant({ brain, system, lang, name, onFire, watchers = null, procs = async () => '', access = () => ({}), memoryTokens = () => 20000, extra = null, sites = null, cloud = () => null, say = () => {}, context = () => '', log = () => {} }) {
   const may = (k) => access()[k] !== false;
   const vmKinds = () => (access().vm === true && cloud() ? (access().vmKinds || []).filter(Boolean) : []);
   let offloading = null;
@@ -447,7 +447,7 @@ export function createAssistant({ brain, system, lang, name, onFire, watchers = 
       try {
         // Prowl.world guides for the sites in play (access.sites; untrusted reference), fetched alongside the processes
         const [running, siteRef] = await Promise.all([may('processes') ? procs().catch(() => '') : '', sites ? sites.prompt(text).catch(() => '') : '']);
-        const more = [extra?.prompt() || '', siteRef].filter(Boolean).join('\n');
+        const more = [extra?.prompt() || '', context() || '', siteRef].filter(Boolean).join('\n');
         const raw = await brain.think({ purpose: 'assistant', system: system(detected), messages: [{ role: 'user', content: aiPrompt(text, { lang: detected, notes: may('memory') ? notes.slice(-30) : [], reminders, watchers: watchers?.list || [], procs: running, more, conv: convBlock(), vmKinds: vmKinds(), now }) }], timeoutMs: 45000, raw: true });
         ai = parseAi(raw, now, extra, vmKinds());
       } catch (e) {
@@ -482,6 +482,10 @@ export function createAssistant({ brain, system, lang, name, onFire, watchers = 
   return {
     get reminders() {
       return reminders.slice();
+    },
+    /** A reminder set by something other than a message (the senses' rules): { at, text } → what it says. */
+    remind({ at, text }) {
+      return run([{ type: 'remind', at: Math.max(Date.now() + 5000, Number(at) || 0), text: String(text || '').slice(0, 200) }])[0] || '';
     },
     get notes() {
       return notes.slice();

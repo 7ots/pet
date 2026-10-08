@@ -175,6 +175,12 @@
   body.desktop.opaque { background: var(--panel); }
 
   @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+  /* senses: the camera is on (a small eye, like a webcam light) and what a gesture did */
+  .eye { position: absolute; z-index: 2; right: 2px; top: 6px; display: none; align-items: center; gap: 4px; padding: 2px 7px; border-radius: 99px; font: 600 11px/1.4 var(--font, system-ui); background: color-mix(in srgb, var(--panel, #fff) 85%, transparent); color: var(--muted, #8a8399); box-shadow: 0 1px 3px rgb(0 0 0 / .15); pointer-events: none; }
+  .eye.on { display: inline-flex; }
+  .eye::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: #e5484d; }
+  .eye.paused::before { background: var(--muted, #8a8399); }
+  .eye.armed { color: #fff; background: #6d5dfc; }
 </style>
 </head>
 <body>
@@ -193,6 +199,7 @@
       <div class="props" id="props" aria-hidden="true"></div>
       <div class="floor" aria-hidden="true"></div>
       <span class="badge" id="badge"></span>
+      <span class="eye" id="eye" aria-live="polite"></span>
     </div>
     <form class="ask" id="ask" autocomplete="off"><input id="askIn" maxlength="800" enterkeyhint="send"></form>
     <div class="who">
@@ -752,6 +759,7 @@
       if (m.ask) ask4(m.ask); // before thinking: an approved ask hands the bubble back to the dots
       if ('thinking' in m) setThinking(!!m.thinking);
       if (m.activity) addActivity(m.activity);
+      if (m.senses) senses(m.senses);
       // asleep (and not stirred by something you asked for): no moving, gestures or talking
       if (asleep && Date.now() >= stirUntil && Date.now() - sleptAt > 15000) return void (m.dance && dance(m.dance));
       if (m.gesture) ch.gesture(m.gesture);
@@ -763,6 +771,24 @@
       if (m.point && desktop) window.__goal = m.point; // the desktop shell walks it over there
     };
   }
+  // ── senses (camera on, a gesture seen, what it did): a small chip on the stage, never a spoken line ──
+  const eye = $('#eye');
+  let eyeT = 0;
+  const GLYPH = { thumb_up: '👍', thumb_down: '👎', open_palm: '✋', closed_fist: '✊', victory: '✌️', pointing_up: '☝️', iloveyou: '🤟' };
+  function senses(s) {
+    if (s.camera) {
+      eye.classList.toggle('on', s.camera === 'on' || s.camera === 'paused');
+      eye.classList.toggle('paused', s.camera === 'paused');
+      eye.textContent = '';
+    }
+    if (!s.gesture && !s.hint) return;
+    eye.classList.add('on');
+    eye.classList.toggle('armed', Boolean(s.armed));
+    eye.textContent = [GLYPH[s.gesture] || '', s.did || '', s.hint || ''].filter(Boolean).join(' ');
+    clearTimeout(eyeT);
+    eyeT = setTimeout(() => (eye.classList.remove('armed'), (eye.textContent = ''), s.camera === 'paused' && eye.classList.remove('on')), s.armed ? Math.max(1500, s.armed - Date.now()) : 2500);
+  }
+
   live.textContent = t('off');
   connect();
 

@@ -258,6 +258,52 @@ async function cmdReminders({ flags }) {
   if (r.notes.length) console.log(`\n${bold('notes')}\n${r.notes.map((n) => `  · ${n.text}`).join('\n')}`);
 }
 
+/** What the senses notice (camera, apps, mail, calendar) and their rules: status | pause [min] | resume | rules | reflect | forget. */
+async function cmdSenses({ pos, flags }) {
+  if (!(await petAlive())) fail(t('err.noPet'));
+  const call = (path, body) =>
+    fetch(`http://127.0.0.1:${PET_PORT}${path}`, {
+      method: body ? 'POST' : 'GET',
+      headers: { 'Content-Type': 'application/json', 'X-7ots-Token': petToken() },
+      body: body ? JSON.stringify(body) : undefined,
+      signal: AbortSignal.timeout(60_000),
+    })
+      .then((x) => x.json())
+      .catch((e) => fail(e.message));
+  const hm = (ms) => {
+    const m = Math.round((ms || 0) / 60000);
+    return m < 60 ? `${m}m` : `${Math.floor(m / 60)}h${String(m % 60).padStart(2, '0')}`;
+  };
+  const sub = pos[0] || 'status';
+  if (sub === 'pause') return console.log(`paused until ${new Date((await call('/senses/pause', { min: Number(pos[1]) || 60 })).pausedUntil).toLocaleTimeString()}`);
+  if (sub === 'resume') return void (await call('/senses/pause', { resume: true }), console.log('ok'));
+  if (sub === 'forget') return console.log((await call('/senses/forget', {})).ok ? 'ok' : '?');
+  if (sub === 'reflect') {
+    const r = await call('/senses/reflect', {});
+    return console.log(r.say || (r.rule ? `proposed: ${r.rule.name}` : dim('—')));
+  }
+  const s = await call('/senses/status');
+  if (flags.json) return console.log(JSON.stringify(sub === 'rules' ? s.rules : s, null, 2));
+  if (sub === 'rules') {
+    for (const r of s.rules) console.log(`${r.status === 'active' ? '●' : r.status === 'proposed' ? '?' : '○'} ${dim(r.id)}  ${r.name}${dim(`  (${r.by}, every ${r.cooldown})`)}`);
+    return console.log(dim('\nsettings → Senses to turn them on/off, accept or add'));
+  }
+  if (sub !== 'status') fail(t('usage.senses'));
+  const on = Object.entries(s.access).map(([k, v]) => `${k} ${v ? '✓' : '·'}`).join('  ');
+  const f = s.facts;
+  const cam = s.camera.paused ? `paused until ${new Date(s.camera.pausedUntil).toLocaleTimeString()}` : s.camera.on ? `on · ${f.state || '…'}${s.baseline ? '' : ' (calibrating)'}` : s.vendor.ready ? 'off' : 'off (models not downloaded)';
+  console.log(`${bold('senses')}  ${on}`);
+  console.log(`camera   ${cam}`);
+  console.log(`now      ${f.present ? `at the computer ${hm(f.streak)}` : `away ${hm(f.away)}`}${f.app ? ` · ${f.app}${f.site ? ` (${f.site})` : ''} ${hm(f.appFor)}` : ''}${f.battery ? ` · battery ${f.battery.pct}%${f.battery.charging ? '+' : ''}` : ''}`);
+  const d = s.today;
+  console.log(`today    active ${hm(d.active)} · away ${hm(d.away)} · ${d.breaks} breaks · longest ${hm(d.longest)}`);
+  if (d.apps.length) console.log(`apps     ${d.apps.slice(0, 5).map(([n, ms]) => `${n} ${hm(ms)}`).join(' · ')}`);
+  if (d.sites.length) console.log(`sites    ${d.sites.slice(0, 5).map(([n, ms]) => `${n} ${hm(ms)}`).join(' · ')}`);
+  if (s.upcoming?.length) console.log(`next     ${s.upcoming[0].title || ''} ${new Date(s.upcoming[0].start).toLocaleTimeString()}`);
+  const prop = s.rules.filter((r) => r.status === 'proposed').length;
+  console.log(`rules    ${s.rules.filter((r) => r.status === 'active').length} on${prop ? ` · ${prop} proposed` : ''}`);
+}
+
 /** The settings page (brain, what it may see, notes, reminders), in the browser. --print: only the URL. */
 async function cmdConfig({ flags }) {
   if (!(await petAlive())) fail(t('err.noPet'));
@@ -545,6 +591,8 @@ async function main() {
       return cmdDance(cmd, args);
     case 'reminders':
       return cmdReminders(args);
+    case 'senses':
+      return cmdSenses(args);
     case 'config':
     case 'settings':
       return cmdConfig(args);
