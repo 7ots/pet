@@ -30,7 +30,7 @@ import { SPEECH_TAGS_PROMPT } from '../../src/voice/tags.js';
 }
 
 export const AI_CLIS = {
-  claude: { bin: 'claude', json: true, args: (p, m, files) => ['-p', p, '--output-format', 'json', ...(m ? ['--model', m] : []), ...(files ? ['--allowedTools', 'Read'] : [])], vision: true, minTimeoutMs: 120000 }, // claude -p can take ~30 s just to start (hooks, plugins, MCP servers)
+  claude: { bin: 'claude', json: true, args: (p, m, files, web) => ['-p', p, '--output-format', 'json', ...(m ? ['--model', m] : []), ...(files || web ? ['--allowedTools', [files && 'Read', web && 'WebSearch', web && 'WebFetch'].filter(Boolean).join(',')] : [])], vision: true, minTimeoutMs: 120000 }, // claude -p can take ~30 s just to start (hooks, plugins, MCP servers)
   codex: { bin: 'codex', args: (p, m) => ['exec', '--skip-git-repo-check', ...(m ? ['-m', m] : []), p] },
   gemini: { bin: 'gemini', args: (p, m) => ['-p', p, ...(m ? ['-m', m] : [])] },
   ollama: { bin: 'ollama', args: (p, m) => ['run', m || 'llama3.2', p] },
@@ -77,11 +77,11 @@ export function petSystem(identity, { lang, role = 'pet' } = {}) {
   return `${base}${sheet ? `\n${sheet}` : ''}\n${job}${tools ? `\n${tools}` : ''}${tone}\n${lang === 'auto' ? 'Always answer in the language your human writes in.' : `Always answer in ${L}.`}`;
 }
 
-function runCli({ cli, model, command }, prompt, timeoutMs, files) {
+function runCli({ cli, model, command }, prompt, timeoutMs, files, web = false) {
   const spec = cli === 'custom' ? { bin: '/bin/sh', args: (p) => ['-c', command, 'sh', p] } : AI_CLIS[cli];
   if (!spec) return Promise.reject(new Error(`unknown cli ${cli}`));
   return new Promise((resolve, reject) => {
-    const child = spawn(spec.bin, spec.args(prompt, model, files), {
+    const child = spawn(spec.bin, spec.args(prompt, model, files, web), {
       cwd: ensureHome(),
       windowsHide: true,
       env: { ...process.env, SEVENOTS_PET_BRAIN: '1', NO_COLOR: '1' },
@@ -92,7 +92,7 @@ function runCli({ cli, model, command }, prompt, timeoutMs, files) {
       child.kill('SIGTERM');
       reject(new Error('timeout'));
     }, Math.max(timeoutMs, spec.minTimeoutMs || 0));
-    child.stdout.on('data', (d) => (out += d).length > 20000 && child.kill('SIGTERM'));
+    child.stdout.on('data', (d) => (out += d).length > (web ? 200000 : 20000) && child.kill('SIGTERM'));
     child.on('error', (e) => {
       clearTimeout(timer);
       reject(e);
@@ -145,6 +145,10 @@ export function createBrain(brain = { kind: 'lines' }, home = {}) {
         // CLIs that don't report usage: a rough count (≈ 4 characters a token)
         onUsage?.(usage || { in: Math.round(prompt.length / 4), out: Math.round(out.length / 4), approx: true });
         return raw ? out : cleanReply(out);
+      },
+      // long work (the assistant's offload) on this computer: minutes, not seconds; web = may search and read pages (claude)
+      async work(prompt, { web = false, timeoutMs = 10 * 60 * 1000 } = {}) {
+        return (await runCli(brain, prompt, timeoutMs, null, web)).text;
       },
     };
   }

@@ -85,6 +85,22 @@ export function createInferenceLog() {
           throw e;
         }
       },
+      // long local work (only CLI brains have it); undefined otherwise so callers fall back to the cloud
+      get work() {
+        if (typeof getBrain().work !== 'function') return undefined;
+        return async (prompt, o) => {
+          const t0 = Date.now();
+          const row = { at: t0, purpose: 'work', brain: label(), input: [{ role: 'user', content: cut(prompt, 8000) }] };
+          try {
+            const text = await getBrain().work(prompt, o);
+            add({ ...row, ok: true, output: cut(text, 4000), ms: Date.now() - t0 });
+            return text;
+          } catch (e) {
+            add({ ...row, ok: false, error: cut(e.message, 300), ms: Date.now() - t0 });
+            throw e;
+          }
+        };
+      },
     };
   }
 
