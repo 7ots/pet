@@ -41,6 +41,8 @@
  *   POST /senses                       { events: [{ kind: state|presence|gesture|status, … }] } from the camera page
  *   POST /senses/rules { action: add|set|remove|accept|reject|on|off, id?, rule? } · /senses/gestures { map, commands }
  *   POST /senses/baseline { baseline|null } · /senses/pause { min | resume } · /senses/forget · /senses/reflect
+ *   POST /senses/snap { id, image }    one camera frame the daemon asked for ({senses:{snap:id}} on /events) when you
+ *                                      ask it to look at you; seen by the vision brain, shown as a thumbnail, never stored
  *
  * Only listens on 127.0.0.1 and only answers to Host 127.0.0.1/localhost (no DNS rebinding).
  * The token lives in ~/.7ots/pet.token (0600): other users of the machine can't drive the pet.
@@ -48,7 +50,7 @@
 
 import { createServer } from 'node:http';
 import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
-import { readFileSync, existsSync, writeFileSync, chmodSync, mkdirSync, symlinkSync, readdirSync, statSync, createReadStream } from 'node:fs';
+import { readFileSync, existsSync, writeFileSync, chmodSync, mkdirSync, rmSync, symlinkSync, readdirSync, statSync, createReadStream } from 'node:fs';
 import { cardShot } from './card-shot.mjs';
 import { join } from 'node:path';
 import { createAssistant, notify, tr } from './assistant.mjs';
@@ -509,10 +511,45 @@ export function startPetServer({ port = PET_PORT, log = () => {} } = {}) {
   async function senseAsk(text) {
     chatUntil = Date.now() + CHAT_QUIET;
     broadcast({ thinking: true, activity: track({ type: 'prompt', text }) });
-    const r = await assistant.ask(text);
+    const r = (await lookAt(text)) || (await assistant.ask(text));
     lastSpoke = Date.now();
     chatUntil = Date.now() + CHAT_QUIET;
-    broadcast({ thinking: false, say: r.reply, gesture: r.actions.length ? 'nod' : null, point: r.actions.some((a) => a.type === 'open') ? 'browser' : null });
+    broadcast({ thinking: false, say: r.reply, photo: r.photo, gesture: r.actions.length ? 'nod' : null, point: r.actions.some((a) => a.type === 'open') ? 'browser' : null });
+  }
+  // A real look, only when asked ("¿cómo me ves?"): the camera page sends one frame, the vision brain looks at it,
+  // the pet shows it as a thumbnail. Kept in memory only; the file the CLI reads is deleted right after.
+  const LOOK_RE = /c[oó]mo me ves|m[ií]rame|me (?:est[aá]s )?viendo|qu[eé] (?:me )?ves|me ves\b|look at me|how do i look|can you see me|what do you see|como (?:é que )?(?:voc[eê] )?me v[eê]|olh[ae] pra mim/i;
+  const snaps = new Map();
+  function snapFrame(ms = 6000) {
+    const id = randomBytes(6).toString('hex');
+    return new Promise((resolve) => {
+      const t = setTimeout(() => (snaps.delete(id), resolve(null)), ms);
+      snaps.set(id, (img) => (clearTimeout(t), snaps.delete(id), resolve(img)));
+      broadcast({ senses: { snap: id } });
+    });
+  }
+  async function lookAt(text) {
+    if (!brain.vision || !senses.cameraOn() || !LOOK_RE.test(text)) return null;
+    const photo = await snapFrame();
+    if (!photo) return log('senses look: no frame from the camera page'), null;
+    mkdirSync(homeFile('senses'), { recursive: true });
+    const f = homeFile(`senses/look-${randomBytes(4).toString('hex')}.jpg`);
+    writeFileSync(f, Buffer.from(photo.slice(photo.indexOf(',') + 1), 'base64'), { mode: 0o600 });
+    try {
+      const reply = await brain.think({
+        purpose: 'look',
+        system: `${petSystem(identity, { lang: 'auto' })}\n\nYour human asked you to look at them: the image is a frame from their webcam, taken just now. Look at it for real and answer what they asked, warm and specific to what you see (expression, light, posture, what is around). One to three short lines. Never guess identity, age, health or anything sensitive; do not describe other people in it.`,
+        messages: [{ role: 'user', content: `${text}${senses.prompt() ? `\n\n${senses.prompt()}` : ''}` }],
+        files: [f],
+        timeoutMs: 120000,
+      });
+      return reply ? { reply, actions: [], photo } : null;
+    } catch (e) {
+      log(`senses look: ${e.message}`);
+      return null;
+    } finally {
+      rmSync(f, { force: true });
+    }
   }
   const senses = createSenses({
     config: () => config,
@@ -832,7 +869,8 @@ export function startPetServer({ port = PET_PORT, log = () => {} } = {}) {
       return json(200, { ok: true, url: `/mods/${name}` });
     }
     let body = '';
-    for await (const c of req) if ((body += c).length > 64 * 1024) return json(413, { error: 'too large' });
+    const max = p === '/senses/snap' ? 400 * 1024 : 64 * 1024; // a camera frame
+    for await (const c of req) if ((body += c).length > max) return json(413, { error: 'too large' });
     let data = {};
     try {
       data = body ? JSON.parse(body) : {};
@@ -909,17 +947,24 @@ export function startPetServer({ port = PET_PORT, log = () => {} } = {}) {
       }
       return json(200, { pausedUntil: senses.pause(data.min) });
     }
+    if (p === '/senses/snap') {
+      const done = snaps.get(String(data.id || ''));
+      const ok = done && /^data:image\/jpeg;base64,[\w+/=]+$/.test(String(data.image || ''));
+      if (ok) done(data.image);
+      return json(200, { ok: Boolean(ok) });
+    }
     if (p === '/senses/reflect') return json(200, (await senses.reflect({ force: true })) || { say: '', rule: null });
     if (p === '/ask') {
       const text = String(data.text || '').trim().slice(0, 800);
       if (!text) return json(400, { error: 'text' });
       chatUntil = Date.now() + CHAT_QUIET;
       broadcast({ thinking: true, activity: track({ type: 'prompt', text }) });
-      const r = await assistant.ask(text);
+      const r = (await lookAt(text)) || (await assistant.ask(text));
       lastSpoke = Date.now();
       chatUntil = Date.now() + CHAT_QUIET;
-      broadcast({ thinking: false, stir: pet.asleep, say: r.reply, gesture: r.actions.length ? 'nod' : null, point: r.actions.some((a) => a.type === 'open') ? 'browser' : null });
-      return json(200, r);
+      broadcast({ thinking: false, stir: pet.asleep, say: r.reply, photo: r.photo, gesture: r.actions.length ? 'nod' : null, point: r.actions.some((a) => a.type === 'open') ? 'browser' : null });
+      const { photo, ...out } = r; // the frame went to the pet page only
+      return json(200, out);
     }
     if (p === '/config') {
       const bad = applySettings(data);

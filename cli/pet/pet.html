@@ -40,13 +40,14 @@
   .stage { position: relative; width: 168px; height: 176px; }
   .face { position: relative; z-index: 1; width: 100%; height: 100%; transition: transform .3s; }
   .floor { position: absolute; left: 50%; bottom: 2px; width: 110px; height: 14px; transform: translateX(-50%); border-radius: 50%; background: radial-gradient(closest-side, rgb(0 0 0 / .18), transparent); }
-  .bubble { position: absolute; z-index: 2; left: 50%; bottom: calc(100% - 4px); width: max-content; max-width: min(300px, 86vw); padding: 10px 14px; border-radius: 16px;
+  .bubble { position: absolute; z-index: 4; /* above the 3D ot's canvas (z 3): under it the ot covered the bubble */ left: 50%; bottom: calc(100% - 4px); width: max-content; max-width: min(300px, 86vw); padding: 10px 14px; border-radius: 16px;
     background: var(--panel); color: var(--ink); border: 1px solid var(--line); box-shadow: var(--shadow); font-size: 13.5px; line-height: 1.4; text-align: left;
     opacity: 0; transform: translate(-50%, 6px) scale(.97); transform-origin: 50% 100%; transition: opacity .22s, transform .22s; pointer-events: none; }
   .bubble.on { opacity: 1; transform: translate(-50%, 0) scale(1); }
   .bubble::after { content: ''; position: absolute; left: 50%; top: 100%; width: 12px; height: 12px; margin: -6px 0 0 -6px; background: inherit; border: inherit; border-width: 0 1px 1px 0; transform: rotate(45deg); }
   .bubble.asking { pointer-events: auto; -webkit-app-region: no-drag; border-color: var(--accent); }
   .bubble .q { display: block; margin-bottom: 8px; }
+  .bubble .shot { display: block; width: 132px; max-width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: 10px; margin-bottom: 6px; border: 1px solid var(--line); } /* what it saw when you asked it to look at you */
   .bubble .yn { display: flex; gap: 6px; justify-content: flex-end; }
   .bubble .yn button { font: inherit; font-size: 12.5px; font-weight: 650; padding: 5px 12px; border-radius: 999px; border: 1px solid var(--line); background: transparent; color: var(--ink); cursor: pointer; }
   .bubble .yn button.ok { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
@@ -133,6 +134,7 @@
   /* the 3D ot is framed with room under its feet (~34px at 1x) that grows with the stretch: the figure is drawn
      lower by what that room grew, so a bigger ot still stands where it stood; the stage (hit area) stays put */
   body.desktop.ot3d .face { top: calc(34px * (var(--pet-scale, 1) - 1)); }
+  body.desktop.ot3d .bubble { bottom: calc(100% + 8px); } /* the 3D head reaches the stage's top edge */
   /* scenes with other ots (electron/director.cjs): the acts move .act; props (fireballs, beams, sabers, bullets) */
   .actor { position: absolute; inset: 0; z-index: 1; transform-origin: 50% 92%; }
   .props { position: absolute; inset: 0; z-index: 3; pointer-events: none; overflow: visible; }
@@ -341,7 +343,7 @@
     const b = $('#bubble');
     if (b.classList.contains('on')) {
       w = Math.max(w, b.offsetWidth + 24);
-      h = Math.max(h, st.height + 6 + b.offsetHeight + 16);
+      h = Math.max(h, st.height + 18 + b.offsetHeight + 16); // 18: lifted over the 3D head
     }
     if (document.body.classList.contains('talking')) (w = Math.max(w, 240)), (h = Math.max(h, st.height + 60));
     if (Date.now() < actUntil) (w = Math.max(w, actRoom * 2)), (h = Math.max(h, st.height + actTall));
@@ -664,10 +666,24 @@
   }
   // speech tags ([laugh], <whisper>…: settings → Voice → expressions) go to the voice, never to the bubble (as src/voice/tags.js)
   const clean = (t) => String(t ?? '').replace(/<\/?(loud|soft|whisper|fast|slow|singing)>/gi, '').replace(/\s*\[(pause|long-pause|laugh|cry|mouth-click|breath|sigh)\]\s*/gi, ' ').replace(/\s{2,}/g, ' ').trim();
-  function say(raw, withFace = false, ambient = false) {
+  function say(raw, withFace = false, ambient = false, photo = null) {
     if (ambient && speak.cur && speak.reply) return void alog('skip ambient (an answer is playing)'); // small talk waits for the answer to finish
     const text = clean(raw);
-    showBubble(document.createTextNode(text), Math.max(4500, text.length * 90));
+    let content = document.createTextNode(text);
+    if (photo && desktop) console.debug('\u00a77photo' + JSON.stringify({ photo })); // the shell opens it in a window beside the ot; the words stay in the bubble
+    else if (photo) {
+      // the frame it looked at (asked for: "¿cómo me ves?"), only in this bubble, never saved
+      const img = new Image();
+      img.className = 'shot';
+      img.alt = '';
+      img.onload = tellNeed;
+      img.src = photo;
+      const box = document.createElement('div');
+      box.append(img, content);
+      content = box;
+    }
+    showBubble(content, Math.max(photo && !desktop ? 12000 : 4500, text.length * 90));
+    tellNeed();
     talk(true, text); // the mouth moves with the words even without a voice; a real voice re-syncs it
     clearTimeout(say.t);
     say.t = setTimeout(() => talk(false), 500 + text.length * 60);
@@ -765,7 +781,7 @@
       if (m.gesture) ch.gesture(m.gesture);
       if (m.morph) ch.morph?.(m.morph);
       if (m.effect) ch.effect?.(m.effect);
-      if (m.say) alog(`got say${m.ambient ? ' (ambient)' : ''} «${clean(m.say).slice(0, 40)}»`), say(m.say, !m.gesture, !!m.ambient);
+      if (m.say) alog(`got say${m.ambient ? ' (ambient)' : ''} «${clean(m.say).slice(0, 40)}»`), say(m.say, !m.gesture, !!m.ambient, /^data:image\/jpeg;base64,/.test(m.photo || '') ? m.photo : null);
       if (m.dance) dance(m.dance);
       if (m.entrance) entrance(m.entrance);
       if (m.point && desktop) window.__goal = m.point; // the desktop shell walks it over there

@@ -311,6 +311,29 @@
     S.baseline = c.baseline;
     if (!stream) await camOn();
   }
+  // a look you asked for ("¿cómo me ves?"): one small frame to the daemon, only when it asks for it by id
+  function snap(id) {
+    if (!stream || video.readyState < 2) return;
+    const k = Math.min(1, 480 / video.videoWidth);
+    const c = document.createElement('canvas');
+    c.width = Math.round(video.videoWidth * k);
+    c.height = Math.round(video.videoHeight * k);
+    const x = c.getContext('2d');
+    x.translate(c.width, 0);
+    x.scale(-1, 1); // as in a mirror, like the preview
+    x.drawImage(video, 0, 0, c.width, c.height);
+    const image = c.toDataURL('image/jpeg', 0.72);
+    fetch('/senses/snap', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-7ots-Token': BOOT.token }, body: JSON.stringify({ id, image }) }).catch(() => {});
+  }
+  if (!PREVIEW) {
+    const es = new EventSource(`/events?token=${encodeURIComponent(BOOT.token)}`);
+    es.onmessage = (e) => {
+      try {
+        const id = JSON.parse(e.data)?.senses?.snap;
+        if (id) snap(id);
+      } catch {}
+    };
+  }
   if (await camOn()) loop();
   setInterval(follow, 15_000);
   if (!stream) setTimeout(() => camOn().then((ok) => ok && !timer && loop()), 30_000);

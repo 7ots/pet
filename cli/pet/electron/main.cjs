@@ -319,6 +319,28 @@ function makeOt(opt = {}) {
     gameWin.once('ready-to-show', () => gameWin.showInactive());
     gameWin.on('closed', () => (gameWin = null));
   };
+  // what it saw when you asked it to look at you ("¿cómo me ves?"): a small window beside it, like the game's.
+  // The frame comes from the pet page (in memory) and is shown from a data: page; nothing is written to disk.
+  let photoWin = null;
+  const showPhoto = ({ photo }) => {
+    if (!/^data:image\/jpeg;base64,[\w+/=]+$/.test(String(photo || ''))) return;
+    const title = { es: 'Lo que vi', pt: 'O que eu vi' }[LANG] || 'What I saw';
+    const html = `<!doctype html><meta charset="utf-8"><title>${title}</title><style>html,body{margin:0;height:100%;background:#0b0b12;color:#e8e8f0;font:13px/1.4 system-ui,sans-serif}body{display:flex;flex-direction:column}img{flex:1;min-height:0;width:100%;object-fit:contain;background:#000}</style><img src="${photo}" alt="">`;
+    const url = `data:text/html;charset=utf-8,${encodeURIComponent(html)}`;
+    if (photoWin && !photoWin.isDestroyed()) return photoWin.loadURL(url), photoWin.showInactive();
+    const w = 400;
+    const h = 330;
+    const [wx, wy] = win.getPosition();
+    const x = Math.max(area.x, Math.min(right - w, wx + size.w / 2 - w - 40));
+    const y = Math.max(area.y, Math.min(floor - h, wy + size.h - h));
+    photoWin = new BrowserWindow({ x, y, width: w, height: h, minWidth: 240, minHeight: 200, alwaysOnTop: true, title, icon: ICON, autoHideMenuBar: true, backgroundColor: '#0b0b12', show: false, webPreferences: { contextIsolation: true, sandbox: true, javascript: false } });
+    photoWin.removeMenu?.();
+    photoWin.setAlwaysOnTop(true, 'floating');
+    photoWin.webContents.on('will-navigate', (e) => e.preventDefault());
+    photoWin.loadURL(url);
+    photoWin.once('ready-to-show', () => photoWin.showInactive());
+    photoWin.on('closed', () => (photoWin = null));
+  };
   const playGame = async (game) => {
     const r = await fetch(new URL('/byte/play', base), { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-7ots-Token': tok }, body: JSON.stringify({ game }) }).then((x) => x.json()).catch((e) => ({ error: e.message }));
     if (r.streamUrl) {
@@ -542,6 +564,13 @@ function makeOt(opt = {}) {
     if (m.startsWith('\u00a77bye')) return HOST || dismiss();
     if (m.startsWith('\u00a77ctx')) return (FULL ? menu() : guestMenu()).popup({ window: win });
     if (m.startsWith('\u00a77game')) return FULL && gameMenu().then((mm) => mm.popup({ window: win }));
+    if (m.startsWith('\u00a77photo')) {
+      try {
+        return showPhoto(JSON.parse(m.slice(7)));
+      } catch {
+        return;
+      }
+    }
     if (m.startsWith('\u00a77view')) return setView(m.slice(6) === '3d');
     if (m.startsWith('\u00a77enter')) return enter();
     if (!m.startsWith('\u00a77need')) return;
