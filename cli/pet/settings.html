@@ -1805,6 +1805,25 @@
       card.append(stars);
     }
     const acts = el('div', { className: 'acts' });
+    // install / wear: also on the ones you shared (in review they are only yours to wear)
+    const wearing = (S.otLook?.mods || []).some((x) => x.id === v.id);
+    const inst = el('button', { className: wearing ? '' : 'primary', disabled: wearing }, ico('download', 15), ' ', wearing ? t('modOn') : v.installed ? t('comWear') : t('comInstall'));
+    inst.addEventListener('click', async () => {
+      inst.disabled = true;
+      flash(msg, t('modModelHint'));
+      try {
+        await api('/community/install', { id: v.id });
+        com.fromGallery.add(v.id);
+        S = await api('/config');
+        flash(msg, t('saved'));
+        renderMods();
+        renderCommunity();
+      } catch (e) {
+        inst.disabled = false;
+        flash(msg, t('err', { e: errText(e) }), 'err');
+      }
+    });
+    acts.append(inst);
     if (mineList) {
       const del = el('button', {}, ico('trash-2', 15), ' ', t('comDel'));
       del.addEventListener('click', async () => {
@@ -1819,24 +1838,6 @@
       });
       acts.append(del);
     } else {
-      const wearing = (S.otLook?.mods || []).some((x) => x.id === v.id);
-      const inst = el('button', { className: wearing ? '' : 'primary', disabled: wearing }, ico('download', 15), ' ', wearing ? t('modOn') : v.installed ? t('comWear') : t('comInstall'));
-      inst.addEventListener('click', async () => {
-        inst.disabled = true;
-        flash(msg, t('modModelHint'));
-        try {
-          await api('/community/install', { id: v.id });
-          com.fromGallery.add(v.id);
-          S = await api('/config');
-          flash(msg, t('saved'));
-          renderMods();
-          renderCommunity();
-        } catch (e) {
-          inst.disabled = false;
-          flash(msg, t('err', { e: errText(e) }), 'err');
-        }
-      });
-      acts.append(inst);
       if (com.signedIn && !v.mine && !v.reported) {
         const rep = el('button', { className: 'icon', title: t('comReport'), ariaLabel: t('comReport') }, ico('flag', 15));
         rep.addEventListener('click', () => {

@@ -131,7 +131,7 @@ export function createMods({ send, readJson }) {
     const now = Date.now();
     if (path === '' && req.method === 'GET') {
       const u = new URL(req.url, 'http://x');
-      return send(res, 200, { mods: listMods({ sort: u.searchParams.get('sort'), q: u.searchParams.get('q') || '' }).map((r) => view(r, account)) }), true;
+      return send(res, 200, { mods: listMods({ sort: u.searchParams.get('sort'), q: u.searchParams.get('q') || '', limit: u.searchParams.get('limit') }).map((r) => view(r, account)) }), true;
     }
     if (path === '/mine' && req.method === 'GET') {
       const mine = d.prepare('SELECT * FROM community_mods WHERE account_id = ? ORDER BY updated_at DESC').all(account.id).map((r) => view(r, account));

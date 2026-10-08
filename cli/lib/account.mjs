@@ -222,7 +222,7 @@ function inlineToFile(url) {
 
 export const community = {
   async list({ sort = 'top', q = '' } = {}) {
-    const qs = `?sort=${encodeURIComponent(sort)}&q=${encodeURIComponent(q)}`;
+    const qs = `?sort=${encodeURIComponent(sort)}&q=${encodeURIComponent(q)}&limit=300`;
     if (signedIn()) return api(`/mods${qs}`);
     const r = await fetch(`${SEVENOTS_URL}/api/mods${qs}`, { signal: AbortSignal.timeout(15000) });
     if (!r.ok) throw Object.assign(new Error(`HTTP ${r.status}`), { status: r.status });
