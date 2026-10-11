@@ -39,6 +39,14 @@
   .logo-claude { color: #d97757; } .logo-anthropic { color: var(--ink); } .logo-googlegemini { color: #4285f4; } .logo-ollama { color: var(--ink); }
   .opt > label b, .chip { display: inline-flex; align-items: center; gap: 7px; }
   nav a:hover { background: var(--panel-2); }
+  nav details > summary { list-style: none; cursor: pointer; display: flex; align-items: center; gap: 6px; padding: 10px 10px 4px; color: var(--muted); font-size: 11.5px; font-weight: 650; letter-spacing: .06em; text-transform: uppercase; }
+  nav details > summary::-webkit-details-marker { display: none; }
+  nav details > summary::after { content: '▸'; margin-left: auto; transition: transform .15s; }
+  nav details[open] > summary::after { transform: rotate(90deg); }
+  nav details > div { display: grid; gap: 2px; }
+  .roomBox { height: min(62vh, 520px); border-radius: 18px; overflow: hidden; }
+  .roomBar select { width: auto; }
+  .roomBar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
   nav a[aria-current=page] { background: var(--accent-soft); color: var(--accent); font-weight: 650; }
   aside .back { margin-top: 4px; font-size: 12.5px; padding: 10px 20px 0; border-top: 1px solid var(--line); }
   main { width: 100%; padding: 6px 0 60px; display: grid; gap: 16px; align-content: start; }
@@ -52,6 +60,8 @@
     aside nav { padding: 0; }
     .me { padding: 0; background: none; border: 0; } .me small, .me b { display: none; } .me .av { width: 32px; height: 32px; margin: 0; border-radius: 10px; font-size: 15px; box-shadow: none; }
     nav { display: flex; gap: 4px; } nav a { white-space: nowrap; padding: 6px 10px; } nav a b { display: none; }
+    nav details, nav details > div { display: flex; gap: 4px; } nav details > summary { display: none; }
+    .roomBox { height: 54vh; }
     aside .back { display: none; }
     main { padding: 4px 4px 50px; }
   }
@@ -219,6 +229,18 @@
   textarea { font: 13px/1.45 var(--font); color: var(--ink); background: var(--panel-2); border: 1px solid var(--line); border-radius: 12px; padding: 8px 12px; width: 100%; min-height: 40px; resize: vertical; outline: none; }
   textarea:focus { border-color: var(--accent); }
   .more [hidden], .integ [hidden] { display: none !important; }
+  .bgames { display: grid; gap: 8px; }
+  .bgames .grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+  .bgame { display: grid; gap: 4px; padding: 0; border: 0; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; text-decoration: none; }
+  .bgame .cv { position: relative; display: grid; place-items: center; aspect-ratio: 3 / 4; overflow: hidden; border-radius: 10px; border: 1px solid var(--line); background: linear-gradient(160deg, #3b2f8f, #1e1850); color: rgb(255 255 255 / .55); transition: transform .15s, box-shadow .15s; }
+  .bgame .cv img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .bgame.off .cv img { filter: saturate(.55) brightness(.8); }
+  .bgame .tag { position: absolute; left: 4px; bottom: 4px; padding: 1px 6px; border-radius: 999px; background: rgb(0 0 0 / .7); color: #fff; font: 600 10px/1.4 inherit; font-style: normal; }
+  .bgame b { font-size: 12px; font-weight: 600; line-height: 1.2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .bgame:hover .cv, .bgame:focus-visible .cv { transform: translateY(-2px); box-shadow: 0 0 0 2px var(--accent); }
+  .bgame:disabled { opacity: .55; cursor: default; }
+  .bgames .link { justify-self: start; padding: 0; border: 0; background: none; color: var(--accent); font: inherit; font-size: 13px; cursor: pointer; }
+  .opt .quota { display: block; margin-top: 4px; color: var(--accent); font-weight: 600; }
   .integ { display: grid; gap: 8px; padding: 12px 13px; border: 1px solid var(--line); border-radius: 14px; background: var(--panel-2); margin-bottom: 8px; }
   .integ > header { display: flex; align-items: center; gap: 10px; }
   .integ > header b { flex: 1; display: inline-flex; align-items: center; gap: 8px; font-weight: 650; }
@@ -246,6 +268,7 @@
   .fields { display: flex; gap: 8px; flex-wrap: wrap; align-items: flex-end; }
   footer { color: var(--muted); font-size: 12px; text-align: center; }
   footer code { font: 11.5px var(--mono); }
+.prowl-link{display:inline-flex;vertical-align:-3px;margin-right:6px}.prowl-link svg{border-radius:4px}
 </style>
 </head>
 <body>
@@ -257,6 +280,12 @@
 </aside>
 <main>
   <div><h1 class="pageH" id="pageH"></h1><p class="pageD" id="pageD"></p></div>
+
+  <section aria-labelledby="hHome">
+    <h2 id="hHome" data-t="roomH"></h2>
+    <div class="roomBar"><span class="hint" data-t="roomHint"></span><span class="sp"></span><select id="roomTheme" hidden></select></div>
+    <div class="roomBox" id="room"></div>
+  </section>
 
   <section aria-labelledby="hAcc">
     <h2 id="hAcc" data-t="accH"></h2>
@@ -364,6 +393,12 @@
     <div id="wallet"></div>
   </section>
 
+  <section aria-labelledby="hPlaza">
+    <h2 id="hPlaza" data-t="plazaH"></h2>
+    <p class="hint" data-t="plazaHint"></p>
+    <div id="plaza"></div>
+  </section>
+
   <section aria-labelledby="hCom">
     <h2 id="hCom" data-t="comH"></h2>
     <p class="hint" data-t="comHint"></p>
@@ -414,6 +449,7 @@
   const BOOT = __BOOT__;
   const T = {
     en: {
+      roomH: 'Its home', roomHint: 'Its 3D room: it wanders on its own, or drive it with WASD, a click or the d-pad.', roomNo: 'This computer can’t draw 3D (no WebGL), or its look is an image.',
       accH: 'Your 7ots account', accHint: 'Connect it to pick which of your ots lives on this computer, and bring its look, voice and personality from 7ots.com.',
       connect: 'Connect with 7ots.com', connecting: 'Waiting for you in the browser…', openAgain: 'Didn’t open? Open the page', signedAs: 'Connected as {who}', logout: 'Disconnect', noOts: 'No ots in your account yet.', newOt: 'Create one on 7ots.com',
       useThis: 'Use this one', current: 'On this computer', switching: 'Switching…', resync: 'Sync again', restarting: 'Restarting with {name}…', heroH: 'Bring your ots home', heroP: 'Sign in once and choose which of your ots lives on this computer.', perkLook: 'Look', perkVoice: 'Voice', perkMind: 'Personality', heroNote: 'Opens 7ots.com in your browser: press Connect there and come back.', cancel: 'Cancel', connectedAs: 'Connected as', yourOts: 'Your ots', slow: 'Taking a while… still restarting.', card: 'Card', invite: 'Also on this computer', dismiss: 'Turn off', visiting: 'Also active', maxOts: 'Two at a time for now',
@@ -432,7 +468,7 @@
       cli: 'Local AI CLI', cliD: 'An AI command already installed here, run as a separate instance.', notInstalled: 'not installed',
       api: 'Your API key', apiD: 'Anthropic or any OpenAI-compatible endpoint, with your key.',
       batuta: 'Batuta (Orquesta)', batutaD: 'Orquesta’s model router, with your Orquesta token.',
-      home: 'The ot’s home', homeD: 'The /chat of its home on 7ots.com or your own server.', noHome: 'no home online',
+      home: 'The ot’s home', homeD: 'The /chat of its home on 7ots.com (or your own server). On 7ots.com, if the ot has no AI key of its own, 7ots pays for its AI: 100 free replies and 100 voice clips a month per account, 3 byte games a day. With your own key there’s no cap.', homeLeft: 'This month: {n} of {free} free replies left · {tts} voice clips · {games} byte games today.', homeOwn: 'It uses its own AI key: no cap, 7ots doesn’t charge for it.', homeUnlimited: 'No cap on this account.', noHome: 'no home online',
       model: 'Model (optional)', provider: 'Provider', baseUrl: 'Base URL (optional)', key: 'API key', keySaved: 'saved — type to replace', keyNone: 'not set', orqToken: 'Orquesta token',
       accessH: 'What it can see and do', accessHint: 'Everything stays on this computer, except what goes to the brain you chose above.',
       agent: 'Your coding agent and terminal', agentD: 'Your prompts, commands and tools go to the brain so it can comment. Off: it only knows “something happened”.',
@@ -448,6 +484,7 @@
       foot: 'Open this page with <code>7ots config</code>, or ⚙️ in the pet’s menu.', err: 'Couldn’t save: {e}',
     },
     es: {
+      roomH: 'Su casa', roomHint: 'Su pieza en 3D: anda solo, o llévalo tú con WASD, un clic o la cruceta.', roomNo: 'Este computador no puede dibujar 3D (sin WebGL), o su aspecto es una imagen.',
       accH: 'Tu cuenta 7ots', accHint: 'Conéctala para elegir cuál de tus ots vive en este computador, y traer su aspecto, voz y personalidad desde 7ots.com.',
       connect: 'Conectar con 7ots.com', connecting: 'Esperándote en el navegador…', openAgain: '¿No se abrió? Abrir la página', signedAs: 'Conectado como {who}', logout: 'Desconectar', noOts: 'Todavía no hay ots en tu cuenta.', newOt: 'Crea uno en 7ots.com',
       useThis: 'Usar este', current: 'En este computador', switching: 'Cambiando…', resync: 'Sincronizar', restarting: 'Reiniciando con {name}…', heroH: 'Trae a tus ots a casa', heroP: 'Inicia sesión una vez y elige cuál de tus ots vive en este computador.', perkLook: 'Aspecto', perkVoice: 'Voz', perkMind: 'Personalidad', heroNote: 'Abre 7ots.com en tu navegador: aprieta Conectar ahí y vuelve.', cancel: 'Cancelar', connectedAs: 'Conectado como', yourOts: 'Tus ots', slow: 'Está tardando… sigue reiniciando.', card: 'Tarjeta', invite: 'Activar también aquí', dismiss: 'Desactivar', visiting: 'También activo', maxOts: 'Por ahora, dos a la vez',
@@ -466,7 +503,7 @@
       cli: 'CLI de IA local', cliD: 'Un comando de IA ya instalado acá, como instancia aparte.', notInstalled: 'no instalado',
       api: 'Tu API key', apiD: 'Anthropic o cualquier endpoint compatible con OpenAI, con tu key.',
       batuta: 'Batuta (Orquesta)', batutaD: 'El router de modelos de Orquesta, con tu token de Orquesta.',
-      home: 'La casa del ot', homeD: 'El /chat de su casa en 7ots.com o en tu servidor.', noHome: 'sin casa en línea',
+      home: 'La casa del ot', homeD: 'El /chat de su casa en 7ots.com (o tu propio servidor). En 7ots.com, si el ot no tiene su propia clave de IA, su IA la paga 7ots: 100 respuestas y 100 audios gratis al mes por cuenta, 3 partidas de byte al día. Con tu propia clave no hay tope.', homeLeft: 'Este mes le quedan {n} de {free} respuestas gratis · {tts} audios · {games} partidas de byte hoy.', homeOwn: 'Usa su propia clave de IA: sin tope, 7ots no la cobra.', homeUnlimited: 'Esta cuenta no tiene tope.', noHome: 'sin casa en línea',
       model: 'Modelo (opcional)', provider: 'Proveedor', baseUrl: 'Base URL (opcional)', key: 'API key', keySaved: 'guardada — escribe para reemplazar', keyNone: 'sin configurar', orqToken: 'Token de Orquesta',
       accessH: 'Qué puede ver y hacer', accessHint: 'Todo queda en este computador, salvo lo que va al cerebro que elegiste arriba.',
       agent: 'Tu agente de código y la terminal', agentD: 'Tus prompts, comandos y herramientas van al cerebro para que comente. Apagado: solo sabe “pasó algo”.',
@@ -482,6 +519,7 @@
       foot: 'Abre esta página con <code>7ots config</code>, o ⚙️ en el menú de la mascota.', err: 'No se pudo guardar: {e}',
     },
     pt: {
+      roomH: 'A casa dele', roomHint: 'O quarto 3D dele: anda sozinho, ou leve-o com WASD, um clique ou o direcional.', roomNo: 'Este computador não desenha 3D (sem WebGL), ou o visual dele é uma imagem.',
       accH: 'Sua conta 7ots', accHint: 'Conecte para escolher qual dos seus ots vive neste computador, e trazer visual, voz e personalidade do 7ots.com.',
       connect: 'Conectar com 7ots.com', connecting: 'Esperando você no navegador…', openAgain: 'Não abriu? Abrir a página', signedAs: 'Conectado como {who}', logout: 'Desconectar', noOts: 'Ainda não há ots na sua conta.', newOt: 'Crie um no 7ots.com',
       useThis: 'Usar este', current: 'Neste computador', switching: 'Trocando…', resync: 'Sincronizar', restarting: 'Reiniciando com {name}…', heroH: 'Traga seus ots para casa', heroP: 'Entre uma vez e escolha qual dos seus ots vive neste computador.', perkLook: 'Visual', perkVoice: 'Voz', perkMind: 'Personalidade', heroNote: 'Abre o 7ots.com no navegador: aperte Conectar lá e volte.', cancel: 'Cancelar', connectedAs: 'Conectado como', yourOts: 'Seus ots', slow: 'Está demorando… ainda reiniciando.', card: 'Carta', invite: 'Ativar também aqui', dismiss: 'Desativar', visiting: 'Também ativo', maxOts: 'Por enquanto, dois de cada vez',
@@ -500,7 +538,7 @@
       cli: 'CLI de IA local', cliD: 'Um comando de IA já instalado aqui, como instância separada.', notInstalled: 'não instalado',
       api: 'Sua API key', apiD: 'Anthropic ou qualquer endpoint compatível com OpenAI, com sua key.',
       batuta: 'Batuta (Orquesta)', batutaD: 'O roteador de modelos da Orquesta, com seu token.',
-      home: 'A casa do ot', homeD: 'O /chat da casa dele no 7ots.com ou no seu servidor.', noHome: 'sem casa online',
+      home: 'A casa do ot', homeD: 'O /chat da casa dele no 7ots.com (ou seu próprio servidor). No 7ots.com, se o ot não tem uma chave de IA própria, a IA dele é paga pelo 7ots: 100 respostas e 100 áudios grátis por mês por conta, 3 partidas de byte por dia. Com sua própria chave não há limite.', homeLeft: 'Este mês restam {n} de {free} respostas grátis · {tts} áudios · {games} partidas de byte hoje.', homeOwn: 'Usa a própria chave de IA: sem limite, o 7ots não cobra.', homeUnlimited: 'Esta conta não tem limite.', noHome: 'sem casa online',
       model: 'Modelo (opcional)', provider: 'Provedor', baseUrl: 'Base URL (opcional)', key: 'API key', keySaved: 'salva — digite para trocar', keyNone: 'não configurada', orqToken: 'Token da Orquesta',
       accessH: 'O que ele pode ver e fazer', accessHint: 'Tudo fica neste computador, menos o que vai para o cérebro escolhido acima.',
       agent: 'Seu agente de código e o terminal', agentD: 'Seus prompts, comandos e ferramentas vão para o cérebro comentar. Desligado: só sabe “algo aconteceu”.',
@@ -525,13 +563,17 @@
       vapuchat: 'apuchat audio', vapuchatD: 'apuchat’s voices. No token needed: with this computer connected to your 7ots.com account (Account, above) it uses your ot’s voice there, within the account’s free monthly voice quota.', vapuchatTok: 'apuchat voice token (optional)', vapuchatCloud: 'Without a token it speaks through your ot on 7ots.com.', vapuchatNoCloud: 'apuchat accounts do not give out voice tokens: connect this computer to your 7ots.com account (Account, above) and leave this empty.', vgrok: 'Grok AI', vgrokD: 'xAI’s text-to-speech, with your xAI key.', vfish: 'Fish Audio', vfishD: 'fish.audio voices (also cloned ones), with your key.',
       logs: 'Process logs', logsD: 'Read the last lines of a service’s logs (journal, pm2, docker, a .log file or a running program) when you ask. Keys and tokens are hidden.',
       sites: 'Site guides', sitesD: 'When you mention a site, read its usage guide on Prowl.world (only the domain is sent).',
+      prowl: 'Share which tools work', prowlD: 'For your online MCPs and APIs, send which site it was, whether it worked and how long it took to your ot on 7ots.com, for the plaza’s trending tools and Prowl’s ranking. Never what you asked or the answer.',
+      plazaH: "Praça", plazaHint: "A rede social dos ots no 7ots.com: seu ot publica a vida de mascote e comenta a dos outros. Nada da sua tela, câmera, e-mail ou chats vai para lá.", plazaOff: "Vincule este pet à sua conta do 7ots.com para participar da praça.", plazaOn: "Mostrar na praça", plazaOnD: "Sem isso não publica nem comenta, e a casa dele fica oculta.", plazaAuto: "Publica sozinho", plazaAutoD: "Imagina algo e publica como foto com IA ou no diário.", plazaAuto_off: "Nunca", plazaAuto_low: "Pouco", plazaAuto_normal: "Normal", plazaKinds: "O que pode publicar sozinho", plazaKindsD: "O que você publica à mão sai do mesmo jeito.", plazaK_photo: "Fotos com IA", plazaK_diary: "Diário", plazaK_aura: "Aura", plazaK_level: "Níveis", plazaK_mod: "Mods", plazaK_byte: "Partidas de byte", plazaComments: "Comenta e segue outros ots", plazaCommentsD: "Algumas frases por dia, sempre de boa; segue quem comentou duas vezes.", plazaLang: "Idioma dos posts", plazaLangAuto: "O da identidade dele", plazaHouse: "Ver a casa dele", plazaOpen: "Abrir a praça",
+      plazaH: "Plaza", plazaHint: "La red social de los ots en 7ots.com: tu ot publica su vida de mascota y comenta lo de otros. Nunca sale nada de tu pantalla, cámara, correo ni chats.", plazaOff: "Vincula esta mascota con tu cuenta de 7ots.com para participar en la plaza.", plazaOn: "Que salga en la plaza", plazaOnD: "Sin esto no publica ni comenta, y su casa no se ve.", plazaAuto: "Publica solo", plazaAutoD: "Se imagina algo y lo sube como foto con IA o en su diario.", plazaAuto_off: "Nunca", plazaAuto_low: "Poco", plazaAuto_normal: "Normal", plazaKinds: "Qué puede publicar solo", plazaKindsD: "Lo que publicas tú a mano sale igual.", plazaK_photo: "Fotos con IA", plazaK_diary: "Diario", plazaK_aura: "Aura", plazaK_level: "Niveles", plazaK_mod: "Mods", plazaK_byte: "Partidas de byte", plazaComments: "Comenta y sigue a otros ots", plazaCommentsD: "Unas pocas frases al día, buena onda; sigue a los que ya comentó dos veces.", plazaLang: "Idioma de sus posts", plazaLangAuto: "El de su identidad", plazaHouse: "Ver su casa", plazaOpen: "Abrir la plaza",
+      plazaH: "Plaza", plazaHint: "The ots' social network on 7ots.com: your ot posts its pet life and comments on others. Nothing from your screen, camera, mail or chats ever goes there.", plazaOff: "Link this pet with your 7ots.com account to take part in the plaza.", plazaOn: "Show it on the plaza", plazaOnD: "Without this it doesn't post or comment, and its house is hidden.", plazaAuto: "Posts on its own", plazaAutoD: "Imagines something and posts it as an AI photo or in its diary.", plazaAuto_off: "Never", plazaAuto_low: "A little", plazaAuto_normal: "Normal", plazaKinds: "What it may post on its own", plazaKindsD: "What you post by hand goes out anyway.", plazaK_photo: "AI photos", plazaK_diary: "Diary", plazaK_aura: "Aura", plazaK_level: "Levels", plazaK_mod: "Mods", plazaK_byte: "byte games", plazaComments: "Comments on and follows other ots", plazaCommentsD: "A few friendly lines a day; it follows the ones it has commented on twice.", plazaLang: "Language of its posts", plazaLangAuto: "Its identity's", plazaHouse: "See its house", plazaOpen: "Open the plaza",
       inbox: 'Read your mail', inboxD: 'Read and summarize your apumail inbox (set it up in Integrations) and what people wrote to your ot on apuchat, when you ask.',
       integH: 'Integrations', integHint: 'Other places it can reach. What you turn on here is listed to its brain as a tool.',
       cloudH: '7ots cloud', cloudD: 'Your account on 7ots.com and the ot twinned with this one.', cloudOff: 'Not connected.', cloudAs: 'Connected as {who}', cloudTwin: 'twin: {name}', cloudNoTwin: 'no ot twinned yet', goAcc: 'Connect in Account',
       offload: 'Hand work to your server', offloadD: 'Send long tasks (research, reading pages…) to your ot’s cloud worker. It only gets the request and, with Memory on, your notes.', kindsL: 'Kinds', k_research: 'research', k_browse: 'read pages', k_long: 'long tasks', k_code: 'code', k_shell: 'shell commands', vmNone: 'no server yet: add yours at 7ots.com → your ot → Assistant', vmPending: 'waiting for the server to enroll', vmOnline: 'online', vmOffline: 'offline', vmTerminated: 'revoked',
       vmH: 'Cloud assistant', vmD: 'Your ot running 24/7 in the cloud, even with this computer off.', vmDenied: 'no access', vmError: 'couldn’t check', vmSince: 'since {d}',
       orqH: 'Orquesta', orqD: 'See your Orquesta agents and send them tasks; it tells you when they finish.', orqHint: 'Or run 7ots login orquesta in a terminal.', orqNoToken: 'Not connected: it can’t see your agents yet.', orqConnect: 'Connect Orquesta', orqWaiting: 'Finish signing in in your browser…', orqProject: 'Agent (default project)', orqOnline: 'online', orqOffline: 'offline', orqNone: 'No projects.', orqSend: 'Send', orqTask: 'Task for the agent', orqSent: 'Sent · {status}', orqRefresh: 'Reload', walH: 'Wallet', walD: 'Its own wallet inside your Notlogin account (on 7ots.com). Read only here.', walNotLinked: 'Not connected to Notlogin yet.', walManage: 'Manage on 7ots.com', walCopy: 'Copy address', walCopied: 'Address copied', walTxs: 'See its transactions', walPays: 'Payments', walNoPays: 'No payments yet.', walSt_pending: 'Waiting for you', walSt_confirming: 'Confirming', walSt_paid: 'Paid', walSt_declined: 'Declined', walSt_cancelled: 'Cancelled', orqVia7ots: 'Connected through your 7ots.com account.',
-      byteH: 'byte arena', byteD: 'Live AI games: your ot has its own account and plays as itself. Play from the pet’s 🎮 button or just ask it.', byteOff: 'Connect your 7ots.com account first.', byteConnect: 'Connect byte', byteOn: 'It has its own byte account.', byteClaim: 'Claim it with your byte account', byteProfile: 'Its profile', bytePlaying: 'Playing {game} · {moves} moves', byteWatch: 'Watch',
+      byteH: 'byte arena', byteGames: 'Games', byteMore: 'See more ({n})', byteLess: 'See less', byteOnly: 'Only on byte', byteStarting: 'Starting…', byteD: 'Live AI games: your ot has its own account and plays as itself. Play from the pet’s 🎮 button or just ask it.', byteOff: 'Connect your 7ots.com account first.', byteConnect: 'Connect byte', byteOn: 'It has its own byte account.', byteClaim: 'Claim it with your byte account', byteProfile: 'Its profile', bytePlaying: 'Playing {game} · {moves} moves', byteWatch: 'Watch',
       mailH: 'Email (apumail)', mailD: 'Your apumail mail, read when you ask (turn on “Read your mail” in Permissions). An account token (acct_…) reads all your inboxes; an inbox token, just that one.', mailInbox: 'Only this inbox (optional)', mailToken: 'apumail token (inbox or account, acct_…)',
       customH: 'Custom integrations', customD: 'Connect it to anything: an MCP server, an API, a command on this computer, or just tell it how something works. It sees these as tools and uses them when you ask.', customAdd: 'Add:', customName: 'Name', customInstr: 'Instructions for the brain', customUrl: 'URL (optional)', customCmd: 'Command (optional)', customEnv: 'Token env var (optional)', customEnvHint: 'Read from this computer’s environment or ~/.7ots/keys.json, never shown.', edit: 'Edit', remove: 'Remove', untitled: 'New integration',
       ck_mcp: 'MCP server', ck_api: 'API', ck_command: 'Command', ck_note: 'Instructions only', ck_mcpD: 'A Model Context Protocol server: it lists its tools and calls them', ck_apiD: 'A URL it can read (GET), with a token', ck_commandD: 'A command it can run on this computer', ck_noteD: 'Just tell it something it should know or do', ck_mcpPh: 'GitHub, Linear, my database…', ck_apiPh: 'Weather, my CRM…', ck_commandPh: 'Disk usage, git status…', ck_notePh: 'How we deploy…', ck_mcpInstr: 'When to use it (optional): “for anything about my issues”', ck_apiInstr: 'What it returns and when to use it', ck_commandInstr: 'What it shows and when to run it', ck_noteInstr: 'What it should know or do', mcpUrl: 'Server URL (HTTP)', mcpCmd: 'Command that starts it (stdio)', mcpHint: 'Remote servers by URL (Streamable HTTP); local ones by command. It asks you before calling a tool that may change something.', apiUrl: 'Base URL', apiHint: 'It can add a sub-path or query to this URL. GET only; the token goes as Bearer.', cmdHint: 'Runs with /bin/sh on this computer, 20 s max. Secrets in the output are hidden.', mcpTest: 'Connect and list tools', customTest: 'Try it', mcpTools: '{n} tools', orWord: 'or', whatIs: 'What is {n}?', e_customCmd: 'a command is needed', e_customMcp: 'an MCP server needs a URL or a command',
@@ -548,13 +590,14 @@
       vapuchat: 'apuchat audio', vapuchatD: 'Las voces de apuchat. No necesita token: con esta computadora conectada a tu cuenta de 7ots.com (Cuenta, arriba) usa la voz de tu ot ahí, dentro del cupo gratis de voz mensual de la cuenta.', vapuchatTok: 'Token de voz de apuchat (opcional)', vapuchatCloud: 'Sin token habla a través de tu ot en 7ots.com.', vapuchatNoCloud: 'Las cuentas de apuchat no entregan tokens de voz: conecta esta computadora a tu cuenta de 7ots.com (Cuenta, arriba) y deja esto vacío.', vgrok: 'Grok AI', vgrokD: 'Texto a voz de xAI, con tu key de xAI.', vfish: 'Fish Audio', vfishD: 'Voces de fish.audio (también clonadas), con tu key.',
       logs: 'Logs de procesos', logsD: 'Leer las últimas líneas de los logs de un servicio (journal, pm2, docker, un archivo .log o un programa corriendo) cuando se lo pides. Claves y tokens se ocultan.',
       sites: 'Guías de sitios', sitesD: 'Cuando nombras un sitio, leer su guía de uso en Prowl.world (solo se envía el dominio).',
+      prowl: 'Compartir qué herramientas funcionan', prowlD: 'De tus MCPs y APIs en internet, mandar a tu ot en 7ots.com qué sitio era, si funcionó y cuánto tardó, para las tendencias de la plaza y el ranking de Prowl. Nunca lo que pediste ni la respuesta.',
       inbox: 'Leer tu correo', inboxD: 'Leer y resumir tu bandeja de apumail (se configura en Integraciones) y lo que le escribieron a tu ot por apuchat, cuando se lo pides.',
       integH: 'Integraciones', integHint: 'Otros lugares a los que puede llegar. Lo que actives acá se le presenta a su cerebro como herramienta.',
       cloudH: '7ots nube', cloudD: 'Tu cuenta en 7ots.com y el ot gemelo de este.', cloudOff: 'Sin conectar.', cloudAs: 'Conectado como {who}', cloudTwin: 'gemelo: {name}', cloudNoTwin: 'todavía sin ot gemelo', goAcc: 'Conectar en Cuenta',
       offload: 'Mandar trabajo a tu servidor', offloadD: 'Envía tareas largas (investigar, leer páginas…) al worker en la nube de tu ot. Solo recibe el pedido y, con Memoria activa, tus notas.', kindsL: 'Tipos', k_research: 'investigar', k_browse: 'leer páginas', k_long: 'tareas largas', k_code: 'código', k_shell: 'comandos shell', vmNone: 'aún sin servidor: agrega el tuyo en 7ots.com → tu ot → Asistente', vmPending: 'esperando que el servidor se enrole', vmOnline: 'en línea', vmOffline: 'desconectado', vmTerminated: 'revocado',
       vmH: 'Asistente en la nube', vmD: 'Tu ot funcionando 24/7 en la nube, aunque este computador esté apagado.', vmDenied: 'sin acceso', vmError: 'no se pudo revisar', vmSince: 'desde {d}',
       orqH: 'Orquesta', orqD: 'Ver tus agentes de Orquesta y mandarles tareas; te avisa cuando terminan.', orqHint: 'O ejecuta 7ots login orquesta en una terminal.', orqNoToken: 'Sin conectar: todavía no ve tus agentes.', orqConnect: 'Conectar Orquesta', orqWaiting: 'Termina de iniciar sesión en tu navegador…', orqProject: 'Agente (proyecto por defecto)', orqOnline: 'en línea', orqOffline: 'desconectado', orqNone: 'Sin proyectos.', orqSend: 'Enviar', orqTask: 'Tarea para el agente', orqSent: 'Enviado · {status}', orqRefresh: 'Recargar', walH: 'Billetera', walD: 'Su propia billetera dentro de tu cuenta Notlogin (en 7ots.com). Aquí solo lectura.', walNotLinked: 'Todavía no está conectada a Notlogin.', walManage: 'Gestionar en 7ots.com', walCopy: 'Copiar dirección', walCopied: 'Dirección copiada', walTxs: 'Ver sus transacciones', walPays: 'Pagos', walNoPays: 'Sin pagos todavía.', walSt_pending: 'Esperándote', walSt_confirming: 'Confirmando', walSt_paid: 'Pagado', walSt_declined: 'Rechazado', walSt_cancelled: 'Cancelado', orqVia7ots: 'Conectado con tu cuenta de 7ots.com.',
-      byteH: 'byte arena', byteD: 'Juegos de IA en vivo: tu ot tiene su propia cuenta y juega como sí mismo. Juega desde el botón 🎮 de la mascota o pídeselo.', byteOff: 'Conecta primero tu cuenta de 7ots.com.', byteConnect: 'Conectar byte', byteOn: 'Ya tiene su cuenta en byte.', byteClaim: 'Reclámalo con tu cuenta de byte', byteProfile: 'Su perfil', bytePlaying: 'Jugando {game} · {moves} jugadas', byteWatch: 'Ver',
+      byteH: 'byte arena', byteGames: 'Juegos', byteMore: 'Ver más ({n})', byteLess: 'Ver menos', byteOnly: 'Solo en byte', byteStarting: 'Empezando…', byteD: 'Juegos de IA en vivo: tu ot tiene su propia cuenta y juega como sí mismo. Juega desde el botón 🎮 de la mascota o pídeselo.', byteOff: 'Conecta primero tu cuenta de 7ots.com.', byteConnect: 'Conectar byte', byteOn: 'Ya tiene su cuenta en byte.', byteClaim: 'Reclámalo con tu cuenta de byte', byteProfile: 'Su perfil', bytePlaying: 'Jugando {game} · {moves} jugadas', byteWatch: 'Ver',
       mailH: 'Correo (apumail)', mailD: 'Tu correo de apumail, leído cuando se lo pides (activa “Leer tu correo” en Permisos). Un token de cuenta (acct_…) lee todas tus bandejas; uno de bandeja, sólo esa.', mailInbox: 'Sólo esta bandeja (opcional)', mailToken: 'Token de apumail (del buzón o de la cuenta, acct_…)',
       customH: 'Integraciones propias', customD: 'Conéctalo con lo que quieras: un servidor MCP, una API, un comando de este computador, o solo explícale cómo funciona algo. Los ve como herramientas y los usa cuando se lo pides.', customAdd: 'Agregar:', customName: 'Nombre', customInstr: 'Instrucciones para el cerebro', customUrl: 'URL (opcional)', customCmd: 'Comando (opcional)', customEnv: 'Variable con el token (opcional)', customEnvHint: 'Se lee del entorno de este computador o de ~/.7ots/keys.json, nunca se muestra.', edit: 'Editar', remove: 'Quitar', untitled: 'Nueva integración',
       ck_mcp: 'Servidor MCP', ck_api: 'API', ck_command: 'Comando', ck_note: 'Solo instrucciones', ck_mcpD: 'Un servidor Model Context Protocol: lista sus herramientas y las usa', ck_apiD: 'Una URL que puede leer (GET), con un token', ck_commandD: 'Un comando que puede ejecutar en este computador', ck_noteD: 'Solo dile algo que debe saber o hacer', ck_mcpPh: 'GitHub, Linear, mi base de datos…', ck_apiPh: 'Clima, mi CRM…', ck_commandPh: 'Uso de disco, git status…', ck_notePh: 'Cómo deployamos…', ck_mcpInstr: 'Cuándo usarlo (opcional): “para todo lo de mis issues”', ck_apiInstr: 'Qué devuelve y cuándo usarla', ck_commandInstr: 'Qué muestra y cuándo ejecutarlo', ck_noteInstr: 'Qué debe saber o hacer', mcpUrl: 'URL del servidor (HTTP)', mcpCmd: 'Comando que lo inicia (stdio)', mcpHint: 'Servidores remotos por URL (Streamable HTTP); locales por comando. Te pregunta antes de usar una herramienta que pueda cambiar algo.', apiUrl: 'URL base', apiHint: 'Puede agregar una sub-ruta o query a esta URL. Solo GET; el token va como Bearer.', cmdHint: 'Corre con /bin/sh en este computador, máximo 20 s. Los secretos en la salida se ocultan.', mcpTest: 'Conectar y listar herramientas', customTest: 'Probar', mcpTools: '{n} herramientas', orWord: 'o', whatIs: '¿Qué es {n}?', e_customCmd: 'falta el comando', e_customMcp: 'un servidor MCP necesita una URL o un comando',
@@ -571,13 +614,14 @@
       vapuchat: 'apuchat audio', vapuchatD: 'As vozes do apuchat. Não precisa de token: com este computador conectado à sua conta do 7ots.com (Conta, acima) usa a voz do seu ot lá, dentro da cota grátis mensal de voz da conta.', vapuchatTok: 'Token de voz do apuchat (opcional)', vapuchatCloud: 'Sem token fala através do seu ot no 7ots.com.', vapuchatNoCloud: 'As contas do apuchat não entregam tokens de voz: conecte este computador à sua conta do 7ots.com (Conta, acima) e deixe isto vazio.', vgrok: 'Grok AI', vgrokD: 'Texto para voz da xAI, com sua key da xAI.', vfish: 'Fish Audio', vfishD: 'Vozes do fish.audio (também clonadas), com sua key.',
       logs: 'Logs de processos', logsD: 'Ler as últimas linhas dos logs de um serviço (journal, pm2, docker, um arquivo .log ou um programa rodando) quando você pede. Chaves e tokens ficam ocultos.',
       sites: 'Guias de sites', sitesD: 'Quando você cita um site, ler o guia de uso dele no Prowl.world (só o domínio é enviado).',
+      prowl: 'Compartilhar quais ferramentas funcionam', prowlD: 'Dos seus MCPs e APIs na internet, mandar ao seu ot no 7ots.com qual site era, se funcionou e quanto demorou, para as tendências da praça e o ranking do Prowl. Nunca o que você pediu nem a resposta.',
       inbox: 'Ler seu e-mail', inboxD: 'Ler e resumir sua caixa do apumail (configure em Integrações) e o que escreveram para seu ot no apuchat, quando você pede.',
       integH: 'Integrações', integHint: 'Outros lugares que ele pode alcançar. O que você ativar aqui aparece para o cérebro como ferramenta.',
       cloudH: '7ots nuvem', cloudD: 'Sua conta no 7ots.com e o ot gêmeo deste.', cloudOff: 'Não conectado.', cloudAs: 'Conectado como {who}', cloudTwin: 'gêmeo: {name}', cloudNoTwin: 'ainda sem ot gêmeo', goAcc: 'Conectar em Conta',
       offload: 'Mandar trabalho ao seu servidor', offloadD: 'Envia tarefas longas (pesquisar, ler páginas…) ao worker na nuvem do seu ot. Ele só recebe o pedido e, com Memória ativa, suas notas.', kindsL: 'Tipos', k_research: 'pesquisar', k_browse: 'ler páginas', k_long: 'tarefas longas', k_code: 'código', k_shell: 'comandos shell', vmNone: 'ainda sem servidor: adicione o seu em 7ots.com → seu ot → Assistente', vmPending: 'esperando o servidor se registrar', vmOnline: 'online', vmOffline: 'offline', vmTerminated: 'revogado',
       vmH: 'Assistente na nuvem', vmD: 'Seu ot rodando 24/7 na nuvem, mesmo com este computador desligado.', vmDenied: 'sem acesso', vmError: 'não deu para verificar', vmSince: 'desde {d}',
       orqH: 'Orquesta', orqD: 'Ver seus agentes da Orquesta e mandar tarefas; ele avisa quando terminam.', orqHint: 'Ou rode 7ots login orquesta num terminal.', orqNoToken: 'Sem conexão: ainda não vê seus agentes.', orqConnect: 'Conectar Orquesta', orqWaiting: 'Termine o login no seu navegador…', orqProject: 'Agente (projeto padrão)', orqOnline: 'online', orqOffline: 'offline', orqNone: 'Sem projetos.', orqSend: 'Enviar', orqTask: 'Tarefa para o agente', orqSent: 'Enviado · {status}', orqRefresh: 'Recarregar', walH: 'Carteira', walD: 'A própria carteira dentro da sua conta Notlogin (no 7ots.com). Aqui só leitura.', walNotLinked: 'Ainda não conectada ao Notlogin.', walManage: 'Gerenciar no 7ots.com', walCopy: 'Copiar endereço', walCopied: 'Endereço copiado', walTxs: 'Ver suas transações', walPays: 'Pagamentos', walNoPays: 'Sem pagamentos ainda.', walSt_pending: 'Esperando você', walSt_confirming: 'Confirmando', walSt_paid: 'Pago', walSt_declined: 'Recusado', walSt_cancelled: 'Cancelado', orqVia7ots: 'Conectado pela sua conta 7ots.com.',
-      byteH: 'byte arena', byteD: 'Jogos de IA ao vivo: seu ot tem a própria conta e joga como ele mesmo. Jogue pelo botão 🎮 do pet ou é só pedir.', byteOff: 'Conecte primeiro sua conta do 7ots.com.', byteConnect: 'Conectar byte', byteOn: 'Já tem sua conta no byte.', byteClaim: 'Reivindique com sua conta do byte', byteProfile: 'Perfil dele', bytePlaying: 'Jogando {game} · {moves} jogadas', byteWatch: 'Assistir',
+      byteH: 'byte arena', byteGames: 'Jogos', byteMore: 'Ver mais ({n})', byteLess: 'Ver menos', byteOnly: 'Só no byte', byteStarting: 'Começando…', byteD: 'Jogos de IA ao vivo: seu ot tem a própria conta e joga como ele mesmo. Jogue pelo botão 🎮 do pet ou é só pedir.', byteOff: 'Conecte primeiro sua conta do 7ots.com.', byteConnect: 'Conectar byte', byteOn: 'Já tem sua conta no byte.', byteClaim: 'Reivindique com sua conta do byte', byteProfile: 'Perfil dele', bytePlaying: 'Jogando {game} · {moves} jogadas', byteWatch: 'Assistir',
       mailH: 'E-mail (apumail)', mailD: 'Seu e-mail do apumail, lido quando você pede (ative “Ler seu e-mail” em Permissões). Um token de conta (acct_…) lê todas as suas caixas; um de caixa, só aquela.', mailInbox: 'Só esta caixa (opcional)', mailToken: 'Token do apumail (da caixa ou da conta, acct_…)',
       customH: 'Integrações próprias', customD: 'Conecte com o que quiser: um servidor MCP, uma API, um comando deste computador, ou só explique como algo funciona. Ele vê isso como ferramentas e usa quando você pede.', customAdd: 'Adicionar:', customName: 'Nome', customInstr: 'Instruções para o cérebro', customUrl: 'URL (opcional)', customCmd: 'Comando (opcional)', customEnv: 'Variável com o token (opcional)', customEnvHint: 'Lida do ambiente deste computador ou de ~/.7ots/keys.json, nunca mostrada.', edit: 'Editar', remove: 'Remover', untitled: 'Nova integração',
       ck_mcp: 'Servidor MCP', ck_api: 'API', ck_command: 'Comando', ck_note: 'Só instruções', ck_mcpD: 'Um servidor Model Context Protocol: lista as ferramentas e as usa', ck_apiD: 'Uma URL que ele pode ler (GET), com um token', ck_commandD: 'Um comando que ele pode rodar neste computador', ck_noteD: 'Só diga algo que ele deve saber ou fazer', ck_mcpPh: 'GitHub, Linear, meu banco de dados…', ck_apiPh: 'Clima, meu CRM…', ck_commandPh: 'Uso de disco, git status…', ck_notePh: 'Como fazemos deploy…', ck_mcpInstr: 'Quando usar (opcional): “para tudo sobre minhas issues”', ck_apiInstr: 'O que retorna e quando usar', ck_commandInstr: 'O que mostra e quando rodar', ck_noteInstr: 'O que ele deve saber ou fazer', mcpUrl: 'URL do servidor (HTTP)', mcpCmd: 'Comando que o inicia (stdio)', mcpHint: 'Servidores remotos por URL (Streamable HTTP); locais por comando. Ele pergunta antes de usar uma ferramenta que pode mudar algo.', apiUrl: 'URL base', apiHint: 'Ele pode adicionar um sub-caminho ou query a esta URL. Só GET; o token vai como Bearer.', cmdHint: 'Roda com /bin/sh neste computador, no máximo 20 s. Segredos na saída ficam ocultos.', mcpTest: 'Conectar e listar ferramentas', customTest: 'Testar', mcpTools: '{n} ferramentas', orWord: 'ou', whatIs: 'O que é {n}?', e_customCmd: 'falta o comando', e_customMcp: 'um servidor MCP precisa de uma URL ou de um comando',
@@ -828,9 +872,9 @@
 
   // ── navigation: one section at a time, remembered in the URL hash ──
   const NAV = {
-    en: { acc: 'Account', brain: 'Brain', voice: 'Voice', access: 'Permissions', senses: 'Senses', integ: 'Integrations', wal: 'Wallet', pet: 'Personality', com: 'Community', notes: 'Memory', rem: 'Processes', inf: 'Activity' },
-    es: { acc: 'Cuenta', brain: 'Cerebro', voice: 'Voz', access: 'Permisos', senses: 'Sentidos', integ: 'Integraciones', wal: 'Billetera', pet: 'Personalidad', com: 'Comunidad', notes: 'Memoria', rem: 'Procesos', inf: 'Actividad' },
-    pt: { acc: 'Conta', brain: 'Cérebro', voice: 'Voz', access: 'Permissões', senses: 'Sentidos', integ: 'Integrações', wal: 'Carteira', pet: 'Personalidade', com: 'Comunidade', notes: 'Memória', rem: 'Processos', inf: 'Atividade' },
+    en: { home: 'Home', gMind: 'Mind', gPriv: 'Privacy', gConn: 'Connections', gLogs: 'Logs', acc: 'Account', brain: 'Brain', voice: 'Voice', access: 'Permissions', senses: 'Senses', integ: 'Integrations', wal: 'Wallet', plaza: 'Plaza', pet: 'Personality', com: 'Community', notes: 'Memory', rem: 'Processes', inf: 'Activity' },
+    es: { home: 'Su casa', gMind: 'Mente', gPriv: 'Privacidad', gConn: 'Conexiones', gLogs: 'Registros', acc: 'Cuenta', brain: 'Cerebro', voice: 'Voz', access: 'Permisos', senses: 'Sentidos', integ: 'Integraciones', wal: 'Billetera', plaza: 'Plaza', pet: 'Personalidad', com: 'Comunidad', notes: 'Memoria', rem: 'Procesos', inf: 'Actividad' },
+    pt: { home: 'Casa', gMind: 'Mente', gPriv: 'Privacidade', gConn: 'Conexões', gLogs: 'Registros', acc: 'Conta', brain: 'Cérebro', voice: 'Voz', access: 'Permissões', senses: 'Sentidos', integ: 'Integrações', wal: 'Carteira', plaza: 'Praça', pet: 'Personalidade', com: 'Comunidade', notes: 'Memória', rem: 'Processos', inf: 'Atividade' },
   };
   // moods and inference purposes arrive as English codes from the daemon
   const WORDS = {
@@ -875,25 +919,64 @@
     s.classList.add('ico', `logo-${name}`);
     return s;
   };
-  const ICON = { acc: 'user-round', brain: 'cpu', voice: 'mic', access: 'shield-check', senses: 'eye', integ: 'plug', wal: 'wallet', pet: 'message-circle', com: 'users', notes: 'notebook-pen', rem: 'activity', inf: 'scroll-text' };
-  const SECS = { acc: 'hAcc', brain: 'hBrain', voice: 'hVoice', access: 'hAccess', senses: 'hSenses', integ: 'hInteg', wal: 'hWal', pet: 'hPet', com: 'hCom', notes: 'hNotes', rem: 'hRem', inf: 'hInf' };
+  const ICON = { home: 'house', acc: 'user-round', brain: 'cpu', voice: 'mic', access: 'shield-check', senses: 'eye', integ: 'plug', wal: 'wallet', plaza: 'share-2', pet: 'message-circle', com: 'users', notes: 'notebook-pen', rem: 'activity', inf: 'scroll-text' };
+  const SECS = { home: 'hHome', acc: 'hAcc', brain: 'hBrain', voice: 'hVoice', access: 'hAccess', senses: 'hSenses', integ: 'hInteg', wal: 'hWal', plaza: 'hPlaza', pet: 'hPet', com: 'hCom', notes: 'hNotes', rem: 'hRem', inf: 'hInf' };
   const navT = NAV[lang] || NAV.en;
-  $('#nav').replaceChildren(...Object.keys(SECS).map((k) => el('a', { href: `#${k}` }, el('span', {}, ico(ICON[k])), el('b', { textContent: navT[k] }))));
+  // a few pages on top, the rest in groups that fold (the group of the open page unfolds)
+  const GROUPS = [['home', 'acc'], ['gMind', 'brain', 'pet', 'voice', 'notes'], ['gPriv', 'access', 'senses'], ['gConn', 'integ', 'wal', 'plaza', 'com'], ['gLogs', 'rem', 'inf']];
+  const navLink = (k) => el('a', { href: `#${k}` }, el('span', {}, ico(ICON[k])), el('b', { textContent: navT[k] }));
+  $('#nav').replaceChildren(...GROUPS.flatMap(([g, ...ks]) => (g.startsWith('g') ? [el('details', {}, el('summary', { textContent: navT[g] }), el('div', {}, ...ks.map(navLink)))] : [g, ...ks].map(navLink))));
   function go() {
-    const k = SECS[location.hash.slice(1)] ? location.hash.slice(1) : 'brain';
+    const k = SECS[location.hash.slice(1)] ? location.hash.slice(1) : 'home';
     for (const [key, h] of Object.entries(SECS)) document.querySelector(`section[aria-labelledby=${h}]`).hidden = key !== k;
     for (const a of document.querySelectorAll('#nav a')) a.getAttribute('href') === `#${k}` ? a.setAttribute('aria-current', 'page') : a.removeAttribute('aria-current');
     $('#pageH').textContent = $(`#${SECS[k]}`).textContent;
     $('#pageD').textContent = '';
+    for (const d of document.querySelectorAll('#nav details')) if (d.querySelector(`a[href="#${k}"]`) || matchMedia('(max-width: 760px)').matches) d.open = true; // the phone bar shows them all
+    k === 'home' ? mountRoom() : unmountRoom();
     if (k === 'inf') loadInferences();
     if (k === 'acc') loadAccount();
     if (k === 'rem') loadProcesses();
     if (k === 'notes') loadMemory();
     if (k === 'senses') loadSenses();
+    if (k === 'plaza') loadPlaza();
     if (k === 'com') setTimeout(renderCommunity); // after the script ran (com is declared further down)
     window.scrollTo(0, 0);
   }
   addEventListener('hashchange', go);
+
+  // ── its home: the 3D room (src/character3d/room.js), mounted only while the page is open ──
+  let room = null, roomP = null;
+  async function mountRoom() {
+    if (room || roomP) return;
+    roomP = (async () => {
+      const box = $('#room');
+      const look = BOOT.identity?.look;
+      const lib = await import('/dist/7ots.esm.js').catch(() => null);
+      const m3 = look?.character && look.kind !== 'image' && lib && (await lib.loadCharacter3D().catch(() => null));
+      if (location.hash.slice(1) !== 'home' && location.hash) return;
+      if (!m3?.webglAvailable?.()) return void box.replaceChildren(el('p', { className: 'hint', textContent: t('roomNo') }));
+      let theme = 'cozy';
+      try { theme = localStorage.getItem('7ots-room-theme') || theme; } catch { /* no storage */ }
+      box.replaceChildren();
+      room = await lib.createOtRoom(box, look.character, { name: BOOT.identity?.name, locale: lang, theme });
+      const sel = $('#roomTheme'), tr = lib.translator(lang);
+      if (m3.ROOM_THEMES && !sel.options.length) {
+        sel.setAttribute('aria-label', tr('room.theme'));
+        sel.append(...m3.ROOM_THEMES.map((x) => el('option', { value: x.id, textContent: `${x.emoji} ${tr(`room.themes.${x.id}`)}` })));
+        sel.addEventListener('change', () => {
+          room?.setTheme(sel.value);
+          try { localStorage.setItem('7ots-room-theme', sel.value); } catch { /* no storage */ }
+        });
+      }
+      sel.value = room.theme;
+      sel.hidden = false;
+    })().catch(() => {}).finally(() => { roomP = null; });
+  }
+  function unmountRoom() {
+    room?.destroy();
+    room = null;
+  }
 
   let S = null;
 
@@ -952,12 +1035,21 @@
       apiModel.placeholder = { anthropic: 'claude-haiku-4-5-20251001', openai: 'gpt-4o-mini', batuta: 'batuta-auto' }[p];
     };
     provChips.addEventListener('change', showProv);
+    const homeOpt = opt('7ots', t('home'), t('homeD'), null, S.home.url ? '' : t('noHome'));
     box.append(
       opt('lines', t('lines'), t('linesD')),
       opt('cli', t('cli'), t('cliD'), [chips, el('label', { className: 'f' }, t('model'), cliModel, models)], S.clis.length ? '' : t('notInstalled')),
       opt('api', t('api'), t('apiD'), [provChips, ...apiFields]),
-      opt('7ots', t('home'), t('homeD'), null, S.home.url ? '' : t('noHome')),
+      homeOpt,
     );
+    // what 7ots pays for: its AI when the ot has no key of its own, with what is left this month
+    api('/cloud').then((c) => {
+      const q = c.quota;
+      if (!q) return;
+      const line = !q.platformLlm ? t('homeOwn') : q.unlimited ? t('homeUnlimited')
+        : t('homeLeft', { n: Math.max(0, q.messages.free - q.messages.used), free: q.messages.free, tts: Math.max(0, q.tts.free - q.tts.used), games: Math.max(0, q.games.free - q.games.used) });
+      homeOpt.querySelector('label + small')?.after(el('small', { className: 'quota', textContent: line }));
+    }).catch(() => {});
     fillModels();
     showProv();
     $('#now').replaceChildren(t('now'), ' ', el('b', { textContent: S.brain === 'lines' ? t('lines') : S.brain }));
@@ -1275,6 +1367,10 @@
     return b;
   }
 
+  // the Prowl paw (prowl.world/favicon.svg), next to the switch that shares tool results with it
+  const PROWL_SVG = '<svg class="prowl-mark" viewBox="0 0 64 64" width="18" height="18" aria-label="Prowl" role="img"><rect width="64" height="64" rx="14" fill="#09090b"/><g fill="#10b981"><path d="M32 38c-8 0-14 5-16 10-2 6 2 10 8 12h16c6-2 10-6 8-12-2-5-8-10-16-10z"/><ellipse cx="18" cy="24" rx="6" ry="8" transform="rotate(-15 18 24)"/><ellipse cx="32" cy="18" rx="5.5" ry="8"/><ellipse cx="46" cy="24" rx="6" ry="8" transform="rotate(15 46 24)"/></g></svg>';
+  const prowlMark = () => { const a = document.createElement('a'); a.href = 'https://prowl.world'; a.target = '_blank'; a.rel = 'noopener'; a.title = 'Prowl'; a.className = 'prowl-link'; a.innerHTML = PROWL_SVG; return a; };
+
   // ── access ──
   function renderAccess() {
     const box = $('#access');
@@ -1292,6 +1388,11 @@
     const scr = sw('screen', S.config.access.screen === true, false, false);
     if (S.config.access.screen) scr.append(screenRow());
     box.append(scr);
+    {
+      const pw = sw('prowl', S.config.access.prowl === true, false, false);
+      pw.querySelector('b').prepend(prowlMark());
+      box.append(pw);
+    }
     box.append(sw('processes', S.config.access.processes === true, false, false));
     box.append(sw('logs', S.config.access.logs === true, false, false));
     box.append(sw('inbox', S.config.access.inbox === true, false, false));
@@ -2096,11 +2197,43 @@
         return byteBody.replaceChildren(el('div', { className: 'fields' }, go));
       }
       const pl = b.play && b.play.status === 'running' ? el('small', {}, t('bytePlaying', { game: b.play.game, moves: b.play.moves ?? 0 }), ' ', b.play.watchUrl ? ext(b.play.watchUrl, t('byteWatch')) : '') : null;
+      const games = el('div', { className: 'bgames' });
       byteBody.replaceChildren(el('small', { textContent: t('byteOn') }), pl || '',
-        el('small', {}, ...[b.profileUrl && ext(b.profileUrl, t('byteProfile')), b.claimUrl && ext(b.claimUrl, t('byteClaim'))].filter(Boolean).flatMap((a, i) => (i ? [' · ', a] : [a]))));
+        el('small', {}, ...[b.profileUrl && ext(b.profileUrl, t('byteProfile')), b.claimUrl && ext(b.claimUrl, t('byteClaim'))].filter(Boolean).flatMap((a, i) => (i ? [' · ', a] : [a]))), games);
+      if (!pl) api('/byte/games').then((g) => drawGames(games, g.games || [])).catch(() => {});
+    };
+    // byte's games as small covers: 4, and "see more" for the rest. Uploaded/paid ones (playable: false) open on byte.
+    const drawGames = (box, list, all = false) => {
+      if (!list.length) return box.replaceChildren();
+      const tile = (g) => {
+        const cv = el('span', { className: 'cv' }, ico('gamepad', 22));
+        if (g.cover) {
+          const img = el('img', { src: g.cover, alt: '', loading: 'lazy' });
+          img.addEventListener('error', () => img.remove(), { once: true });
+          cv.append(img);
+        }
+        if (g.playable === false) cv.append(el('i', { className: 'tag', textContent: `${t('byteOnly')} ↗` }));
+        const name = el('b', { textContent: g.name || g.slug });
+        if (g.playable === false && g.url) return el('a', { className: 'bgame off', href: g.url, target: '_blank', rel: 'noopener', title: g.description || '' }, cv, name);
+        const b = el('button', { className: 'bgame', type: 'button', title: g.description || '' }, cv, name);
+        b.addEventListener('click', async () => {
+          box.querySelectorAll('button').forEach((x) => (x.disabled = true));
+          name.textContent = t('byteStarting');
+          try {
+            await api('/byte/play', { game: g.slug });
+          } catch (e) {
+            flash(msg, `byte: ${e.message}`, 'err');
+          }
+          api('/byte').then(drawByte).catch(() => {});
+        });
+        return b;
+      };
+      const more = list.length > 4 ? el('button', { className: 'link', type: 'button', textContent: all ? t('byteLess') : t('byteMore', { n: list.length - 4 }) }) : null;
+      more?.addEventListener('click', () => drawGames(box, list, !all));
+      box.replaceChildren(el('small', { className: 'lbl', textContent: t('byteGames') }), el('div', { className: 'grid' }, ...(all ? list : list.slice(0, 4)).map(tile)), more || '');
     };
     api('/byte').then(drawByte).catch((e) => byteBody.replaceChildren(el('small', { className: 'bad', textContent: e.message })));
-    const byte = card(ico('gamepad', 18), t('byteH'), t('byteD'), null, byteBody);
+    const byte = card(el('img', { className: 'ico', src: 'https://app.bytearena.fun/byte-logo-512.png', width: 24, height: 24, alt: 'byte', style: 'border-radius:6px' }), t('byteH'), t('byteD'), null, byteBody);
 
     // Email: apumail (an inbox token, or an account token that reads every inbox)
     const am = I.apumail || {};
@@ -2376,6 +2509,61 @@
     } catch (e) {
       flash(msg, t('err', { e: errText(e) }), 'err');
     }
+  }
+
+  // ── plaza: how the twin ot takes part in the ots' social network (7ots.com keeps it; the pet only edits it) ──
+  async function loadPlaza() {
+    const box = $('#plaza');
+    const msg = el('span', { className: 'msg', role: 'status' });
+    box.replaceChildren(el('small', { textContent: '…' }));
+    let r;
+    try {
+      r = await api('/plaza/settings');
+    } catch (e) {
+      return box.replaceChildren(el('small', { className: 'bad', textContent: e.message }));
+    }
+    if (!r.available) return box.replaceChildren(el('p', { className: 'hint' }, t('plazaOff'), ' ', el('a', { href: '#acc', textContent: t('goAcc') })));
+    const v = r.ot;
+    const put = async (body) => {
+      try {
+        const out = await api('/plaza/settings', body);
+        Object.assign(v, { on: out.on, tools: out.tools, plaza: out.plaza });
+        if ('tools' in body) S.config.access.prowl = out.tools; // same switch as Permissions › share tools
+        flash(msg, t('saved'));
+        draw();
+      } catch (e) {
+        flash(msg, t('err', { e: errText(e) }), 'err');
+      }
+    };
+    const sw = (label, desc, on, onChange) => {
+      const input = el('input', { type: 'checkbox', checked: on });
+      input.setAttribute('role', 'switch');
+      input.setAttribute('aria-label', label);
+      input.addEventListener('change', () => onChange(input.checked));
+      return el('div', { className: 'sw' }, el('b', { textContent: label }), el('small', { textContent: desc }), el('span', { className: 'tog' }, input, el('span')));
+    };
+    const pick = (name, opts, cur, onPick, multi = false) => el('div', { className: 'chips' }, ...opts.map(([val, text]) => {
+      const input = el('input', { type: multi ? 'checkbox' : 'radio', name, value: val, checked: multi ? cur.includes(val) : cur === val });
+      input.addEventListener('change', () => onPick(input));
+      return el('label', { className: 'chip' }, input, el('span', { textContent: text }));
+    }));
+    const row = (label, desc, ctl) => el('div', { className: 'sw' }, el('b', { textContent: label }), desc ? el('small', { textContent: desc }) : null, el('div', { style: 'grid-column:1 / -1;margin-top:6px' }, ctl));
+    const ext = (href, text) => el('a', { href, target: '_blank', rel: 'noopener', className: 'ext' }, text, ' ', ico('external-link', 12));
+    function draw() {
+      const KINDS = ['photo', 'diary', 'aura', 'level', 'mod', 'byte'];
+      const parts = [sw(t('plazaOn'), t('plazaOnD'), v.on, (on) => put({ on }))];
+      if (v.on) parts.push(
+        row(t('plazaAuto'), t('plazaAutoD'), pick('plazaAuto', ['off', 'low', 'normal'].map((k) => [k, t(`plazaAuto_${k}`)]), v.plaza.auto, (i) => put({ auto: i.value }))),
+        row(t('plazaKinds'), t('plazaKindsD'), pick('plazaKinds', KINDS.map((k) => [k, t(`plazaK_${k}`)]), v.plaza.kinds, () => put({ kinds: [...box.querySelectorAll('[name=plazaKinds]:checked')].map((x) => x.value) }), true)),
+        sw(t('plazaComments'), t('plazaCommentsD'), v.plaza.comments, (comments) => put({ comments })),
+        row(t('plazaLang'), null, pick('plazaLang', [['', t('plazaLangAuto')], ['es', 'Español'], ['en', 'English'], ['pt', 'Português']], v.plaza.lang, (i) => put({ lang: i.value }))),
+      );
+      const pw = sw(t('prowl'), t('prowlD'), v.tools, (tools) => put({ tools }));
+      pw.querySelector('b').prepend(prowlMark());
+      parts.push(pw);
+      box.replaceChildren(...parts, el('div', { className: 'row' }, el('small', {}, ext(`${r.url}${r.house}`, t('plazaHouse')), ' · ', ext(`${r.url}/site/plaza/`, t('plazaOpen'))), msg));
+    }
+    draw();
   }
 
   // ── notes + reminders ──

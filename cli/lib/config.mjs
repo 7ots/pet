@@ -20,6 +20,8 @@
  *            open: true,    it may open sites in your browser (reminders, "open my mail")
  *            notify: true,  desktop notifications when a reminder fires
  *            sites: true,   for sites you mention, it reads their usage guide on Prowl.world (only the domain is sent; prowl.mjs)
+ *            prowl: false,  share which tools work: host, ok and latency of remote integrations go to your 7ots.com ot
+ *                           and from there to Prowl's ranking (tooluse.mjs; never the tool, its arguments or results)
  *            screen: false, it looks at the active window and, every screen.every minutes, a screenshot (screen.mjs)
  *            processes: false, it sees which programs run (name, cpu, memory) and can wait for one to finish
  *            logs: false,   it may read the logs of running processes (journal, pm2, docker, a log file) when asked
@@ -56,7 +58,7 @@ export const CONFIG_DEFAULTS = Object.freeze({
   brain: { kind: 'lines' },
   voice: { kind: 'browser' },
   pet: { mode: 'ask', annoy: 2, music: 'synth', musicVol: 0.5, entrance: { onStart: false, kind: 'wwe', dance: '' } },
-  access: { agent: true, memory: true, open: true, notify: true, sites: true, screen: false, processes: false, logs: false, inbox: false, vm: false, vmKinds: ['research', 'browse', 'long'], camera: false, activity: false, mail: false, calendar: false, whatsapp: false },
+  access: { agent: true, memory: true, open: true, notify: true, sites: true, prowl: false, screen: false, processes: false, logs: false, inbox: false, vm: false, vmKinds: ['research', 'browse', 'long'], camera: false, activity: false, mail: false, calendar: false, whatsapp: false },
   senses: { arm: true, holdMs: 600, fps: 5, reflect: true },
   screen: { every: 5 },
   // conversation memory: recent turns up to `tokens` (≈chars/4), older ones compacted into a summary; 0 = off

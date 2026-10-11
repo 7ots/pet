@@ -73,7 +73,7 @@ import { SEVENOTS_URL, cloudSpeak, community, sync as syncOt, logout as accountL
 import { openUrl } from './open.mjs';
 import { syncDesktop } from './desktop-sync.mjs';
 import { VM_KINDS } from './vm.mjs';
-import { cloudByte, cloudStatus, cloudWallet, createExtras, lettaSync, normalizeCharacter, normalizeIntegrations, redact, testCustom } from './integrations.mjs';
+import { cloudByte, cloudPlaza, cloudStatus, cloudWallet, createExtras, lettaSync, normalizeCharacter, normalizeIntegrations, redact, testCustom } from './integrations.mjs';
 import { spawn } from 'node:child_process';
 import { openSync } from 'node:fs';
 import { line } from './lines.mjs';
@@ -824,6 +824,31 @@ export function startPetServer({ port = PET_PORT, log = () => {} } = {}) {
         return json(e.status === 401 ? 200 : 502, e.status === 401 ? { available: false } : { error: e.message });
       }
     }
+    // the plaza on 7ots.com: how the twin ot takes part; its "share tools" is the same switch as access.prowl here
+    if (p === '/plaza/settings' && (req.method === 'GET' || req.method === 'POST')) {
+      try {
+        let body;
+        if (req.method === 'POST') {
+          let raw = '';
+          for await (const c of req) if ((raw += c).length > 4096) break;
+          try {
+            body = JSON.parse(raw || '{}');
+          } catch {
+            body = {};
+          }
+        }
+        const r = await cloudPlaza(config, { method: req.method, body });
+        // once linked, the account is the source of truth (it may have been changed on 7ots.com)
+        const tools = r.ot?.tools ?? r.tools;
+        if (typeof tools === 'boolean' && tools !== (config.access.prowl === true)) {
+          saveConfig({ ...JSON.parse(JSON.stringify(config)), access: { ...config.access, prowl: tools } });
+          config = loadConfig();
+        }
+        return json(200, r);
+      } catch (e) {
+        return json(502, { error: e.message });
+      }
+    }
     if (req.method === 'GET' && p === '/wallet') {
       try {
         return json(200, await cloudWallet(config));
@@ -977,6 +1002,8 @@ export function startPetServer({ port = PET_PORT, log = () => {} } = {}) {
     }
     if (p === '/config') {
       const bad = applySettings(data);
+      // the "share tools" switch is also the plaza's: tell 7ots.com (it deletes what was sent when it goes off)
+      if (!bad && typeof data?.access?.prowl === 'boolean') cloudPlaza(config, { method: 'POST', body: { tools: data.access.prowl } }).catch(() => {});
       return bad ? json(400, { error: bad }) : json(200, settingsView());
     }
     if (p === '/config/test') {

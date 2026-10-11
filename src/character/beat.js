@@ -267,7 +267,7 @@ const STYLES = {
  * Toca un estilo durante `ms`. Devuelve { stop(), done, analyser } o null sin Web Audio.
  * `volume` 0..1. El primer paso cae en el instante en que se llama (con el gesto de baile).
  */
-export function playBeat(style, { ms = 6000, volume = 0.5, bpm = DANCE_BPM, ctx = null } = {}) {
+export function playBeat(style, { ms = 6000, volume = 0.5, bpm = DANCE_BPM, ctx = null, out = null } = {}) {
   const AC = globalThis.AudioContext || globalThis.webkitAudioContext;
   if (!AC) return null;
   ctx ||= shared ||= new AC();
@@ -280,6 +280,8 @@ export function playBeat(style, { ms = 6000, volume = 0.5, bpm = DANCE_BPM, ctx 
   const analyser = ctx.createAnalyser();
   analyser.fftSize = 256;
   master.connect(comp).connect(analyser).connect(ctx.destination);
+  // out: otro destino además de los parlantes (p. ej. un MediaStreamDestination para grabar un clip)
+  if (out) analyser.connect(out);
   const sd = 60 / bpm / 4; // un paso = semicorchea
   const t0 = ctx.currentTime + 0.05;
   const end = t0 + ms / 1000;

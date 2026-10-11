@@ -286,3 +286,5 @@ export function createCrowd3D(el, opts = {}) {
     },
   };
 }
+
+export { createRoom3D, ROOM_THEMES } from './room.js';

@@ -31,9 +31,9 @@ const MIN = { w: 288, h: 272 };
 const linux = process.platform === 'linux';
 
 const L = {
-  en: { settings: '⚙️ Settings', talk: '💬 Talk', listen: '🎙️ Listen (Ctrl+Alt+Space)', show: 'Show pet', hide: 'Hide (keeps living)', feed: '🍎 Treat', play: '🎾 Play', byte: '🎮 Play on byte', watch: '📺 Watch the game', stopGame: '⏹ Stop the game', noGames: 'byte: no games (sign in to 7ots.com)', sleep: '💤 Sleep', wake: '☀️ Wake up', still: 'Stay still', quit: 'Quit pet' },
-  es: { settings: '⚙️ Configuración', talk: '💬 Hablar', listen: '🎙️ Escúchame (Ctrl+Alt+Espacio)', show: 'Mostrar mascota', hide: 'Ocultar (sigue viva)', feed: '🍎 Mimar', play: '🎾 Jugar', byte: '🎮 Jugar en byte', watch: '📺 Ver la partida', stopGame: '⏹ Parar la partida', noGames: 'byte: sin juegos (entra a 7ots.com)', sleep: '💤 Dormir', wake: '☀️ Despertar', still: 'Quedarse quieta', quit: 'Cerrar mascota' },
-  pt: { settings: '⚙️ Configurações', talk: '💬 Falar', listen: '🎙️ Me escute (Ctrl+Alt+Espaço)', show: 'Mostrar bichinho', hide: 'Esconder (segue vivo)', feed: '🍎 Mimar', play: '🎾 Brincar', byte: '🎮 Jogar no byte', watch: '📺 Ver a partida', stopGame: '⏹ Parar a partida', noGames: 'byte: sem jogos (entre no 7ots.com)', sleep: '💤 Dormir', wake: '☀️ Acordar', still: 'Ficar parado', quit: 'Fechar bichinho' },
+  en: { settings: '⚙️ Settings', talk: '💬 Talk', listen: '🎙️ Listen (Ctrl+Alt+Space)', show: 'Show pet', hide: 'Hide (keeps living)', feed: '🍎 Treat', play: '🎾 Play', byte: '🎮 Play on byte', watch: '📺 Watch the game', stopGame: '⏹ Stop the game', lastGame: 'Last played', moreGames: 'More games', noGames: 'byte: no games (sign in to 7ots.com)', sleep: '💤 Sleep', wake: '☀️ Wake up', still: 'Stay still', quit: 'Quit pet' },
+  es: { settings: '⚙️ Configuración', talk: '💬 Hablar', listen: '🎙️ Escúchame (Ctrl+Alt+Espacio)', show: 'Mostrar mascota', hide: 'Ocultar (sigue viva)', feed: '🍎 Mimar', play: '🎾 Jugar', byte: '🎮 Jugar en byte', watch: '📺 Ver la partida', stopGame: '⏹ Parar la partida', lastGame: 'Último jugado', moreGames: 'Más juegos', noGames: 'byte: sin juegos (entra a 7ots.com)', sleep: '💤 Dormir', wake: '☀️ Despertar', still: 'Quedarse quieta', quit: 'Cerrar mascota' },
+  pt: { settings: '⚙️ Configurações', talk: '💬 Falar', listen: '🎙️ Me escute (Ctrl+Alt+Espaço)', show: 'Mostrar bichinho', hide: 'Esconder (segue vivo)', feed: '🍎 Mimar', play: '🎾 Brincar', byte: '🎮 Jogar no byte', watch: '📺 Ver a partida', stopGame: '⏹ Parar a partida', lastGame: 'Último jogado', moreGames: 'Mais jogos', noGames: 'byte: sem jogos (entre no 7ots.com)', sleep: '💤 Dormir', wake: '☀️ Acordar', still: 'Ficar parado', quit: 'Fechar bichinho' },
 }[LANG] || {};
 const tr = (k) => L[k] || { listen: 'Listen', show: 'Show pet', hide: 'Hide', talk: 'Talk', settings: 'Settings', feed: 'Feed', play: 'Play', sleep: 'Sleep', wake: 'Wake up', still: 'Stay still', quit: 'Quit pet' }[k];
 
@@ -342,6 +342,9 @@ function makeOt(opt = {}) {
     photoWin.on('closed', () => (photoWin = null));
   };
   const playGame = async (game) => {
+    try {
+      require('node:fs').writeFileSync(path.join(process.env.SEVENOTS_HOME || path.join(require('node:os').homedir(), '.7ots'), 'byte-last.json'), JSON.stringify({ slug: game, at: Date.now() }));
+    } catch {}
     const r = await fetch(new URL('/byte/play', base), { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-7ots-Token': tok }, body: JSON.stringify({ game }) }).then((x) => x.json()).catch((e) => ({ error: e.message }));
     if (r.streamUrl) {
       watchGame(r.streamUrl);
@@ -359,17 +362,68 @@ function makeOt(opt = {}) {
         if (gameWin && !gameWin.isDestroyed()) gameWin.close();
       } else if (!st.moves && n < 12) watchStart(sid, n + 1);
     }, 4000);
+  // The 🎮 menu: only what the ot can play from here, with byte's covers as thumbnails: the last one it played,
+  // 3 at random, and "more games" with the rest. byte's covers are webp (a menu icon takes png/jpg), so the
+  // pet's own page decodes each one once into a small png, kept in ~/.7ots/byte-thumbs.
+  const fs = require('node:fs');
+  const SEVEN = process.env.SEVENOTS_HOME || path.join(require('node:os').homedir(), '.7ots');
+  const THUMBS = path.join(SEVEN, 'byte-thumbs');
+  const LAST_FILE = path.join(SEVEN, 'byte-last.json');
+  const thumbs = new Map(); // slug → nativeImage | null
+  const thumbOf = async (g) => {
+    if (thumbs.has(g.slug)) return thumbs.get(g.slug);
+    const file = path.join(THUMBS, `${String(g.slug).replace(/[^\w-]/g, '_')}.png`);
+    let img = null;
+    try {
+      if (fs.existsSync(file)) img = nativeImage.createFromPath(file);
+      else if (/^https:\/\//.test(g.cover || '')) {
+        const r = await fetch(g.cover, { signal: AbortSignal.timeout(6000) });
+        const type = (r.headers.get('content-type') || 'image/webp').split(';')[0];
+        if (r.ok && /^image\//.test(type)) {
+          const src = `data:${type};base64,${Buffer.from(await r.arrayBuffer()).toString('base64')}`;
+          const png = await win.webContents.executeJavaScript(`(async () => { const i = new Image(); i.src = ${JSON.stringify(src)}; await i.decode();
+            const h = 40, w = 30, c = document.createElement('canvas'); c.width = w * 2; c.height = h * 2; const x = c.getContext('2d');
+            const s = Math.max(c.width / i.naturalWidth, c.height / i.naturalHeight); x.drawImage(i, (c.width - i.naturalWidth * s) / 2, (c.height - i.naturalHeight * s) / 2, i.naturalWidth * s, i.naturalHeight * s);
+            return c.toDataURL('image/png'); })()`, true);
+          img = nativeImage.createFromDataURL(png);
+          fs.mkdirSync(THUMBS, { recursive: true });
+          fs.writeFileSync(file, img.toPNG());
+        }
+      }
+    } catch {}
+    img = img && !img.isEmpty() ? img.resize({ width: 30, height: 40, quality: 'best' }) : null;
+    thumbs.set(g.slug, img);
+    return img;
+  };
+  const lastPlayed = () => {
+    try {
+      return JSON.parse(fs.readFileSync(LAST_FILE, 'utf8')).slug || '';
+    } catch {
+      return '';
+    }
+  };
   const gameMenu = async () => {
     const [st, g] = await Promise.all([getOt('/byte'), getOt('/byte/games')]);
-    const live = st.play?.status === 'running';
-    const items = live
-      ? [
-          { label: `${st.play.game} · ${st.play.moves}`, enabled: false },
-          { label: tr('watch'), click: () => watchGame(st.play.streamUrl) },
-          { label: tr('stopGame'), click: () => postOt('/byte/stop').then(() => gameWin && !gameWin.isDestroyed() && gameWin.close()) },
-        ]
-      : (g.games || []).map((x) => ({ label: x.name || x.slug, click: () => playGame(x.slug) }));
-    return Menu.buildFromTemplate(items.length ? items : [{ label: tr('noGames'), enabled: false }]);
+    if (st.play?.status === 'running') {
+      return Menu.buildFromTemplate([
+        { label: `${st.play.game} · ${st.play.moves}`, enabled: false },
+        { label: tr('watch'), click: () => watchGame(st.play.streamUrl) },
+        { label: tr('stopGame'), click: () => postOt('/byte/stop').then(() => gameWin && !gameWin.isDestroyed() && gameWin.close()) },
+      ]);
+    }
+    const games = (g.games || []).filter((x) => x.playable !== false && x.slug);
+    if (!games.length) return Menu.buildFromTemplate([{ label: tr('noGames'), enabled: false }]);
+    await Promise.all(games.map((x) => thumbOf(x).catch(() => null)));
+    const item = (x) => ({ label: x.name || x.slug, ...(thumbs.get(x.slug) ? { icon: thumbs.get(x.slug) } : {}), click: () => playGame(x.slug) });
+    const last = games.find((x) => x.slug === lastPlayed());
+    const rest = games.filter((x) => x !== last);
+    const pick = [...rest].sort(() => Math.random() - 0.5).slice(0, 3);
+    const more = rest.filter((x) => !pick.includes(x));
+    return Menu.buildFromTemplate([
+      ...(last ? [{ label: tr('lastGame'), enabled: false }, item(last), { type: 'separator' }] : []),
+      ...pick.map(item),
+      ...(more.length ? [{ type: 'separator' }, { label: tr('moreGames'), submenu: more.map(item) }] : []),
+    ]);
   };
   function listen() {
     if (!win.isVisible()) win.showInactive();

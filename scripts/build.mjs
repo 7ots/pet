@@ -9,6 +9,7 @@ const THREE_GLOBAL = {
   'three/addons/utils/BufferGeometryUtils.js': 'BufferGeometryUtils',
   'three/addons/environments/RoomEnvironment.js': 'RoomEnvironment',
   'three/addons/loaders/GLTFLoader.js': 'GLTFLoader',
+  'three/addons/geometries/RoundedBoxGeometry.js': 'RoundedBoxGeometry',
 };
 
 const threeFromGlobal = {

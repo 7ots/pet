@@ -86,6 +86,13 @@ export { playBeat, BEAT_STYLES } from './character/beat.js';
 import { createAvatarEditor, AvatarEditor } from './character/AvatarEditor.js';
 import { renderCharacter as _renderCharacter, createCharacter as _createCharacter } from './character/Character.js';
 export { createAvatarEditor, AvatarEditor };
+export { createStepCreator } from './creator/StepCreator.js';
+import { loadCharacter3D as _loadCharacter3D } from './avatar/three.js';
+/** La habitación 3D del ot (src/character3d/room.js), cargando three bajo demanda. */
+export async function createOtRoom(el, spec, opts) {
+  const m = await _loadCharacter3D();
+  return m.createRoom3D(el, spec, opts);
+}
 
 export { t, translator, addMessages, addCatalog, resolveLocale, detectLocale, getLocale, setLocale, onLocaleChange, availableLocales, formatNumber, formatList, LOCALES, LOCALE_NAMES, DEFAULT_LOCALE } from './i18n/index.js';
 import { t as _t, translator as _translator, addMessages as _addMessages, setLocale as _setLocale, getLocale as _getLocale, LOCALES as _LOCALES } from './i18n/index.js';

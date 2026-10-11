@@ -186,6 +186,9 @@
   /* senses: the camera is on (a small eye, like a webcam light) and what a gesture did */
   .eye { position: absolute; z-index: 2; right: 2px; top: 6px; display: none; align-items: center; gap: 4px; padding: 2px 7px; border-radius: 99px; font: 600 11px/1.4 var(--font, system-ui); background: color-mix(in srgb, var(--panel, #fff) 85%, transparent); color: var(--muted, #8a8399); box-shadow: 0 1px 3px rgb(0 0 0 / .15); pointer-events: none; }
   .eye.on { display: inline-flex; }
+  /* desktop: centered over its head and above the 3D canvas (z 3), not in a corner the ot covers; a bubble moves up over it */
+  body.desktop .eye { z-index: 4; right: auto; left: 50%; top: auto; bottom: calc(100% + 2px); transform: translateX(-50%); white-space: nowrap; }
+  body.desktop .stage:has(.eye.on) .bubble { bottom: calc(100% + 30px); }
   .eye::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: #e5484d; }
   .eye.paused::before { background: var(--muted, #8a8399); }
   .eye.armed { color: #fff; background: #6d5dfc; }

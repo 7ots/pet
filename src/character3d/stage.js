@@ -50,7 +50,8 @@ class Stage {
     (opts.parent || document.body).appendChild(canvas);
     this.canvas = canvas;
 
-    const r = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true, powerPreference: 'high-performance' });
+    // preserve: deja leer el canvas fuera de su cuadro (la plaza saca selfies y clips de él)
+    const r = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true, powerPreference: 'high-performance', preserveDrawingBuffer: !!opts.preserve });
     r.setPixelRatio(this.dpr);
     r.outputColorSpace = THREE.SRGBColorSpace;
     r.toneMapping = THREE.NeutralToneMapping;

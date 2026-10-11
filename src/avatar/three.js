@@ -42,13 +42,14 @@ export function loadThree() {
   threeP ??= (async () => {
     if (globalThis.__OTS_THREE__?.three) return globalThis.__OTS_THREE__;
     const u = (p) => `${base()}/${p}/+esm`;
-    const [three, BufferGeometryUtils, RoomEnvironment, GLTFLoader] = await Promise.all([
+    const [three, BufferGeometryUtils, RoomEnvironment, GLTFLoader, RoundedBoxGeometry] = await Promise.all([
       import(/* @vite-ignore */ /* webpackIgnore: true */ `${base()}/+esm`),
       import(/* @vite-ignore */ /* webpackIgnore: true */ u('examples/jsm/utils/BufferGeometryUtils.js')),
       import(/* @vite-ignore */ /* webpackIgnore: true */ u('examples/jsm/environments/RoomEnvironment.js')),
       import(/* @vite-ignore */ /* webpackIgnore: true */ u('examples/jsm/loaders/GLTFLoader.js')),
+      import(/* @vite-ignore */ /* webpackIgnore: true */ u('examples/jsm/geometries/RoundedBoxGeometry.js')),
     ]);
-    return (globalThis.__OTS_THREE__ = { three, BufferGeometryUtils, RoomEnvironment, GLTFLoader });
+    return (globalThis.__OTS_THREE__ = { three, BufferGeometryUtils, RoomEnvironment, GLTFLoader, RoundedBoxGeometry });
   })();
   threeP.catch(() => { threeP = null; });
   return threeP;

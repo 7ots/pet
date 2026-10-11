@@ -36,6 +36,9 @@ export const SERVER_KEYS = {
   APUCHAT_VOICE_URL: {}, APUCHAT_VOICE_TOKEN: { secret: true }, APUCHAT_VOICE_ID: {}, APUCHAT_VOICE_PROVIDER: {},
   XAI_API_KEY: { secret: true }, XAI_TTS_VOICE: {},
   FISH_API_KEY: { secret: true }, FISH_VOICE_ID: {}, FISH_MODEL: {},
+  // Fotos con IA de la plaza (server/platform/imagegen.mjs)
+  PLAZA_IMAGE_PROVIDER: {}, PLAZA_IMAGE_MODEL: {}, PLAZA_IMAGE_REGION: {}, PLAZA_IMAGE_QUALITY: {}, PLAZA_IMAGINE_DAILY: {},
+  AWS_BEARER_TOKEN_BEDROCK: { secret: true }, AWS_ACCESS_KEY_ID: {}, AWS_SECRET_ACCESS_KEY: { secret: true },
   // Contacto desde el widget
   APUMAIL_API: {}, APUMAIL_INBOX: {}, APUMAIL_INBOX_TOKEN: { secret: true }, APUMAIL_TO: {},
   APUCHAT_HUB: { channels: true }, APUCHAT_NOTIFIER_IDENTITY_KEY: { secret: true }, APUCHAT_OPERATOR_HANDLE: {}, APUCHAT_TRANSCRIBE: {},

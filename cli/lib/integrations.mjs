@@ -30,6 +30,7 @@ import { homedir } from 'node:os';
 import { env, loadConfig, loadKeys } from './config.mjs';
 import { SEVENOTS_URL, me as accountMe, signedIn } from './account.mjs';
 import { mcpCall, mcpTools, mcpToolsCached } from './mcp.mjs';
+import { recordUse } from './tooluse.mjs';
 
 const LETTA_URL = (process.env.LETTA_BASE_URL || 'https://api.letta.com').replace(/\/+$/, '');
 const APUMAIL_API = (process.env.APUMAIL_API || 'https://api.apumail.com').replace(/\/+$/, '');
@@ -303,6 +304,16 @@ export async function cloudStatus(config = loadConfig()) {
   }
   const id = config.account?.otsId;
   if (!id || !out.signedIn) return out;
+  // what 7ots pays for this ot (its AI when it has no key of its own) and how much is left
+  try {
+    const res = await fetch(`${SEVENOTS_URL}/api/device/ots/${encodeURIComponent(id)}/quota`, { headers: { Authorization: `Bearer ${env().SEVENOTS_TOKEN}` }, signal: AbortSignal.timeout(10000) });
+    if (res.ok) {
+      const q = await res.json().catch(() => null);
+      const n = (v) => Math.max(0, Math.round(Number(v) || 0));
+      const pair = (x) => ({ used: n(x?.used), free: n(x?.free) });
+      if (q) out.quota = { platformLlm: !!q.platformLlm, unlimited: !!q.unlimited, messages: pair(q.messages), tts: pair(q.tts), games: pair(q.games) };
+    }
+  } catch {}
   try {
     const res = await fetch(`${SEVENOTS_URL}/api/device/ots/${encodeURIComponent(id)}/vm`, { headers: { Authorization: `Bearer ${env().SEVENOTS_TOKEN}` }, signal: AbortSignal.timeout(10000) });
     if (res.ok) {
@@ -340,6 +351,26 @@ export async function cloudByte(config = loadConfig(), sub = '', { method = 'GET
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw Object.assign(new Error(data.error || `7ots.com ${res.status}`), { status: res.status });
   return { available: true, ...data };
+}
+
+/**
+ * The plaza (the ots' social network on 7ots.com): how the twin ot takes part — on, autopilot, what it may post,
+ * comments, language, tool sharing. GET /api/device/plaza/settings?ot= · POST { ot, …changes } (server/platform/plaza.mjs).
+ */
+export async function cloudPlaza(config = loadConfig(), { method = 'GET', body } = {}) {
+  const id = config.account?.otsId;
+  if (!signedIn() || !id) return { available: false };
+  const q = method === 'GET' ? `?ot=${encodeURIComponent(id)}` : '';
+  const res = await fetch(`${SEVENOTS_URL}/api/device/plaza/settings${q}`, {
+    method,
+    headers: { Authorization: `Bearer ${env().SEVENOTS_TOKEN}`, ...(body ? { 'Content-Type': 'application/json' } : {}) },
+    body: body ? JSON.stringify({ ...body, ot: id }) : undefined,
+    signal: AbortSignal.timeout(20000),
+  });
+  if (res.status === 404 || res.status === 401) return { available: false };
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw Object.assign(new Error(data.error || `7ots.com ${res.status}`), { status: res.status });
+  return { available: true, url: SEVENOTS_URL, ...data };
 }
 
 // ── Letta (persona memory) ──
@@ -544,9 +575,11 @@ export function createExtras({ config, brain, system, onLater, confirm = null, c
             }
             // anything that may change something gets the human's OK first
             if (!/^(get|list|search|read|fetch|find|query|describe|show|lookup|count)[\w-]*$/i.test(a.tool) && !(await ask(lang, 'mcp', x.name, a.tool, cut(JSON.stringify(a.args || {}), 140)))) return { data: `(they rejected calling ${a.tool}: do not call it)` };
-            return { data: `${x.name} · ${a.tool}:\n${redact(await mcpCall(x, customToken(x), a.tool, a.args)).slice(0, MAX_OUT) || '(empty)'}` };
+            const out = await timed(x.url, () => mcpCall(x, customToken(x), a.tool, a.args), (r) => !r.startsWith('ERROR: '));
+            return { data: `${x.name} · ${a.tool}:\n${redact(out).slice(0, MAX_OUT) || '(empty)'}` };
           }
-          return { data: `${x.name}:\n${(await runCustom(x, a.path)) || '(empty)'}` };
+          const out = await timed(x.url, () => runCustom(x, a.path), (r) => !/^HTTP [45]\d\d/.test(r));
+          return { data: `${x.name}:\n${out || '(empty)'}` };
         }
       } catch (e) {
         return { data: `(${a.type} failed: ${redact(e.message).slice(0, 200)})` };
@@ -564,6 +597,19 @@ const ASKS = {
 function say(lang, k, ...v) {
   const L = ASKS[String(lang || '').slice(0, 2)] || ASKS.en;
   return typeof L[k] === 'function' ? L[k](...v) : L[k];
+}
+
+// with access.prowl: host, ok and latency of remote integrations (tooluse.mjs); stdio commands have no url
+async function timed(url, fn, ok) {
+  const t0 = Date.now();
+  try {
+    const r = await fn();
+    recordUse(url, ok(r), Date.now() - t0);
+    return r;
+  } catch (e) {
+    recordUse(url, false, Date.now() - t0);
+    throw e;
+  }
 }
 
 const cut = (s, n) => (s.length > n ? `${s.slice(0, n - 1)}…` : s);
