@@ -22,7 +22,7 @@
 import * as THREE from 'three';
 
 export const PATTERN_IDS = { none: 0, belly: 1, twotone: 2, spots: 3, stripes: 4, tiger: 5, mask: 6, hearts: 3, stars: 3, circuit: 4 };
-export const TEX_IDS = { none: 0, scales: 1, speckles: 2, ridges: 3, gloss: 4, panels: 5 };
+export const TEX_IDS = { none: 0, scales: 1, speckles: 2, ridges: 3, gloss: 4, panels: 5, knit: 6, polka: 7, glitter: 8, stone: 9, wood: 10, bubbles: 11, stitches: 12, honeycomb: 13, quilt: 14 };
 export const CHEEK_IDS = { none: 0, blush: 1, lines: 2, freckles: 3, paint: 4, hearts: 5, stars: 6 };
 
 const COMMON = /* glsl */ `
@@ -69,6 +69,7 @@ float furA(vec3 p, float h, out float sh) {
   }
   return a;
 }
+float skinTex2(vec3 P, vec3 N, float W, float H);
 // textura de la piel: devuelve un factor de color; deja relieve (texH) y rugosidad (texR)
 float skinTex(vec3 P, vec3 N) {
   float W = uDims.x, H = uDims.y;
@@ -108,6 +109,97 @@ float skinTex(vec3 P, vec3 N) {
     float rivet = 1.0 - smoothstep(W * 0.01, W * 0.016, length(abs(f) * s - vec2(0.5 * s - W * 0.035)));
     texH = -groove * 0.7 + rivet * 0.8; texR = -0.15 + groove * 0.3;
     return mix(1.0, 0.7, groove) * mix(1.0, 1.15, rivet);
+  }
+  if (uTex >= 6) return skinTex2(P, N, W, H);
+  return 1.0;
+}
+// ruido de valor 3D (para piedra y madera)
+float vnoise(vec3 p) {
+  vec3 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
+  float a = h33(i).x, b = h33(i + vec3(1, 0, 0)).x, c = h33(i + vec3(0, 1, 0)).x, d = h33(i + vec3(1, 1, 0)).x;
+  float e = h33(i + vec3(0, 0, 1)).x, g = h33(i + vec3(1, 0, 1)).x, h = h33(i + vec3(0, 1, 1)).x, k = h33(i + vec3(1, 1, 1)).x;
+  return mix(mix(mix(a, b, f.x), mix(c, d, f.x), f.y), mix(mix(e, g, f.x), mix(h, k, f.x), f.y), f.z);
+}
+// catálogo 2: punto, lunares, purpurina, piedra, madera, burbujas, costuras, panal, acolchado
+float skinTex2(vec3 P, vec3 N, float W, float H) {
+  vec2 cyl = vec2(atan(P.x, P.z) * W * 0.42, P.y); // mapeo cilíndrico (como las escamas)
+  if (uTex == 6) { // punto: columnas de «V»
+    vec2 q = cyl / (W * 0.12);
+    float fx = fract(q.x) - 0.5;
+    float v = 1.0 - abs(fract(q.y * 1.4 + abs(fx) * 1.1) - 0.5) * 2.0;
+    float st = smoothstep(0.0, 0.5, v) * smoothstep(0.0, 0.14, 0.5 - abs(fx));
+    texH = st * 0.9; texR = 0.2;
+    return mix(0.66, 1.06, st);
+  }
+  if (uTex == 7) { // lunares en tresbolillo
+    vec2 q = cyl / (W * 0.17);
+    q.x += 0.5 * mod(floor(q.y), 2.0);
+    float d = 1.0 - smoothstep(0.2, 0.235, length(fract(q) - 0.5));
+    texH = d * 0.25;
+    return mix(1.0, 1.55, d);
+  }
+  if (uTex == 8) { // purpurina: escamitas con su propia inclinación que destellan
+    vec3 q = P * (42.0 / W); vec3 r = h33(floor(q) + 7.0);
+    float fl = step(0.5, r.x);
+    float tw = pow(r.z, 5.0) * (0.55 + 0.45 * sin(uTime * 4.0 + r.y * 60.0));
+    texH = fl * (r.y - 0.5) * 0.9; texR = -0.4;
+    return mix(0.92, 1.0 + 1.6 * tw, fl);
+  }
+  if (uTex == 9) { // piedra: ruido + grietas (voronoi)
+    float n = vnoise(P * (5.0 / W)) * 0.55 + vnoise(P * (13.0 / W)) * 0.3 + vnoise(P * (36.0 / W)) * 0.15;
+    vec3 q = P * (4.5 / W); vec3 c = floor(q); float d1 = 9.0, d2 = 9.0;
+    for (int x = -1; x <= 1; x++) for (int y = -1; y <= 1; y++) for (int z = -1; z <= 1; z++) {
+      vec3 o = vec3(float(x), float(y), float(z));
+      float d = length(q - c - o - h33(c + o + 5.0));
+      if (d < d1) { d2 = d1; d1 = d; } else if (d < d2) d2 = d;
+    }
+    float crack = 1.0 - smoothstep(0.0, 0.07, d2 - d1);
+    texH = n * 0.9 - crack * 0.9; texR = 0.25;
+    return mix(0.74, 1.1, n) * mix(1.0, 0.5, crack);
+  }
+  if (uTex == 10) { // madera: anillos de un tronco a un costado, deformados por el ruido
+    float n = vnoise(P * vec3(3.0, 0.45, 3.0) / W);
+    float w = fract((length(vec2(P.x + W * 1.4, P.z * 0.7)) + n * W * 0.22) * (11.0 / W));
+    float ring = smoothstep(0.0, 0.18, w) * (1.0 - smoothstep(0.55, 1.0, w));
+    float grain = vnoise(P * vec3(60.0, 4.0, 60.0) / W);
+    texH = ring * 0.35 + grain * 0.15; texR = 0.08 - ring * 0.1;
+    return mix(0.68, 1.06, ring) * mix(0.93, 1.03, grain);
+  }
+  if (uTex == 11) { // burbujas: esferas con borde brillante
+    vec3 q = P * (5.5 / W); vec3 r = h33(floor(q) + 11.0);
+    float rad = 0.16 + 0.2 * r.x;
+    float d = length(fract(q) - (0.3 + 0.4 * r)) / rad;
+    float b = 1.0 - step(1.0, d);
+    texH = b * sqrt(max(0.0, 1.0 - d * d)) * 0.9; texR = -0.4;
+    return mix(1.0, mix(1.1, 1.8, smoothstep(0.6, 1.0, d)), b);
+  }
+  if (uTex == 12) { // costuras: una vertical al centro y una horizontal a la cintura, en puntadas
+    float lw = W * 0.011;
+    float gV = abs(P.x), gH = abs(P.y - H * 0.42);
+    float dY = step(0.5, fract(P.y / (W * 0.055))), dX = step(0.5, fract(cyl.x / (W * 0.055)));
+    float st = max((1.0 - smoothstep(lw, lw * 1.7, gV)) * dY, (1.0 - smoothstep(lw, lw * 1.7, gH)) * dX);
+    float fold = max(1.0 - smoothstep(0.0, W * 0.04, gV), 1.0 - smoothstep(0.0, W * 0.04, gH));
+    texH = -fold * 0.6 + st * 0.5; texR = 0.2;
+    return mix(1.0, 0.82, fold) * mix(1.0, 1.6, st);
+  }
+  if (uTex == 13) { // panal: celdas hexagonales abombadas
+    vec2 q = cyl / (W * 0.13);
+    vec2 rr = vec2(1.0, 1.732), hh = rr * 0.5;
+    vec2 a = mod(q, rr) - hh, b = mod(q - hh, rr) - hh;
+    vec2 g = dot(a, a) < dot(b, b) ? a : b;
+    float e = 0.5 - max(dot(abs(g), vec2(0.5, 0.866)), abs(g.x));
+    float wall = 1.0 - smoothstep(0.0, 0.07, e);
+    texH = -wall * 0.7 + smoothstep(0.0, 0.35, e) * 0.4; texR = -0.1 + wall * 0.2;
+    return mix(1.04, 0.66, wall);
+  }
+  if (uTex == 14) { // acolchado: rombos inflados con pespunte
+    vec2 q = cyl / (W * 0.2); q = vec2(q.x + q.y, q.x - q.y) * 0.7071;
+    vec2 f = fract(q) - 0.5;
+    float e = 0.5 - max(abs(f.x), abs(f.y));
+    float puff = sqrt(smoothstep(0.0, 0.5, e));
+    float seam = (1.0 - smoothstep(0.0, 0.03, e)) * step(0.5, fract((q.x + q.y) * 5.0));
+    texH = puff * 0.9; texR = 0.15;
+    return mix(0.66, 1.05, puff) * mix(1.0, 1.35, seam);
   }
   return 1.0;
 }
@@ -229,18 +321,21 @@ export function bodyMaterials(o) {
     const f = o.plush ? 'plush' : o.finish;
     const col = new THREE.Color(o.color);
     if (o.plush) col.multiplyScalar(1.12); // compensa la sombra entre hebras
-    const gel = tex === 4 && !o.plush;
+    if (f === 'pearl' || f === 'glass') col.lerp(new THREE.Color('#ffffff'), f === 'pearl' ? 0.45 : 0.2);
+    const gel = (tex === 4 || tex === 11 || f === 'glass') && !o.plush;
+    const irid = { pearl: 1, holo: 1 }[f] || 0;
     const m = new THREE.MeshPhysicalMaterial({
       color: col,
-      roughness: gel ? 0.08 : { plush: 0.92, glossy: 0.28, soft3d: 0.55, clay: 0.85, flat: 0.75, toon: 0.6, neon: 0.4, sketch: 0.9 }[f] ?? 0.5,
-      metalness: 0,
-      clearcoat: gel ? 1 : { glossy: 1, soft3d: 0.35, toon: 0.6, neon: 0.8 }[f] ?? 0,
+      roughness: gel ? 0.08 : { plush: 0.92, glossy: 0.28, soft3d: 0.55, clay: 0.85, flat: 0.75, toon: 0.6, neon: 0.4, sketch: 0.9, metal: 0.3, pearl: 0.3, holo: 0.22, velvet: 0.95, pastel: 0.6 }[f] ?? 0.5,
+      metalness: { metal: 0.9, holo: 0.45 }[f] || 0,
+      clearcoat: gel ? 1 : { glossy: 1, soft3d: 0.35, toon: 0.6, neon: 0.8, metal: 0.4, pearl: 1, holo: 1 }[f] ?? 0,
+      iridescence: irid, iridescenceIOR: f === 'holo' ? 2 : 1.5, iridescenceThicknessRange: [120, 520],
       clearcoatRoughness: f === 'soft3d' ? 0.35 : 0.08,
-      sheen: o.plush ? 1 : f === 'clay' ? 0.4 : 0,
+      sheen: o.plush || f === 'velvet' ? 1 : f === 'clay' ? 0.4 : 0,
       sheenRoughness: 0.5,
       sheenColor: new THREE.Color(o.color).lerp(new THREE.Color('#ffffff'), 0.45),
       emissive: f === 'neon' ? new THREE.Color(o.color).multiplyScalar(0.55) : new THREE.Color(0),
-      envMapIntensity: o.plush ? 0.7 : gel ? 1.5 : 1,
+      envMapIntensity: o.plush ? 0.7 : gel ? 1.5 : f === 'metal' ? 1.6 : 1,
     });
     if (shell) {
       m.alphaTest = 0.5;
@@ -251,9 +346,9 @@ export function bodyMaterials(o) {
       ...(shell ? { FUR_SHELL: '' } : {}),
       ...(toon && !shell ? { TOON: '' } : {}),
       ...(o.finish === 'sketch' && !shell ? { SKETCH: '' } : {}),
-      ...(gel ? { GEL: '' } : {}),
+      ...(gel ? { GEL: '', GLASS_RIM: f === 'glass' ? '0.55' : '0.0' } : {}),
     };
-    m.customProgramCacheKey = () => `ots3d-${o.plush ? 'fur' : 'solid'}-${shell ? 'shell' : 'base'}-${toon ? o.finish : ''}-${gel ? 'gel' : ''}`;
+    m.customProgramCacheKey = () => `ots3d-${o.plush ? 'fur' : 'solid'}-${shell ? 'shell' : 'base'}-${toon ? o.finish : ''}-${gel ? (f === 'glass' ? 'glass' : 'gel') : ''}`;
     m.onBeforeCompile = (sh) => {
       Object.assign(sh.uniforms, uniforms);
       sh.vertexShader = sh.vertexShader
@@ -310,7 +405,7 @@ export function bodyMaterials(o) {
           /* glsl */ `#include <emissivemap_fragment>
           #ifdef GEL
             float fres = pow(1.0 - abs(dot(normal, normalize(vViewPosition))), 2.5);
-            totalEmissiveRadiance += diffuseColor.rgb * (0.22 + 0.6 * fres);
+            totalEmissiveRadiance += diffuseColor.rgb * (0.22 + 0.6 * fres) + vec3(GLASS_RIM) * fres;
           #endif`,
         )
         .replace(

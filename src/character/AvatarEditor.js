@@ -31,6 +31,7 @@ import {
 import { translator, detectLocale, getLocale, onLocaleChange, formatNumber } from '../i18n/index.js';
 import { STYLES as ART_STYLES } from './styles.js';
 import { loadCharacter3D } from '../avatar/three.js';
+import { LOOK_MATERIALS } from '../identity/schema.js';
 import { createTradingCard, CARD_FOILS } from './TradingCard.js';
 
 const VIEW = [-20, -50, 240, 270];
@@ -39,7 +40,7 @@ const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '
 
 const KINDS = ['character', 'plush', 'image'];
 const RANDOM_N = 12;
-const MATERIALS = ['plush', 'vinyl'];
+const MATERIALS = LOOK_MATERIALS;
 
 const TABS = ['styles', 'shape', 'color', 'eyes', 'mouth', 'face', 'acc'];
 const GESTURES = CHARACTER_GESTURES;

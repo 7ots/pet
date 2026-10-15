@@ -25,7 +25,8 @@ import '../i18n/messages/identity.js';
 export const LOOK_KINDS = ['character', 'plush', 'image', 'realistic'];
 /** Tipos que ofrecen los editores. */
 export const LOOK_KINDS_OFFERED = ['character', 'plush', 'image'];
-export const LOOK_MATERIALS = ['plush', 'vinyl'];
+/** Material del ot en 3D: peluche, vinilo (acabado y textura del spec) o uno fijo (MATERIAL3D de character3d/Character3D.js). */
+export const LOOK_MATERIALS = ['plush', 'vinyl', 'clay', 'metal', 'glass', 'pearl', 'holo', 'wood', 'stone', 'knit', 'quilt', 'glitter', 'honeycomb', 'bubbles'];
 export const MEET_AVATARS = ['shibu', 'shino', 'fumiriya', 'victoria', 'vita', 'vivi', 'kuro', 'maya', 'ingrid', 'kenji', 'viktor', 'marcus', 'leo', 'mei', 'claire', 'doctor', 'amira'];
 export const MEET_SCENES = ['studio', 'beach', 'castle', 'space', 'sunset', 'forest', 'night', 'office', 'neon'];
 export const VOICE_PROVIDERS = ['auto', 'apuchat', 'elevenlabs', 'grok', 'fish', 'openai', 'browser'];

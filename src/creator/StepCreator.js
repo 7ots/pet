@@ -18,6 +18,7 @@ import {
   createCharacter, renderCharacter, normalizeCharacter, randomCharacter, partLabel,
   SHAPES, EYES, BROWS, MOUTHS, CHEEKS, PATTERNS, FINISHES, TEXTURES, ACCESSORIES, ACCESSORY_GROUPS, PRESETS,
 } from '../character/Character.js';
+import { STYLES as ART_STYLES } from '../character/styles.js';
 import { loadCharacter3D } from '../avatar/three.js';
 
 const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
@@ -26,7 +27,7 @@ const clone = (o) => JSON.parse(JSON.stringify(o));
 const BODY_COLORS = ['#f3efff', '#ffd6e7', '#ffb4a2', '#ffd23f', '#b8f2a1', '#7ee0c3', '#8fd3ff', '#8b7bff', '#c084fc', '#a0714f', '#5b4636', '#3a3a4a', '#1f1f2b', '#ef4444'];
 const ACCENT_COLORS = ['#ffffff', '#c9b8ff', '#ff8fb1', '#ffd23f', '#86efac', '#67e8f9', '#3b82f6', '#a855f7', '#f97316', '#6b4423', '#1a1a24'];
 const STEPS = [
-  { id: 'body', icon: '🫧', tabs: ['shape', 'color', 'finish', 'preset'] },
+  { id: 'body', icon: '🫧', tabs: ['shape', 'style', 'color', 'finish', 'preset'] },
   { id: 'face', icon: '👀', tabs: ['eyes', 'brows', 'mouth', 'cheeks'] },
   { id: 'paint', icon: '🎨', tabs: ['pattern', 'texture'] },
   { id: 'acc', icon: '🎩', tabs: ACCESSORY_GROUPS.map(([g]) => `acc:${g}`) },
@@ -44,6 +45,7 @@ const toggleAcc = (s, x) => {
 function lists(get) {
   const L = {
     shape: [SHAPES, 'shapes', (s, x) => { s.body.shape = x.id; s.body.points = null; }, (x) => get().body.shape === x.id, 'bounce'],
+    style: [ART_STYLES, 'styles', (s, x) => { s.style = x.id; }, (x) => (get().style || 'none') === x.id, 'celebrate'],
     finish: [FINISHES, 'finishes', (s, x) => { s.finish = x.id; }, (x) => get().finish === x.id, 'bounce'],
     preset: [PRESETS, 'presets', (s, x) => Object.assign(s, normalizeCharacter(x.spec)), () => false, 'celebrate'],
     eyes: [EYES, 'eyes', (s, x) => { s.eyes.type = x.id; }, (x) => get().eyes.type === x.id, 'nod'],
@@ -78,6 +80,7 @@ const CSS = `
 .osc-ped{width:min(46%,300px);height:40px;margin-top:-34px;border-radius:50%;background:radial-gradient(ellipse at center,color-mix(in srgb,currentColor 16%,transparent),color-mix(in srgb,currentColor 4%,transparent) 60%,transparent 72%);border-top:1px solid color-mix(in srgb,currentColor 12%,transparent);pointer-events:none}
 .osc-tools{display:flex;gap:8px;align-items:center;margin-top:8px}
 .osc-chip{width:38px;height:38px;border-radius:50%;border:1px solid var(--osc-line);background:var(--osc-card);font-size:17px;padding:0}
+.osc-chip.osc-dim{font-size:12px;font-weight:800}
 .osc-chip:hover{background:rgb(139 123 255 / .3)}
 .osc-hint{margin:6px 0 0;color:var(--osc-muted);font-size:12px}
 .osc-panel{display:flex;flex-direction:column;min-height:0;border-left:1px solid var(--osc-line);background:color-mix(in srgb,currentColor 3%,transparent)}
@@ -158,6 +161,7 @@ export function createStepCreator(host, opts = {}) {
         <button type="button" class="osc-chip" data-g="wave" aria-label="${esc(partLabel(t, 'gestures', 'wave'))}">👋</button>
         <button type="button" class="osc-chip" data-g="dance" aria-label="${esc(partLabel(t, 'gestures', 'dance'))}">💃</button>
         <button type="button" class="osc-chip" data-g="jump" aria-label="${esc(partLabel(t, 'gestures', 'jump'))}">⤴</button>
+        <button type="button" class="osc-chip osc-dim" data-dim title="2D / 3D" aria-label="2D / 3D">2D</button>
         <button type="button" class="osc-chip" data-random title="${esc(t('creator.random'))}" aria-label="${esc(t('creator.random'))}">🎲</button>
         <button type="button" class="osc-chip" data-undo title="${esc(t('creator.undo'))}" aria-label="${esc(t('creator.undo'))}" disabled>↶</button>
       </div>
@@ -172,17 +176,29 @@ export function createStepCreator(host, opts = {}) {
   host.appendChild(root);
   const $ = (s) => root.querySelector(s);
 
-  // vista previa: 3D si se puede, si no el 2D
+  // vista previa: 3D si se puede, si no el 2D; el chip 2D/3D alterna (el 2D muestra el estilo con su fondo)
   let prev = null;
-  (async () => {
+  let want3d = true;
+  let mountN = 0;
+  const mountPrev = async () => {
+    const n = ++mountN;
+    prev?.destroy?.();
+    prev = null;
+    $('[data-prev]').innerHTML = '';
     let p = null;
-    try {
-      const m = await loadCharacter3D();
-      if (alive && m.webglAvailable()) p = m.createCharacter3D($('[data-prev]'), spec, { material: opts.material || 'plush', orbit: true, stage: { key: 'overlay', zIndex: 2147483001, maxDpr: 1.5 } });
-    } catch {}
-    if (!alive) return p?.destroy?.();
+    if (want3d) {
+      try {
+        const m = await loadCharacter3D();
+        if (alive && n === mountN && m.webglAvailable()) p = m.createCharacter3D($('[data-prev]'), spec, { material: opts.material || 'plush', orbit: true, stage: { key: 'overlay', zIndex: 2147483001, maxDpr: 1.5 } });
+      } catch {}
+    }
+    if (!alive || n !== mountN) return p?.destroy?.();
+    if (!p) want3d = false;
     prev = p || createCharacter($('[data-prev]'), spec);
-  })();
+    $('[data-dim]').textContent = want3d ? '2D' : '3D';
+    $('.osc-hint').hidden = !want3d;
+  };
+  mountPrev();
   let raf = 0;
   const repaint = (gesture) => {
     cancelAnimationFrame(raf);
@@ -256,6 +272,7 @@ export function createStepCreator(host, opts = {}) {
     if (b.dataset.step != null) return go(Number(b.dataset.step));
     if (b.dataset.tab) { tabOf[stepI] = b.dataset.tab; return paint(); }
     if (b.dataset.g) return prev?.gesture?.(b.dataset.g);
+    if (b.dataset.dim != null) { want3d = !want3d; return mountPrev(); }
     if (b.dataset.random != null) { change((s) => Object.assign(s, randomCharacter(Math.random() * 1e9)), 'celebrate'); return paintBody(); }
     if (b.dataset.undo != null) {
       if (!undo.length) return;

@@ -155,7 +155,7 @@ const modelOf = (v) => {
 const nameOf = (v) => {
   if (isObj(v)) {
     const o = {};
-    for (const k of ['en', 'es', 'pt']) if (v[k]) o[k] = str(v[k], 40);
+    for (const k of ['en', 'es', 'pt', 'zh', 'hi']) if (v[k]) o[k] = str(v[k], 40);
     return Object.keys(o).length ? o : '';
   }
   return str(v, 40);

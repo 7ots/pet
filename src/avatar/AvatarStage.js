@@ -137,7 +137,7 @@ export class AvatarStage {
       this._mouth = null;
       this._face = null;
       const ch = m.createCharacter3D(this.container, this.cfg.character, {
-        material: this.cfg.material === 'vinyl' ? 'vinyl' : 'plush',
+        material: this.cfg.material || 'plush',
         orbit: this.cfg.orbit === true,
         quality: this.cfg.quality || 'high',
         // escenario propio por encima del panel del widget (z-index 2147483000)
@@ -236,7 +236,7 @@ export class AvatarStage {
     }
     Object.assign(this.cfg, next);
     if (isPlush) {
-      this._ch.update(next.character, { material: next.material === 'vinyl' ? 'vinyl' : 'plush' });
+      this._ch.update(next.character, { material: next.material || 'plush' });
       if (next.mood) this.setMood(next.mood);
     } else if (this.mode === '2d') {
       if (this._ch && next.character && !next.image) this._ch.update(next.character);

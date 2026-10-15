@@ -17,6 +17,8 @@ const T = {
   en: { stats: ['Energy', 'Wit', 'Charm', 'Chaos'], rar: ['Common', 'Rare', 'Epic', 'Legendary'] },
   es: { stats: ['Energía', 'Ingenio', 'Encanto', 'Caos'], rar: ['Común', 'Rara', 'Épica', 'Legendaria'] },
   pt: { stats: ['Energia', 'Engenho', 'Charme', 'Caos'], rar: ['Comum', 'Rara', 'Épica', 'Lendária'] },
+  zh: { stats: ['能量', '机智', '魅力', '混沌'], rar: ['普通', '稀有', '史诗', '传说'] },
+  hi: { stats: ['ऊर्जा', 'चतुराई', 'आकर्षण', 'उत्पात'], rar: ['साधारण', 'दुर्लभ', 'महाकाव्य', 'पौराणिक'] },
 };
 
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);

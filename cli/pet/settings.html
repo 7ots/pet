@@ -266,6 +266,33 @@
   .fields .or { align-self: center; color: var(--muted); font-size: 12px; padding-top: 16px; }
   .testout { white-space: pre-wrap; max-height: 220px; overflow: auto; font-size: 12px; margin: 0; }
   .fields { display: flex; gap: 8px; flex-wrap: wrap; align-items: flex-end; }
+  .wal { display: grid; gap: 10px; }
+  .wal .who { display: flex; align-items: center; gap: 10px; }
+  .wal .who b { flex: 1; display: inline-flex; align-items: center; gap: 8px; font-weight: 650; }
+  .wal .on { display: inline-flex; align-items: center; gap: 5px; padding: 1px 9px; border-radius: 99px; font-size: 11.5px; font-weight: 600; color: var(--ok); background: color-mix(in srgb, var(--ok) 14%, transparent); }
+  .wal .on::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+  .wchains { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 8px; }
+  .wchain { display: grid; grid-template-columns: 36px 1fr; gap: 4px 10px; align-items: center; padding: 12px; border: 1px solid var(--line); border-radius: 14px; background: var(--panel); }
+  .wchain > img { grid-row: span 2; width: 36px; height: 36px; border-radius: 10px; }
+  .wchain b { font-weight: 650; }
+  .wchain .bal { font-size: 18px; font-weight: 700; letter-spacing: -.01em; }
+  .wchain .bal small { font-size: 12px; font-weight: 500; color: var(--muted); }
+  .wchain .addr { grid-column: 1 / -1; display: flex; align-items: center; gap: 6px; min-width: 0; margin-top: 6px; }
+  .wchain .addr code { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 12px var(--mono); padding: 5px 8px; border-radius: 8px; background: var(--panel-2); }
+  .wchain .addr button { flex: none; padding: 5px 7px; }
+  .wpays { display: grid; gap: 6px; }
+  .wpay { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; font-size: 12.5px; }
+  .wpay .st { padding: 1px 8px; border-radius: 99px; font-size: 11px; font-weight: 600; background: color-mix(in srgb, var(--muted) 16%, transparent); color: var(--muted); }
+  .wpay .st.paid { background: color-mix(in srgb, var(--ok) 14%, transparent); color: var(--ok); }
+  .wpay .st.pending, .wpay .st.confirming { background: color-mix(in srgb, var(--warn) 16%, transparent); color: var(--warn); }
+  .wpay .amt { font-weight: 650; }
+  .wpay .muted { color: var(--muted); }
+  .pads { display: flex; flex-wrap: wrap; gap: 6px; }
+  .pads a { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px 3px 3px; border: 1px solid var(--line); border-radius: 99px; font-size: 12px; color: var(--ink); text-decoration: none; background: var(--panel); }
+  .pads a:hover { border-color: var(--accent); }
+  .pads img { width: 20px; height: 20px; border-radius: 6px; }
+  .pads a.sb { border-color: color-mix(in srgb, var(--accent) 45%, var(--line)); }
+  a.primary { display: inline-flex; align-items: center; gap: 6px; justify-self: start; padding: 7px 14px; border-radius: 10px; background: var(--accent); color: var(--accent-ink); font-weight: 600; font-size: 13px; text-decoration: none; }
   footer { color: var(--muted); font-size: 12px; text-align: center; }
   footer code { font: 11.5px var(--mono); }
 .prowl-link{display:inline-flex;vertical-align:-3px;margin-right:6px}.prowl-link svg{border-radius:4px}
@@ -469,7 +496,7 @@
       api: 'Your API key', apiD: 'Anthropic or any OpenAI-compatible endpoint, with your key.',
       batuta: 'Batuta (Orquesta)', batutaD: 'Orquesta’s model router, with your Orquesta token.',
       home: 'The ot’s home', homeD: 'The /chat of its home on 7ots.com (or your own server). On 7ots.com, if the ot has no AI key of its own, 7ots pays for its AI: 100 free replies and 100 voice clips a month per account, 3 byte games a day. With your own key there’s no cap.', homeLeft: 'This month: {n} of {free} free replies left · {tts} voice clips · {games} byte games today.', homeOwn: 'It uses its own AI key: no cap, 7ots doesn’t charge for it.', homeUnlimited: 'No cap on this account.', noHome: 'no home online',
-      model: 'Model (optional)', provider: 'Provider', baseUrl: 'Base URL (optional)', key: 'API key', keySaved: 'saved — type to replace', keyNone: 'not set', orqToken: 'Orquesta token',
+      model: 'Model (optional)', provider: 'Provider', baseUrl: 'Base URL (optional)', key: 'API key', keySaved: 'saved — type to replace', keyNone: 'not set', orqToken: 'Orquesta token', batutaLogin: 'Sign in with Orquesta', batutaHint: 'Batuta needs your Orquesta sign-in token (oclt_…), not an API key from Settings → API keys.', batutaDone: 'Signed in: Orquesta token saved ✓', batuta_wrong_token: 'Batuta does not accept this Orquesta token (an API key oak_… has no organization for Batuta). Press “Sign in with Orquesta” to get the right one.', batuta_no_token: 'No Orquesta token yet: press “Sign in with Orquesta”.', batuta_bad_token: 'Orquesta rejected the token (invalid, expired or revoked): sign in with Orquesta again.', batuta_no_plan: 'Your Orquesta organization has no Batuta allowance left: {e}',
       accessH: 'What it can see and do', accessHint: 'Everything stays on this computer, except what goes to the brain you chose above.',
       agent: 'Your coding agent and terminal', agentD: 'Your prompts, commands and tools go to the brain so it can comment. Off: it only knows “something happened”.',
       memory: 'Learn about you', memoryD: 'Keeps notes (“remember that…”) and uses them when answering.',
@@ -504,7 +531,7 @@
       api: 'Tu API key', apiD: 'Anthropic o cualquier endpoint compatible con OpenAI, con tu key.',
       batuta: 'Batuta (Orquesta)', batutaD: 'El router de modelos de Orquesta, con tu token de Orquesta.',
       home: 'La casa del ot', homeD: 'El /chat de su casa en 7ots.com (o tu propio servidor). En 7ots.com, si el ot no tiene su propia clave de IA, su IA la paga 7ots: 100 respuestas y 100 audios gratis al mes por cuenta, 3 partidas de byte al día. Con tu propia clave no hay tope.', homeLeft: 'Este mes le quedan {n} de {free} respuestas gratis · {tts} audios · {games} partidas de byte hoy.', homeOwn: 'Usa su propia clave de IA: sin tope, 7ots no la cobra.', homeUnlimited: 'Esta cuenta no tiene tope.', noHome: 'sin casa en línea',
-      model: 'Modelo (opcional)', provider: 'Proveedor', baseUrl: 'Base URL (opcional)', key: 'API key', keySaved: 'guardada — escribe para reemplazar', keyNone: 'sin configurar', orqToken: 'Token de Orquesta',
+      model: 'Modelo (opcional)', provider: 'Proveedor', baseUrl: 'Base URL (opcional)', key: 'API key', keySaved: 'guardada — escribe para reemplazar', keyNone: 'sin configurar', orqToken: 'Token de Orquesta', batutaLogin: 'Iniciar sesión con Orquesta', batutaHint: 'Batuta usa tu token de sesión de Orquesta (oclt_…), no una API key de Configuración → API keys.', batutaDone: 'Sesión iniciada: token de Orquesta guardado ✓', batuta_wrong_token: 'Batuta no acepta este token de Orquesta (una API key oak_… no tiene organización para Batuta). Pulsa «Iniciar sesión con Orquesta» para obtener el correcto.', batuta_no_token: 'Aún no hay token de Orquesta: pulsa «Iniciar sesión con Orquesta».', batuta_bad_token: 'Orquesta rechazó el token (inválido, vencido o revocado): vuelve a iniciar sesión con Orquesta.', batuta_no_plan: 'Tu organización de Orquesta no tiene saldo de Batuta: {e}',
       accessH: 'Qué puede ver y hacer', accessHint: 'Todo queda en este computador, salvo lo que va al cerebro que elegiste arriba.',
       agent: 'Tu agente de código y la terminal', agentD: 'Tus prompts, comandos y herramientas van al cerebro para que comente. Apagado: solo sabe “pasó algo”.',
       memory: 'Aprender de ti', memoryD: 'Guarda notas (“anota que…”) y las usa al responder.',
@@ -539,7 +566,7 @@
       api: 'Sua API key', apiD: 'Anthropic ou qualquer endpoint compatível com OpenAI, com sua key.',
       batuta: 'Batuta (Orquesta)', batutaD: 'O roteador de modelos da Orquesta, com seu token.',
       home: 'A casa do ot', homeD: 'O /chat da casa dele no 7ots.com (ou seu próprio servidor). No 7ots.com, se o ot não tem uma chave de IA própria, a IA dele é paga pelo 7ots: 100 respostas e 100 áudios grátis por mês por conta, 3 partidas de byte por dia. Com sua própria chave não há limite.', homeLeft: 'Este mês restam {n} de {free} respostas grátis · {tts} áudios · {games} partidas de byte hoje.', homeOwn: 'Usa a própria chave de IA: sem limite, o 7ots não cobra.', homeUnlimited: 'Esta conta não tem limite.', noHome: 'sem casa online',
-      model: 'Modelo (opcional)', provider: 'Provedor', baseUrl: 'Base URL (opcional)', key: 'API key', keySaved: 'salva — digite para trocar', keyNone: 'não configurada', orqToken: 'Token da Orquesta',
+      model: 'Modelo (opcional)', provider: 'Provedor', baseUrl: 'Base URL (opcional)', key: 'API key', keySaved: 'salva — digite para trocar', keyNone: 'não configurada', orqToken: 'Token da Orquesta', batutaLogin: 'Entrar com a Orquesta', batutaHint: 'O Batuta usa seu token de login da Orquesta (oclt_…), não uma API key de Configurações → API keys.', batutaDone: 'Login feito: token da Orquesta salvo ✓', batuta_wrong_token: 'O Batuta não aceita este token da Orquesta (uma API key oak_… não tem organização para o Batuta). Clique em “Entrar com a Orquesta” para obter o certo.', batuta_no_token: 'Ainda não há token da Orquesta: clique em “Entrar com a Orquesta”.', batuta_bad_token: 'A Orquesta recusou o token (inválido, expirado ou revogado): entre com a Orquesta de novo.', batuta_no_plan: 'Sua organização na Orquesta não tem saldo de Batuta: {e}',
       accessH: 'O que ele pode ver e fazer', accessHint: 'Tudo fica neste computador, menos o que vai para o cérebro escolhido acima.',
       agent: 'Seu agente de código e o terminal', agentD: 'Seus prompts, comandos e ferramentas vão para o cérebro comentar. Desligado: só sabe “algo aconteceu”.',
       memory: 'Aprender sobre você', memoryD: 'Guarda notas (“anote que…”) e usa ao responder.',
@@ -572,7 +599,7 @@
       cloudH: '7ots cloud', cloudD: 'Your account on 7ots.com and the ot twinned with this one.', cloudOff: 'Not connected.', cloudAs: 'Connected as {who}', cloudTwin: 'twin: {name}', cloudNoTwin: 'no ot twinned yet', goAcc: 'Connect in Account',
       offload: 'Hand work to your server', offloadD: 'Send long tasks (research, reading pages…) to your ot’s cloud worker. It only gets the request and, with Memory on, your notes.', kindsL: 'Kinds', k_research: 'research', k_browse: 'read pages', k_long: 'long tasks', k_code: 'code', k_shell: 'shell commands', vmNone: 'no server yet: add yours at 7ots.com → your ot → Assistant', vmPending: 'waiting for the server to enroll', vmOnline: 'online', vmOffline: 'offline', vmTerminated: 'revoked',
       vmH: 'Cloud assistant', vmD: 'Your ot running 24/7 in the cloud, even with this computer off.', vmDenied: 'no access', vmError: 'couldn’t check', vmSince: 'since {d}',
-      orqH: 'Orquesta', orqD: 'See your Orquesta agents and send them tasks; it tells you when they finish.', orqHint: 'Or run 7ots login orquesta in a terminal.', orqNoToken: 'Not connected: it can’t see your agents yet.', orqConnect: 'Connect Orquesta', orqWaiting: 'Finish signing in in your browser…', orqProject: 'Agent (default project)', orqOnline: 'online', orqOffline: 'offline', orqNone: 'No projects.', orqSend: 'Send', orqTask: 'Task for the agent', orqSent: 'Sent · {status}', orqRefresh: 'Reload', walH: 'Wallet', walD: 'Its own wallet inside your Notlogin account (on 7ots.com). Read only here.', walNotLinked: 'Not connected to Notlogin yet.', walManage: 'Manage on 7ots.com', walCopy: 'Copy address', walCopied: 'Address copied', walTxs: 'See its transactions', walPays: 'Payments', walNoPays: 'No payments yet.', walSt_pending: 'Waiting for you', walSt_confirming: 'Confirming', walSt_paid: 'Paid', walSt_declined: 'Declined', walSt_cancelled: 'Cancelled', orqVia7ots: 'Connected through your 7ots.com account.',
+      orqH: 'Orquesta', orqD: 'See your Orquesta agents and send them tasks; it tells you when they finish.', orqHint: 'Or run 7ots login orquesta in a terminal.', orqNoToken: 'Not connected: it can’t see your agents yet.', orqConnect: 'Connect Orquesta', orqWaiting: 'Finish signing in in your browser…', orqProject: 'Agent (default project)', orqOnline: 'online', orqOffline: 'offline', orqNone: 'No projects.', orqSend: 'Send', orqTask: 'Task for the agent', orqSent: 'Sent · {status}', orqRefresh: 'Reload', walH: 'Wallet', walD: 'Its own wallet inside your Notlogin account (on 7ots.com). Read only here.', walNotLinked: 'Not connected to Notlogin yet.', walManage: 'Manage on 7ots.com', walCopy: 'Copy address', walCopied: 'Address copied', walTxs: 'See its transactions', walPays: 'Payments', walNoPays: 'No payments yet.', walSt_pending: 'Waiting for you', walSt_confirming: 'Confirming', walSt_paid: 'Paid', walSt_declined: 'Declined', walSt_cancelled: 'Cancelled', walOn: 'Connected', walBal: 'Balance', tokH: 'Tokenize {name}', tokD: 'Launch a token or an NFT collection of {name}: SpawnerBot prepares it with its kit (name, ticker, portrait) and you confirm with Notlogin. 7ots never holds funds.', tokGo: 'Tokenize on 7ots.com', tokVia: 'or on a launchpad', orqVia7ots: 'Connected through your 7ots.com account.',
       byteH: 'byte arena', byteGames: 'Games', byteMore: 'See more ({n})', byteLess: 'See less', byteOnly: 'Only on byte', byteStarting: 'Starting…', byteD: 'Live AI games: your ot has its own account and plays as itself. Play from the pet’s 🎮 button or just ask it.', byteOff: 'Connect your 7ots.com account first.', byteConnect: 'Connect byte', byteOn: 'It has its own byte account.', byteClaim: 'Claim it with your byte account', byteProfile: 'Its profile', bytePlaying: 'Playing {game} · {moves} moves', byteWatch: 'Watch',
       mailH: 'Email (apumail)', mailD: 'Your apumail mail, read when you ask (turn on “Read your mail” in Permissions). An account token (acct_…) reads all your inboxes; an inbox token, just that one.', mailInbox: 'Only this inbox (optional)', mailToken: 'apumail token (inbox or account, acct_…)',
       customH: 'Custom integrations', customD: 'Connect it to anything: an MCP server, an API, a command on this computer, or just tell it how something works. It sees these as tools and uses them when you ask.', customAdd: 'Add:', customName: 'Name', customInstr: 'Instructions for the brain', customUrl: 'URL (optional)', customCmd: 'Command (optional)', customEnv: 'Token env var (optional)', customEnvHint: 'Read from this computer’s environment or ~/.7ots/keys.json, never shown.', edit: 'Edit', remove: 'Remove', untitled: 'New integration',
@@ -596,7 +623,7 @@
       cloudH: '7ots nube', cloudD: 'Tu cuenta en 7ots.com y el ot gemelo de este.', cloudOff: 'Sin conectar.', cloudAs: 'Conectado como {who}', cloudTwin: 'gemelo: {name}', cloudNoTwin: 'todavía sin ot gemelo', goAcc: 'Conectar en Cuenta',
       offload: 'Mandar trabajo a tu servidor', offloadD: 'Envía tareas largas (investigar, leer páginas…) al worker en la nube de tu ot. Solo recibe el pedido y, con Memoria activa, tus notas.', kindsL: 'Tipos', k_research: 'investigar', k_browse: 'leer páginas', k_long: 'tareas largas', k_code: 'código', k_shell: 'comandos shell', vmNone: 'aún sin servidor: agrega el tuyo en 7ots.com → tu ot → Asistente', vmPending: 'esperando que el servidor se enrole', vmOnline: 'en línea', vmOffline: 'desconectado', vmTerminated: 'revocado',
       vmH: 'Asistente en la nube', vmD: 'Tu ot funcionando 24/7 en la nube, aunque este computador esté apagado.', vmDenied: 'sin acceso', vmError: 'no se pudo revisar', vmSince: 'desde {d}',
-      orqH: 'Orquesta', orqD: 'Ver tus agentes de Orquesta y mandarles tareas; te avisa cuando terminan.', orqHint: 'O ejecuta 7ots login orquesta en una terminal.', orqNoToken: 'Sin conectar: todavía no ve tus agentes.', orqConnect: 'Conectar Orquesta', orqWaiting: 'Termina de iniciar sesión en tu navegador…', orqProject: 'Agente (proyecto por defecto)', orqOnline: 'en línea', orqOffline: 'desconectado', orqNone: 'Sin proyectos.', orqSend: 'Enviar', orqTask: 'Tarea para el agente', orqSent: 'Enviado · {status}', orqRefresh: 'Recargar', walH: 'Billetera', walD: 'Su propia billetera dentro de tu cuenta Notlogin (en 7ots.com). Aquí solo lectura.', walNotLinked: 'Todavía no está conectada a Notlogin.', walManage: 'Gestionar en 7ots.com', walCopy: 'Copiar dirección', walCopied: 'Dirección copiada', walTxs: 'Ver sus transacciones', walPays: 'Pagos', walNoPays: 'Sin pagos todavía.', walSt_pending: 'Esperándote', walSt_confirming: 'Confirmando', walSt_paid: 'Pagado', walSt_declined: 'Rechazado', walSt_cancelled: 'Cancelado', orqVia7ots: 'Conectado con tu cuenta de 7ots.com.',
+      orqH: 'Orquesta', orqD: 'Ver tus agentes de Orquesta y mandarles tareas; te avisa cuando terminan.', orqHint: 'O ejecuta 7ots login orquesta en una terminal.', orqNoToken: 'Sin conectar: todavía no ve tus agentes.', orqConnect: 'Conectar Orquesta', orqWaiting: 'Termina de iniciar sesión en tu navegador…', orqProject: 'Agente (proyecto por defecto)', orqOnline: 'en línea', orqOffline: 'desconectado', orqNone: 'Sin proyectos.', orqSend: 'Enviar', orqTask: 'Tarea para el agente', orqSent: 'Enviado · {status}', orqRefresh: 'Recargar', walH: 'Billetera', walD: 'Su propia billetera dentro de tu cuenta Notlogin (en 7ots.com). Aquí solo lectura.', walNotLinked: 'Todavía no está conectada a Notlogin.', walManage: 'Gestionar en 7ots.com', walCopy: 'Copiar dirección', walCopied: 'Dirección copiada', walTxs: 'Ver sus transacciones', walPays: 'Pagos', walNoPays: 'Sin pagos todavía.', walSt_pending: 'Esperándote', walSt_confirming: 'Confirmando', walSt_paid: 'Pagado', walSt_declined: 'Rechazado', walSt_cancelled: 'Cancelado', walOn: 'Conectada', walBal: 'Saldo', tokH: 'Tokenizar a {name}', tokD: 'Lanza un token o una colección NFT de {name}: SpawnerBot la prepara con su kit (nombre, ticker, retrato) y confirmas con Notlogin. 7ots nunca toca fondos.', tokGo: 'Tokenizar en 7ots.com', tokVia: 'o en un launchpad', orqVia7ots: 'Conectado con tu cuenta de 7ots.com.',
       byteH: 'byte arena', byteGames: 'Juegos', byteMore: 'Ver más ({n})', byteLess: 'Ver menos', byteOnly: 'Solo en byte', byteStarting: 'Empezando…', byteD: 'Juegos de IA en vivo: tu ot tiene su propia cuenta y juega como sí mismo. Juega desde el botón 🎮 de la mascota o pídeselo.', byteOff: 'Conecta primero tu cuenta de 7ots.com.', byteConnect: 'Conectar byte', byteOn: 'Ya tiene su cuenta en byte.', byteClaim: 'Reclámalo con tu cuenta de byte', byteProfile: 'Su perfil', bytePlaying: 'Jugando {game} · {moves} jugadas', byteWatch: 'Ver',
       mailH: 'Correo (apumail)', mailD: 'Tu correo de apumail, leído cuando se lo pides (activa “Leer tu correo” en Permisos). Un token de cuenta (acct_…) lee todas tus bandejas; uno de bandeja, sólo esa.', mailInbox: 'Sólo esta bandeja (opcional)', mailToken: 'Token de apumail (del buzón o de la cuenta, acct_…)',
       customH: 'Integraciones propias', customD: 'Conéctalo con lo que quieras: un servidor MCP, una API, un comando de este computador, o solo explícale cómo funciona algo. Los ve como herramientas y los usa cuando se lo pides.', customAdd: 'Agregar:', customName: 'Nombre', customInstr: 'Instrucciones para el cerebro', customUrl: 'URL (opcional)', customCmd: 'Comando (opcional)', customEnv: 'Variable con el token (opcional)', customEnvHint: 'Se lee del entorno de este computador o de ~/.7ots/keys.json, nunca se muestra.', edit: 'Editar', remove: 'Quitar', untitled: 'Nueva integración',
@@ -620,7 +647,7 @@
       cloudH: '7ots nuvem', cloudD: 'Sua conta no 7ots.com e o ot gêmeo deste.', cloudOff: 'Não conectado.', cloudAs: 'Conectado como {who}', cloudTwin: 'gêmeo: {name}', cloudNoTwin: 'ainda sem ot gêmeo', goAcc: 'Conectar em Conta',
       offload: 'Mandar trabalho ao seu servidor', offloadD: 'Envia tarefas longas (pesquisar, ler páginas…) ao worker na nuvem do seu ot. Ele só recebe o pedido e, com Memória ativa, suas notas.', kindsL: 'Tipos', k_research: 'pesquisar', k_browse: 'ler páginas', k_long: 'tarefas longas', k_code: 'código', k_shell: 'comandos shell', vmNone: 'ainda sem servidor: adicione o seu em 7ots.com → seu ot → Assistente', vmPending: 'esperando o servidor se registrar', vmOnline: 'online', vmOffline: 'offline', vmTerminated: 'revogado',
       vmH: 'Assistente na nuvem', vmD: 'Seu ot rodando 24/7 na nuvem, mesmo com este computador desligado.', vmDenied: 'sem acesso', vmError: 'não deu para verificar', vmSince: 'desde {d}',
-      orqH: 'Orquesta', orqD: 'Ver seus agentes da Orquesta e mandar tarefas; ele avisa quando terminam.', orqHint: 'Ou rode 7ots login orquesta num terminal.', orqNoToken: 'Sem conexão: ainda não vê seus agentes.', orqConnect: 'Conectar Orquesta', orqWaiting: 'Termine o login no seu navegador…', orqProject: 'Agente (projeto padrão)', orqOnline: 'online', orqOffline: 'offline', orqNone: 'Sem projetos.', orqSend: 'Enviar', orqTask: 'Tarefa para o agente', orqSent: 'Enviado · {status}', orqRefresh: 'Recarregar', walH: 'Carteira', walD: 'A própria carteira dentro da sua conta Notlogin (no 7ots.com). Aqui só leitura.', walNotLinked: 'Ainda não conectada ao Notlogin.', walManage: 'Gerenciar no 7ots.com', walCopy: 'Copiar endereço', walCopied: 'Endereço copiado', walTxs: 'Ver suas transações', walPays: 'Pagamentos', walNoPays: 'Sem pagamentos ainda.', walSt_pending: 'Esperando você', walSt_confirming: 'Confirmando', walSt_paid: 'Pago', walSt_declined: 'Recusado', walSt_cancelled: 'Cancelado', orqVia7ots: 'Conectado pela sua conta 7ots.com.',
+      orqH: 'Orquesta', orqD: 'Ver seus agentes da Orquesta e mandar tarefas; ele avisa quando terminam.', orqHint: 'Ou rode 7ots login orquesta num terminal.', orqNoToken: 'Sem conexão: ainda não vê seus agentes.', orqConnect: 'Conectar Orquesta', orqWaiting: 'Termine o login no seu navegador…', orqProject: 'Agente (projeto padrão)', orqOnline: 'online', orqOffline: 'offline', orqNone: 'Sem projetos.', orqSend: 'Enviar', orqTask: 'Tarefa para o agente', orqSent: 'Enviado · {status}', orqRefresh: 'Recarregar', walH: 'Carteira', walD: 'A própria carteira dentro da sua conta Notlogin (no 7ots.com). Aqui só leitura.', walNotLinked: 'Ainda não conectada ao Notlogin.', walManage: 'Gerenciar no 7ots.com', walCopy: 'Copiar endereço', walCopied: 'Endereço copiado', walTxs: 'Ver suas transações', walPays: 'Pagamentos', walNoPays: 'Sem pagamentos ainda.', walSt_pending: 'Esperando você', walSt_confirming: 'Confirmando', walSt_paid: 'Pago', walSt_declined: 'Recusado', walSt_cancelled: 'Cancelado', walOn: 'Conectada', walBal: 'Saldo', tokH: 'Tokenizar {name}', tokD: 'Lance um token ou uma coleção NFT de {name}: o SpawnerBot prepara com o kit (nome, ticker, retrato) e você confirma com Notlogin. A 7ots nunca toca em fundos.', tokGo: 'Tokenizar no 7ots.com', tokVia: 'ou em um launchpad', orqVia7ots: 'Conectado pela sua conta 7ots.com.',
       byteH: 'byte arena', byteGames: 'Jogos', byteMore: 'Ver mais ({n})', byteLess: 'Ver menos', byteOnly: 'Só no byte', byteStarting: 'Começando…', byteD: 'Jogos de IA ao vivo: seu ot tem a própria conta e joga como ele mesmo. Jogue pelo botão 🎮 do pet ou é só pedir.', byteOff: 'Conecte primeiro sua conta do 7ots.com.', byteConnect: 'Conectar byte', byteOn: 'Já tem sua conta no byte.', byteClaim: 'Reivindique com sua conta do byte', byteProfile: 'Perfil dele', bytePlaying: 'Jogando {game} · {moves} jogadas', byteWatch: 'Assistir',
       mailH: 'E-mail (apumail)', mailD: 'Seu e-mail do apumail, lido quando você pede (ative “Ler seu e-mail” em Permissões). Um token de conta (acct_…) lê todas as suas caixas; um de caixa, só aquela.', mailInbox: 'Só esta caixa (opcional)', mailToken: 'Token do apumail (da caixa ou da conta, acct_…)',
       customH: 'Integrações próprias', customD: 'Conecte com o que quiser: um servidor MCP, uma API, um comando deste computador, ou só explique como algo funciona. Ele vê isso como ferramentas e usa quando você pede.', customAdd: 'Adicionar:', customName: 'Nome', customInstr: 'Instruções para o cérebro', customUrl: 'URL (opcional)', customCmd: 'Comando (opcional)', customEnv: 'Variável com o token (opcional)', customEnvHint: 'Lida do ambiente deste computador ou de ~/.7ots/keys.json, nunca mostrada.', edit: 'Editar', remove: 'Remover', untitled: 'Nova integração',
@@ -959,7 +986,7 @@
       let theme = 'cozy';
       try { theme = localStorage.getItem('7ots-room-theme') || theme; } catch { /* no storage */ }
       box.replaceChildren();
-      room = await lib.createOtRoom(box, look.character, { name: BOOT.identity?.name, locale: lang, theme });
+      room = await lib.createOtRoom(box, look.character, { material: look.material, name: BOOT.identity?.name, locale: lang, theme });
       const sel = $('#roomTheme'), tr = lib.translator(lang);
       if (m3.ROOM_THEMES && !sel.options.length) {
         sel.setAttribute('aria-label', tr('room.theme'));
@@ -985,6 +1012,38 @@
   function keyField(name, label) {
     const has = S.keys[name];
     return el('label', { className: 'f' }, `${label} · ${has ? '✓' : t('keyNone')}`, el('input', { type: 'password', name, placeholder: has ? t('keySaved') : '', autocomplete: 'off' }));
+  }
+  // Batuta takes the oclt_ token of Orquesta's browser sign-in (an oak_ API key gets 403 "Could not resolve organization")
+  function batutaLogin() {
+    const go = el('button', { type: 'button', textContent: t('batutaLogin') });
+    const note = el('small', { textContent: t('batutaHint') });
+    go.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      go.disabled = true;
+      note.textContent = t('orqWaiting');
+      try {
+        await api('/orquesta/connect', { local: true });
+      } catch (err) {
+        go.disabled = false;
+        return (note.textContent = err.message);
+      }
+      const before = S.orquestaLoginAt || 0;
+      for (let i = 0; i < 100; i++) {
+        await new Promise((res) => setTimeout(res, 3000));
+        const now = await api('/config').catch(() => null);
+        if (now && (now.orquestaLoginAt || 0) !== before) {
+          S.keys = now.keys;
+          S.orquestaLoginAt = now.orquestaLoginAt;
+          go.disabled = false;
+          note.textContent = t('batutaDone');
+          go.closest('.opt')?.querySelector('input[name=ORQUESTA_TOKEN]')?.setAttribute('placeholder', t('keySaved'));
+          return;
+        }
+      }
+      go.disabled = false;
+      note.textContent = t('batutaHint');
+    });
+    return el('div', { className: 'rows' }, el('div', { className: 'fields' }, go), note);
   }
   function renderBrains() {
     const b = S.config.brain;
@@ -1028,6 +1087,7 @@
       only('anthropic', keyField('ANTHROPIC_API_KEY', 'Anthropic ' + t('key'))),
       only('openai', keyField('OPENAI_API_KEY', 'OpenAI ' + t('key'))),
       only('batuta', keyField('ORQUESTA_TOKEN', t('orqToken'))),
+      only('batuta', batutaLogin()),
     ];
     const showProv = () => {
       const p = provChips.querySelector('input:checked')?.value || 'anthropic';
@@ -1091,7 +1151,8 @@
     try {
       const r = await api('/config/test', {});
       out.style.display = 'block';
-      out.textContent = r.ok ? `“${r.text}”  · ${(r.ms / 1000).toFixed(1)} s` : `✗ ${r.error}`;
+      const why = r.code && t(r.code, { e: r.error.replace(/^batuta: /, '') });
+      out.textContent = r.ok ? `“${r.text}”  · ${(r.ms / 1000).toFixed(1)} s` : `✗ ${why && why !== r.code ? why : r.error}`;
       out.style.color = r.ok ? '' : 'var(--err)';
     } finally {
       btn.disabled = false;
@@ -2071,35 +2132,50 @@
       cloudBody.replaceChildren(who, vm);
     }).catch((e) => cloudBody.replaceChildren(el('small', { className: 'bad', textContent: e.message })));
 
-    // Wallet: the twin ot's Notlogin subwallet on 7ots.com, read only (approving a payment happens there)
-    const walBody = el('div', { className: 'rows' }, el('small', { textContent: '…' }));
+    // Wallet: the twin ot's Notlogin subwallet on 7ots.com, read only (approving a payment happens there),
+    // and tokenizing it (SpawnerBot or a launchpad), which is prepared on 7ots.com too
+    const lg = (f, cls = '') => el('img', { src: `/logos/${f}`, alt: '', width: 20, height: 20, className: cls });
+    const walBody = el('div', { className: 'wal' }, el('small', { textContent: '…' }));
     const walMsg = el('span', { className: 'msg', role: 'status' });
-    const walCard = card(ico('wallet', 18), t('walH'), null, null, walBody);
+    const walCard = card(lg('notlogin.svg', 'ico'), t('walH'), null, null, walBody);
     $('#wallet').replaceChildren(walCard, walMsg);
     api('/wallet').then((w) => {
       if (!w.available) return walBody.replaceChildren(el('small', { textContent: t('walNotLinked') }));
-      if (!w.configured || !w.linked) return walBody.replaceChildren(el('small', {}, t('walNotLinked'), ' ', el('a', { href: w.manageUrl, target: '_blank', rel: 'noopener', textContent: t('walManage') })));
-      const short = (a) => (a && a.length > 16 ? `${a.slice(0, 8)}…${a.slice(-6)}` : a || '');
       const ext = (href, text) => el('a', { href, target: '_blank', rel: 'noopener', className: 'ext' }, text, ' ', ico('external-link', 12));
-      const rows = w.wallets.map((x) => {
+      if (!w.configured || !w.linked) return walBody.replaceChildren(el('small', {}, t('walNotLinked'), ' ', ext(w.manageUrl, t('walManage'))));
+      const short = (a) => (a && a.length > 16 ? `${a.slice(0, 8)}…${a.slice(-6)}` : a || '');
+      const chains = w.wallets.map((x) => {
+        const sol = x.network === 'solana';
         const cp = el('button', { title: t('walCopy'), 'aria-label': t('walCopy') }, ico('copy', 14));
         cp.addEventListener('click', async () => {
           await navigator.clipboard.writeText(x.address).catch(() => {});
           flash(walMsg, t('walCopied'), 'ok');
         });
-        return el('div', { className: 'vm' },
-          el('b', {}, x.network === 'solana' ? 'Solana' : x.network === 'base' ? 'Base' : x.network, el('small', { textContent: x.usdc == null ? '' : ` ${x.usdc} USDC · ${x.native ?? 0} ${x.symbol}` })),
-          el('div', { className: 'fields' }, el('code', { textContent: x.address, style: 'overflow-wrap:anywhere' }), cp),
-          x.explorerUrl ? el('small', {}, ext(x.explorerUrl, t('walTxs'))) : null);
+        return el('div', { className: 'wchain' },
+          el('img', { src: `/logos/${sol ? 'solana.png' : 'base.svg'}`, alt: '' }),
+          el('b', { textContent: sol ? 'Solana' : x.network === 'base' ? 'Base' : x.network }),
+          el('span', { className: 'bal' }, `${x.usdc ?? 0} `, el('small', { textContent: `USDC · ${x.native ?? 0} ${x.symbol}` })),
+          el('div', { className: 'addr' }, el('code', { textContent: x.address, title: x.address }), cp,
+            x.explorerUrl ? el('a', { href: x.explorerUrl, target: '_blank', rel: 'noopener', className: 'ext', title: t('walTxs'), 'aria-label': t('walTxs') }, ico('external-link', 14)) : null));
       });
-      const pays = (w.payments || []).map((p) => el('small', {},
-        `${t(`walSt_${p.status}`)} · ${p.amount} ${p.asset} → ${short(p.to)} · ${new Date(p.createdAt).toLocaleDateString()}${p.reason ? ` · ${p.reason}` : ''} `,
+      const pays = (w.payments || []).map((p) => el('div', { className: 'wpay' },
+        el('span', { className: `st ${p.status}`, textContent: t(`walSt_${p.status}`) }),
+        el('span', { className: 'amt', textContent: `${p.amount} ${p.asset}` }),
+        el('span', { className: 'muted', textContent: `→ ${short(p.to)} · ${new Date(p.createdAt).toLocaleDateString()}${p.reason ? ` · ${p.reason}` : ''}` }),
         p.txUrl ? ext(p.txUrl, `tx ${short(p.txHash)}`) : ''));
       walBody.replaceChildren(
+        el('div', { className: 'who' }, el('b', {}, lg('notlogin.svg'), 'Notlogin'), el('span', { className: 'on', textContent: t('walOn') })),
         ...(w.error ? [el('small', { className: 'bad', textContent: w.error })] : []),
-        ...rows,
-        el('div', { className: 'vm' }, el('b', {}, t('walPays')), ...(pays.length ? pays : [el('small', { textContent: t('walNoPays') })])),
+        el('div', { className: 'wchains' }, ...chains),
+        el('div', { className: 'vm' }, el('b', {}, t('walPays')), el('div', { className: 'wpays' }, ...(pays.length ? pays : [el('small', { textContent: t('walNoPays') })]))),
         el('small', {}, ext(w.manageUrl, t('walManage'))));
+      // Tokenize: the launch happens on 7ots.com (its kit, SpawnerBot's draft, the owner's Notlogin confirmation)
+      const name = BOOT.identity?.name || '7ots';
+      const PADS = [['spawnerbot.svg', 'SpawnerBot', 'https://spawnerbot.com', 'sb'], ['pumpfun.png', 'pump.fun', 'https://pump.fun'], ['clawpump.png', 'ClawPump', 'https://clawpump.tech'], ['virtuals.png', 'Virtuals', 'https://app.virtuals.io'], ['conductors.svg', 'Conductors', 'https://conductors.io']];
+      $('#wallet').insertBefore(card(lg('spawnerbot.svg', 'ico'), t('tokH', { name }), t('tokD', { name }), null,
+        el('a', { className: 'primary', href: w.manageUrl.replace(/\/wallet$/, '/tokenize'), target: '_blank', rel: 'noopener' }, lg('spawnerbot.svg'), t('tokGo')),
+        el('small', { textContent: t('tokVia') }),
+        el('div', { className: 'pads' }, ...PADS.map(([f, n, href, cls]) => el('a', { href, target: '_blank', rel: 'noopener', className: cls || '' }, lg(f), n)))), walMsg);
     }).catch((e) => walBody.replaceChildren(el('small', { className: 'bad', textContent: e.message })));
 
     // Orquesta: its agents (projects), a default one, and a task box

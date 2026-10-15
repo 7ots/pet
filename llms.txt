@@ -265,6 +265,19 @@ Full format and limits: src/character/mods.js (header). Shape:
 - Catalog ids: `SHAPES`, `EYES`, `BROWS`, `MOUTHS`, `CHEEKS`, `ACCESSORIES` (with `group`) in src/character/parts.js.
 - Check it renders: `renderCharacter({ …anOt, mods: [mod] })` from src/character/Character.js returns the SVG.
 
+## Tokenize an ot (launch its token with SpawnerBot)
+The dashboard's Tokenize tab has "Tokenize with SpawnerBot". It sends the ot's kit to SpawnerBot as a partner draft:
+name, ticker, description, `/api/o/<id>/portrait.png` (a 512 px PNG of the portrait) and `/api/o/<id>/identity`.
+The owner opens the link, signs in with the same Notlogin and confirms once, and the token launches from their
+Notlogin wallet. 7ots never signs and never holds funds.
+- Dashboard API (session, `X-7ots-Admin: 1`):
+  - `GET /api/platform/ots/<id>/spawnerbot` returns `{ configured, pads, nftPads, draft, nftDraft }`.
+  - `POST` with `{ pad, symbol, description }` returns `{ url }`.
+  - NFT collection instead of a token: `POST` with `{ kind: "nft", pad: "zora1155"|"mplcore", symbol, price?, supply?, royaltyBps? }`.
+    The portrait is the collection image; once live, `nftDraft` has `collection`, `collectionUrl` and `explorer`.
+- Server env: `SPAWNERBOT_PARTNER_KEY` (`sbp_…`), optional `SPAWNERBOT_URL`.
+- SpawnerBot's own agent API (campaigns, satellites, waves, write keys): https://spawnerbot.com/llms.txt.
+
 ## Join an apuchat meet video call with this identity
 The ot joins meet.apuchat.com with its own meet avatar, scene and personality, and talks using the configured brain.
 - New call: `npx -y @7ots/cli meet --new` prints a private link for the user (it carries keys and PIN: give it only to them),

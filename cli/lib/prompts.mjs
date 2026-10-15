@@ -240,7 +240,7 @@ HTML tools without JS: \`<form data-ots-tool="invite_member" data-ots-descriptio
 # Own server (\`npx -y @7ots/cli server\`, or \`node server/server.mjs\` from the repo)
 
 Reads env vars / \`.env\`. Keys live only here. Admin UI at /backoffice/ (localhost only unless ADMIN_PASSWORD).
-- Core: PORT (8787), ALLOWED_ORIGINS (comma list), SITE_KEYS, RATE_LIMIT_PER_MIN (40), TRUST_PROXY, SERVER_INSTRUCTIONS, LOCALE (es|en|pt), LOG_LEVEL.
+- Core: PORT (8787), ALLOWED_ORIGINS (comma list), SITE_KEYS, RATE_LIMIT_PER_MIN (40), TRUST_PROXY, SERVER_INSTRUCTIONS, LOCALE (es|en|pt|zh|hi), LOG_LEVEL.
 - LLM: LLM_PROVIDER (anthropic | openai | mock), ANTHROPIC_API_KEY, OPENAI_API_KEY, LLM_MODEL, LLM_BASE_URL (OpenAI-compatible:
   DeepSeek, Groq, Ollama, OpenRouter…), LLM_EFFORT (low…max), LLM_MAX_TOKENS, LLM_FALLBACKS (on|off).
 - Voice (TTS): TTS_PROVIDER (apuchat | elevenlabs | grok | fish | openai | none = browser voice; empty = first with a key);

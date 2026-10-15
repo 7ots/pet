@@ -24,6 +24,16 @@ const STYLE_FINISH = {
   riso: 'toon', dotmatrix: 'toon', chalk: 'sketch', sticker: 'glossy', felt: 'clay', papercut: 'soft3d', lowpoly: 'toon', marble: 'soft3d', candy: 'glossy',
   holo: 'glossy', sumie: 'sketch', tarot: 'toon', retro70: 'toon', mosaic: 'toon', neonsign: 'neon', graffiti: 'toon', thermal: 'soft3d',
 };
+/**
+ * Materiales del ot en 3D (look.material, LOOK_MATERIALS de identity/schema.js): plush = peluche, vinyl = el acabado
+ * y la textura de su spec; los demás fijan el acabado y la textura del cuerpo (los estilos artísticos mandan igual).
+ */
+export const MATERIAL3D = {
+  clay: { finish: 'clay', texture: 'none' }, metal: { finish: 'metal', texture: 'none' }, glass: { finish: 'glass', texture: 'none' },
+  pearl: { finish: 'pearl', texture: 'none' }, holo: { finish: 'holo', texture: 'none' }, wood: { finish: 'clay', texture: 'wood' },
+  stone: { finish: 'clay', texture: 'stone' }, knit: { finish: 'velvet', texture: 'knit' }, glitter: { finish: 'glossy', texture: 'glitter' },
+  quilt: { finish: 'velvet', texture: 'quilt' }, honeycomb: { finish: 'glossy', texture: 'honeycomb' }, bubbles: { finish: 'glass', texture: 'bubbles' },
+};
 /** Piezas del catálogo 2 sin modelo 3D propio → la existente más parecida (campo `as3d` en parts.js). */
 function alias3D(s) {
   s.eyes = { ...s.eyes, type: as3d('eyes', s.eyes.type) };
@@ -43,10 +53,12 @@ function styled3D(spec) {
   return s;
 }
 import { shade, luminance, as3d } from '../character/parts.js';
+
+const FINISH3D = new Set(['metal', 'glass', 'pearl', 'holo', 'velvet', 'pastel']);
 import { textureOf } from '../character/skin.js';
 import { GESTURES, GESTURE_ALIAS, VISEMES, EASE, clamp, lerp, approach, textToVisemes, babbleVisemes, HAND_POSES, MORPHS, EFFECTS, shapePoints, seeded } from '../character/motion.js';
 import { U, bodyGeometry, surfaceProbe } from './body.js';
-import { bodyMaterials, surfaceMaterial, mat, shadowTexture, CHEEK_IDS } from './materials.js';
+import { bodyMaterials, surfaceMaterial, mat, shadowTexture, CHEEK_IDS, TEX_IDS } from './materials.js';
 import { FX3D, glyph, disposeFx } from './fx.js';
 import { buildModel, tickModel, modelGesture } from './model.js';
 
@@ -194,8 +206,12 @@ export class Character3D {
     const kk = (this.kk = Math.sqrt(W * H) / 1.25); // escala de accesorios (1 ≈ ot medio)
     const Y = (this.Y = (y) => (B.bottom - y) * U);
     const X = (this.X = (x) => (x - L.cx) * U);
-    const tex = (this.tex = as3d('textures', textureOf(s)));
-    const plush = (this.plush = !st && ((this.opts.material || 'plush') === 'plush' || ['fur', 'fuzz', 'feathers'].includes(tex)));
+    const mat3 = !st && MATERIAL3D[this.opts.material];
+    if (mat3) s.finish = mat3.finish;
+    const tex = (this.tex = mat3 ? mat3.texture : as3d('textures', textureOf(s)));
+    // a finish or texture picked in the creator (Acabado/Textura) that the shader draws wins over the default plush fur
+    const picked = !mat3 && (FINISH3D.has(s.finish) || (s.texture && s.texture !== 'auto' && tex in TEX_IDS));
+    const plush = (this.plush = !st && !mat3 && (['fur', 'fuzz', 'feathers'].includes(tex) || ((this.opts.material || 'plush') === 'plush' && !picked)));
     const furLen = (this.furLen = plush ? (tex === 'fuzz' || tex === 'none' ? 0.05 : 0.065) * kk : 0);
     const density = (this.density = furLen ? (this.quality === 'high' ? 1 / (furLen * 0.2) : 1 / (furLen * 0.32)) : 0);
     this.maxShells = this.quality === 'high' ? 28 : 10;
@@ -1477,6 +1493,7 @@ export class Character3D {
     this.fxg.rotation.y = this.yaw;
 
     for (const f of this.furs) f.u.uTime.value = sec;
+    this.bodyU.uTime.value = sec; // destellos de la purpurina
     for (const a of this.anims) a(rm ? 0 : sec);
   }
 

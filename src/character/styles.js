@@ -27,55 +27,57 @@ import { addCatalog } from '../i18n/index.js';
 const n = (v) => Math.round(v * 100) / 100;
 
 export const STYLES = [
-  { id: 'none', label: { es: 'Ninguno', en: 'None', pt: 'Nenhum' } },
-  { id: 'ukiyoe', label: { es: 'Ukiyo-e', en: 'Ukiyo-e', pt: 'Ukiyo-e' } },
-  { id: 'clay', label: { es: 'Plastilina', en: 'Claymation', pt: 'Massinha' } },
-  { id: 'glass', label: { es: 'Vitral', en: 'Stained glass', pt: 'Vitral' } },
-  { id: 'bauhaus', label: { es: 'Bauhaus', en: 'Bauhaus', pt: 'Bauhaus' } },
-  { id: 'manuscript', label: { es: 'Manuscrito', en: 'Manuscript', pt: 'Iluminura' } },
-  { id: 'glitch', label: { es: 'Glitch', en: 'Glitch', pt: 'Glitch' } },
-  { id: 'ink', label: { es: 'Tinta', en: 'Ink sketch', pt: 'Nanquim' } },
-  { id: 'pop', label: { es: 'Pop art', en: 'Pop art', pt: 'Pop art' } },
-  { id: 'watercolor', label: { es: 'Acuarela', en: 'Watercolor', pt: 'Aquarela' } },
-  { id: 'pixel', label: { es: 'Píxel 8 bits', en: '8-bit pixel', pt: 'Pixel 8 bits' } },
-  { id: 'synthwave', label: { es: 'Synthwave', en: 'Synthwave', pt: 'Synthwave' } },
-  { id: 'nouveau', label: { es: 'Art nouveau', en: 'Art nouveau', pt: 'Art nouveau' } },
-  { id: 'cubism', label: { es: 'Cubismo', en: 'Cubism', pt: 'Cubismo' } },
-  { id: 'crayon', label: { es: 'Crayones', en: 'Crayon', pt: 'Giz de cera' } },
-  { id: 'blueprint', label: { es: 'Plano técnico', en: 'Blueprint', pt: 'Planta técnica' } },
-  { id: 'pointillism', label: { es: 'Puntillismo', en: 'Pointillism', pt: 'Pontilhismo' } },
-  { id: 'woodcut', label: { es: 'Xilografía', en: 'Woodcut', pt: 'Xilogravura' } },
-  { id: 'riso', label: { es: 'Risografía', en: 'Riso print', pt: 'Risografia' } },
-  { id: 'dotmatrix', label: { es: 'Matriz verde', en: 'Dot matrix', pt: 'Matriz verde' } },
-  { id: 'chalk', label: { es: 'Tiza', en: 'Chalk', pt: 'Giz' } },
-  { id: 'sticker', label: { es: 'Calcomanía', en: 'Sticker', pt: 'Adesivo' } },
-  { id: 'felt', label: { es: 'Fieltro', en: 'Felt', pt: 'Feltro' } },
-  { id: 'papercut', label: { es: 'Papel recortado', en: 'Papercut', pt: 'Papel recortado' } },
-  { id: 'lowpoly', label: { es: 'Low poly', en: 'Low poly', pt: 'Low poly' } },
-  { id: 'marble', label: { es: 'Mármol', en: 'Marble', pt: 'Mármore' } },
-  { id: 'candy', label: { es: 'Gomita', en: 'Gummy', pt: 'Bala de goma' } },
-  { id: 'holo', label: { es: 'Holográfico', en: 'Holographic', pt: 'Holográfico' } },
-  { id: 'sumie', label: { es: 'Sumi-e', en: 'Sumi-e', pt: 'Sumi-e' } },
-  { id: 'tarot', label: { es: 'Tarot', en: 'Tarot', pt: 'Tarô' } },
-  { id: 'retro70', label: { es: 'Años 70', en: 'Seventies', pt: 'Anos 70' } },
-  { id: 'mosaic', label: { es: 'Mosaico', en: 'Mosaic', pt: 'Mosaico' } },
-  { id: 'neonsign', label: { es: 'Letrero de neón', en: 'Neon sign', pt: 'Letreiro neon' } },
-  { id: 'graffiti', label: { es: 'Grafiti', en: 'Graffiti', pt: 'Grafite' } },
-  { id: 'thermal', label: { es: 'Cámara térmica', en: 'Thermal', pt: 'Câmera térmica' } },
+  { id: 'none', label: { es: 'Ninguno', en: 'None', pt: 'Nenhum', zh: '无', hi: 'कोई नहीं' } },
+  { id: 'ukiyoe', label: { es: 'Ukiyo-e', en: 'Ukiyo-e', pt: 'Ukiyo-e', zh: '浮世绘', hi: 'उकियो-ए' } },
+  { id: 'clay', label: { es: 'Plastilina', en: 'Claymation', pt: 'Massinha', zh: '黏土动画', hi: 'क्ले एनिमेशन' } },
+  { id: 'glass', label: { es: 'Vitral', en: 'Stained glass', pt: 'Vitral', zh: '彩色玻璃', hi: 'रंगीन काँच' } },
+  { id: 'bauhaus', label: { es: 'Bauhaus', en: 'Bauhaus', pt: 'Bauhaus', zh: '包豪斯', hi: 'बाउहाउस' } },
+  { id: 'manuscript', label: { es: 'Manuscrito', en: 'Manuscript', pt: 'Iluminura', zh: '泥金手抄本', hi: 'पांडुलिपि' } },
+  { id: 'glitch', label: { es: 'Glitch', en: 'Glitch', pt: 'Glitch', zh: '故障风', hi: 'ग्लिच' } },
+  { id: 'ink', label: { es: 'Tinta', en: 'Ink sketch', pt: 'Nanquim', zh: '墨水速写', hi: 'स्याही स्केच' } },
+  { id: 'pop', label: { es: 'Pop art', en: 'Pop art', pt: 'Pop art', zh: '波普艺术', hi: 'पॉप आर्ट' } },
+  { id: 'watercolor', label: { es: 'Acuarela', en: 'Watercolor', pt: 'Aquarela', zh: '水彩', hi: 'जलरंग' } },
+  { id: 'pixel', label: { es: 'Píxel 8 bits', en: '8-bit pixel', pt: 'Pixel 8 bits', zh: '8 位像素', hi: '8-बिट पिक्सेल' } },
+  { id: 'synthwave', label: { es: 'Synthwave', en: 'Synthwave', pt: 'Synthwave', zh: '合成波', hi: 'सिंथवेव' } },
+  { id: 'nouveau', label: { es: 'Art nouveau', en: 'Art nouveau', pt: 'Art nouveau', zh: '新艺术', hi: 'आर्ट नूवो' } },
+  { id: 'cubism', label: { es: 'Cubismo', en: 'Cubism', pt: 'Cubismo', zh: '立体主义', hi: 'घनवाद' } },
+  { id: 'crayon', label: { es: 'Crayones', en: 'Crayon', pt: 'Giz de cera', zh: '蜡笔', hi: 'क्रेयॉन' } },
+  { id: 'blueprint', label: { es: 'Plano técnico', en: 'Blueprint', pt: 'Planta técnica', zh: '蓝图', hi: 'ब्लूप्रिंट' } },
+  { id: 'pointillism', label: { es: 'Puntillismo', en: 'Pointillism', pt: 'Pontilhismo', zh: '点彩画', hi: 'बिंदुवाद' } },
+  { id: 'woodcut', label: { es: 'Xilografía', en: 'Woodcut', pt: 'Xilogravura', zh: '木刻', hi: 'काष्ठ छापा' } },
+  { id: 'riso', label: { es: 'Risografía', en: 'Riso print', pt: 'Risografia', zh: '孔版印刷', hi: 'रिसो प्रिंट' } },
+  { id: 'dotmatrix', label: { es: 'Matriz verde', en: 'Dot matrix', pt: 'Matriz verde', zh: '点阵', hi: 'डॉट मैट्रिक्स' } },
+  { id: 'chalk', label: { es: 'Tiza', en: 'Chalk', pt: 'Giz', zh: '粉笔', hi: 'चॉक' } },
+  { id: 'sticker', label: { es: 'Calcomanía', en: 'Sticker', pt: 'Adesivo', zh: '贴纸', hi: 'स्टिकर' } },
+  { id: 'felt', label: { es: 'Fieltro', en: 'Felt', pt: 'Feltro', zh: '毛毡', hi: 'फ़ेल्ट' } },
+  { id: 'papercut', label: { es: 'Papel recortado', en: 'Papercut', pt: 'Papel recortado', zh: '剪纸', hi: 'पेपरकट' } },
+  { id: 'lowpoly', label: { es: 'Low poly', en: 'Low poly', pt: 'Low poly', zh: '低多边形', hi: 'लो पॉली' } },
+  { id: 'marble', label: { es: 'Mármol', en: 'Marble', pt: 'Mármore', zh: '大理石', hi: 'संगमरमर' } },
+  { id: 'candy', label: { es: 'Gomita', en: 'Gummy', pt: 'Bala de goma', zh: '软糖', hi: 'गमी' } },
+  { id: 'holo', label: { es: 'Holográfico', en: 'Holographic', pt: 'Holográfico', zh: '镭射', hi: 'होलोग्राफ़िक' } },
+  { id: 'sumie', label: { es: 'Sumi-e', en: 'Sumi-e', pt: 'Sumi-e', zh: '水墨画', hi: 'सुमी-ए' } },
+  { id: 'tarot', label: { es: 'Tarot', en: 'Tarot', pt: 'Tarô', zh: '塔罗', hi: 'टैरो' } },
+  { id: 'retro70', label: { es: 'Años 70', en: 'Seventies', pt: 'Anos 70', zh: '七十年代', hi: 'सत्तर का दशक' } },
+  { id: 'mosaic', label: { es: 'Mosaico', en: 'Mosaic', pt: 'Mosaico', zh: '马赛克', hi: 'मोज़ेक' } },
+  { id: 'neonsign', label: { es: 'Letrero de neón', en: 'Neon sign', pt: 'Letreiro neon', zh: '霓虹招牌', hi: 'नियॉन साइन' } },
+  { id: 'graffiti', label: { es: 'Grafiti', en: 'Graffiti', pt: 'Grafite', zh: '涂鸦', hi: 'ग्राफ़िटी' } },
+  { id: 'thermal', label: { es: 'Cámara térmica', en: 'Thermal', pt: 'Câmera térmica', zh: '热成像', hi: 'थर्मल' } },
 ];
 export const STYLE_IDS = STYLES.map((s) => s.id);
 
 const lang = (l) => ({
-  character: { styles: Object.fromEntries(STYLES.map((s) => [s.id, s.label[l]])) },
+  character: { styles: Object.fromEntries(STYLES.map((s) => [s.id, s.label[l] || s.label.en])) },
   editor: {
     artStyle: {
       es: { title: 'Estilo artístico', hint: 'Redibuja el mismo personaje en otro estilo, con un fondo a juego.' },
       en: { title: 'Art style', hint: 'Redraws the same character in another art style, with a matching backdrop.' },
       pt: { title: 'Estilo artístico', hint: 'Redesenha o mesmo personagem em outro estilo, com um fundo combinando.' },
+      zh: { title: '艺术风格', hint: '用另一种艺术风格重新绘制同一个角色，并配上相称的背景。' },
+      hi: { title: 'कला शैली', hint: 'उसी किरदार को दूसरी कला शैली में फिर से बनाता है, मेल खाती पृष्ठभूमि के साथ।' },
     }[l],
   },
 });
-addCatalog({ es: lang('es'), en: lang('en'), pt: lang('pt') });
+addCatalog(Object.fromEntries(['es', 'en', 'pt', 'zh', 'hi'].map((l) => [l, lang(l)])));
 
 // ───────────────────────────── color ─────────────────────────────
 
@@ -467,7 +469,7 @@ export function stylizeSpec(spec) {
     a.color2 = m(a.color2, 'acc');
   }
   s.finish = look.finish;
-  s.texture = look.texture;
+  s.texture = spec.texture && spec.texture !== 'auto' ? spec.texture : look.texture; // a texture the owner picked wins over the style's
   s._style = { id, seed: styleSeed(spec), ink: typeof look.ink === 'function' ? look.ink(s) : look.ink, lw: look.lw };
   return s;
 }

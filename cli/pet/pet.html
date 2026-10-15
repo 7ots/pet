@@ -168,6 +168,10 @@
     background: color-mix(in srgb, var(--panel) 86%, transparent); border: 1px solid var(--line); box-shadow: var(--shadow); backdrop-filter: blur(10px);
     opacity: 0; transition: none; /* a transition here never finished painting in the transparent window: the menu stayed invisible */ -webkit-app-region: no-drag; z-index: 5; } /* above the 3D stage canvas (z 3) */
   body.desktop.hover .actions, body.desktop.menu .actions { opacity: 1; transform: none; } /* .hover: set by the shell, which sees the cursor even when no mouse event reaches the page (no CSS :hover: it sticks in a click-through window that never gets the mouseleave) */
+  /* part of the window off screen (the shell sets --off-below / .menu-left): the menu stays in view */
+  body.desktop .actions { bottom: calc(14px + var(--off-below, 0px)); }
+  body.desktop.menu-left .actions { left: auto; right: calc(50% + 70px * var(--pet-scale, 1) - 4px); transform: translateX(-6px); }
+  body.desktop.menu-left.hover .actions, body.desktop.menu-left.menu .actions { transform: none; }
   body.desktop .act { width: 30px; height: 30px; padding: 0; border-radius: 50%; border: 0; background: transparent; }
   body.desktop .act span { display: none; }
   body.desktop .act.primary { background: var(--accent); }
@@ -299,7 +303,7 @@
     // three comes from the CDN; without WebGL or network the 2D ot takes over
     try {
       const m = await loadCharacter3D();
-      ch = m.createCharacter3D($('#face'), spec, { material: 'plush', backdrop: !desktop && BOOT.backdrop !== false, orbit: !desktop, bleed: desktop ? 'window' : 0, stage: { key: 'pet', zIndex: 3, maxDpr: 2, minDpr: 1.25, supersample: desktop } });
+      ch = m.createCharacter3D($('#face'), spec, { material: id.look?.material || 'plush', backdrop: !desktop && BOOT.backdrop !== false, orbit: !desktop, bleed: desktop ? 'window' : 0, stage: { key: 'pet', zIndex: 3, maxDpr: 2, minDpr: 1.25, supersample: desktop } });
       if (ch.fallback) console.warn('[7ots pet] no WebGL: 2D ot');
     } catch (err) {
       console.warn('[7ots pet] 3D ot unavailable, using 2D:', err?.message || err);

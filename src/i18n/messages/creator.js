@@ -9,7 +9,7 @@ const es = {
   creator: {
     stepOf: 'Paso {n} de {total}',
     steps: { body: 'Cuerpo', face: 'Cara', paint: 'Pintar', acc: 'Accesorios' },
-    tabs: { shape: 'Forma', color: 'Color', finish: 'Acabado', preset: 'Plantillas', eyes: 'Ojos', brows: 'Cejas', mouth: 'Boca', cheeks: 'Mejillas', pattern: 'Patrón', texture: 'Textura' },
+    tabs: { shape: 'Forma', style: 'Estilo', color: 'Color', finish: 'Acabado', preset: 'Plantillas', eyes: 'Ojos', brows: 'Cejas', mouth: 'Boca', cheeks: 'Mejillas', pattern: 'Patrón', texture: 'Textura' },
     bodyColor: 'Color del cuerpo', eyeColor: 'Color de los ojos', adjust: 'Ajustes', size: 'Tamaño', spacing: 'Separación', height: 'Altura',
     color: 'Color', patternColor: 'Color del patrón', otherColor: 'Otro color',
     back: '← Atrás', next: 'Siguiente →', play: 'Jugar', playNext: '▶ Jugar', random: 'Sorpréndeme', undo: 'Deshacer',
@@ -35,7 +35,7 @@ const en = {
   creator: {
     stepOf: 'Step {n} of {total}',
     steps: { body: 'Body', face: 'Face', paint: 'Paint', acc: 'Accessories' },
-    tabs: { shape: 'Shape', color: 'Color', finish: 'Finish', preset: 'Presets', eyes: 'Eyes', brows: 'Brows', mouth: 'Mouth', cheeks: 'Cheeks', pattern: 'Pattern', texture: 'Texture' },
+    tabs: { shape: 'Shape', style: 'Style', color: 'Color', finish: 'Finish', preset: 'Presets', eyes: 'Eyes', brows: 'Brows', mouth: 'Mouth', cheeks: 'Cheeks', pattern: 'Pattern', texture: 'Texture' },
     bodyColor: 'Body color', eyeColor: 'Eye color', adjust: 'Adjust', size: 'Size', spacing: 'Spacing', height: 'Height',
     color: 'Color', patternColor: 'Pattern color', otherColor: 'Other color',
     back: '← Back', next: 'Next →', play: 'Play', playNext: '▶ Play', random: 'Surprise me', undo: 'Undo',
@@ -61,7 +61,7 @@ const pt = {
   creator: {
     stepOf: 'Passo {n} de {total}',
     steps: { body: 'Corpo', face: 'Rosto', paint: 'Pintar', acc: 'Acessórios' },
-    tabs: { shape: 'Forma', color: 'Cor', finish: 'Acabamento', preset: 'Modelos', eyes: 'Olhos', brows: 'Sobrancelhas', mouth: 'Boca', cheeks: 'Bochechas', pattern: 'Padrão', texture: 'Textura' },
+    tabs: { shape: 'Forma', style: 'Estilo', color: 'Cor', finish: 'Acabamento', preset: 'Modelos', eyes: 'Olhos', brows: 'Sobrancelhas', mouth: 'Boca', cheeks: 'Bochechas', pattern: 'Padrão', texture: 'Textura' },
     bodyColor: 'Cor do corpo', eyeColor: 'Cor dos olhos', adjust: 'Ajustes', size: 'Tamanho', spacing: 'Separação', height: 'Altura',
     color: 'Cor', patternColor: 'Cor do padrão', otherColor: 'Outra cor',
     back: '← Voltar', next: 'Próximo →', play: 'Jogar', playNext: '▶ Jogar', random: 'Surpreenda-me', undo: 'Desfazer',
@@ -83,4 +83,56 @@ const pt = {
   },
 };
 
-addCatalog({ es, en, pt });
+const zh = {
+  creator: {
+    stepOf: '第 {n} 步，共 {total} 步',
+    steps: { body: '身体', face: '脸', paint: '上色', acc: '配饰' },
+    tabs: { shape: '形状', style: '风格', color: '颜色', finish: '质感', preset: '模板', eyes: '眼睛', brows: '眉毛', mouth: '嘴巴', cheeks: '脸颊', pattern: '图案', texture: '纹理' },
+    bodyColor: '身体颜色', eyeColor: '眼睛颜色', adjust: '调整', size: '大小', spacing: '间距', height: '高度',
+    color: '颜色', patternColor: '图案颜色', otherColor: '其他颜色',
+    back: '← 返回', next: '下一步 →', play: '开玩', playNext: '▶ 开玩', random: '给我惊喜', undo: '撤销',
+    clearAll: '全部移除（{n}）', modBody: '它穿着 3D 身体“{name}”（一个 mod），会盖住 ot。在这里编辑任何内容都会把它取下（可以撤销）。', modRemove: '移除 3D 身体', drag: '拖动来旋转', empty: '这里什么都没有。',
+  },
+  room: {
+    auto: '自己玩', control: '操控', edit: '编辑', message: '消息', messageHint: '模拟一条收到的消息',
+    keys: 'WASD 或方向键 · 点击地面前往 · 空格跳跃 · E 使用',
+    use: 'E · {label}', getOff: 'E · 下来',
+    inRoom: '在自己的房间里', walk: '在走路', run: '在奔跑', you: '由你操控',
+    themes: { cozy: '温馨', gothic: '哥特', roman: '罗马', japanese: '日式', scandi: '北欧', cyberpunk: '赛博朋克', beach: '海滩', cabin: '小木屋', space: '宇宙飞船', castle: '城堡' }, theme: '房屋风格',
+    places: { window: '看看窗外', sofa: '坐在沙发上', rug: '在地毯上跳舞', bed: '睡个午觉', desk: '看看广场', plant: '给植物浇水', front: '打个招呼' },
+    doing: { window: '正看着窗外', sofa: '在沙发上休息', rug: '在地毯上跳舞', bed: '在睡午觉', desk: '在看广场', plant: '在给植物浇水', front: '在跟你打招呼' },
+    say: {
+      hello: '你好！我是 {name}', window: '外面真美…', sofa: '啊…好舒服', desk: '看看广场上有什么…', plant: '该浇水了 🌱',
+      gotMsg: '📩 我收到一条消息！', replied: '已回复 ✓', takeMe: '带我去逛逛！🎮',
+    },
+    pad: { up: '上', down: '下', left: '左', right: '右', use: '使用' },
+  },
+};
+
+const hi = {
+  creator: {
+    stepOf: 'चरण {n} / {total}',
+    steps: { body: 'शरीर', face: 'चेहरा', paint: 'रंग', acc: 'एक्सेसरीज़' },
+    tabs: { shape: 'आकार', style: 'स्टाइल', color: 'रंग', finish: 'फ़िनिश', preset: 'टेम्पलेट', eyes: 'आँखें', brows: 'भौंहें', mouth: 'मुँह', cheeks: 'गाल', pattern: 'पैटर्न', texture: 'टेक्सचर' },
+    bodyColor: 'शरीर का रंग', eyeColor: 'आँखों का रंग', adjust: 'समायोजन', size: 'आकार', spacing: 'दूरी', height: 'ऊँचाई',
+    color: 'रंग', patternColor: 'पैटर्न का रंग', otherColor: 'दूसरा रंग',
+    back: '← पीछे', next: 'आगे →', play: 'खेलें', playNext: '▶ खेलें', random: 'सरप्राइज़ दो', undo: 'पूर्ववत करें',
+    clearAll: 'सब हटाएँ ({n})', modBody: 'इसने 3D शरीर “{name}” (एक mod) पहना है, जो ot को ढक देता है। यहाँ कुछ भी बदलने पर वह हट जाएगा (आप पूर्ववत कर सकते हैं)।', modRemove: '3D शरीर हटाएँ', drag: 'घुमाने के लिए खींचें', empty: 'यहाँ कुछ नहीं है।',
+  },
+  room: {
+    auto: 'अपने आप', control: 'नियंत्रण', edit: 'संपादित करें', message: 'संदेश', messageHint: 'आने वाले संदेश का अनुकरण करें',
+    keys: 'WASD या तीर कुंजियाँ · जाने के लिए फ़र्श पर क्लिक करें · Space कूदें · E इस्तेमाल करें',
+    use: 'E · {label}', getOff: 'E · नीचे उतरें',
+    inRoom: 'अपने कमरे में है', walk: 'चल रहा है', run: 'दौड़ रहा है', you: 'नियंत्रण आपके हाथ में',
+    themes: { cozy: 'आरामदायक', gothic: 'गॉथिक', roman: 'रोमन', japanese: 'जापानी', scandi: 'नॉर्डिक', cyberpunk: 'साइबरपंक', beach: 'समुद्र तट', cabin: 'केबिन', space: 'अंतरिक्ष यान', castle: 'महल' }, theme: 'घर की शैली',
+    places: { window: 'खिड़की से बाहर देखें', sofa: 'सोफ़े पर बैठें', rug: 'कालीन पर नाचें', bed: 'झपकी लें', desk: 'प्लाज़ा देखें', plant: 'पौधे को पानी दें', front: 'हाय कहें' },
+    doing: { window: 'खिड़की से बाहर देख रहा है', sofa: 'सोफ़े पर आराम कर रहा है', rug: 'कालीन पर नाच रहा है', bed: 'झपकी ले रहा है', desk: 'प्लाज़ा देख रहा है', plant: 'पौधे को पानी दे रहा है', front: 'आपको हाय कह रहा है' },
+    say: {
+      hello: 'नमस्ते! मैं {name} हूँ', window: 'बाहर कितना सुंदर है…', sofa: 'आह… कितना आराम', desk: 'देखें प्लाज़ा में क्या है…', plant: 'पानी चाहिए 🌱',
+      gotMsg: '📩 मुझे एक संदेश मिला!', replied: 'जवाब दिया ✓', takeMe: 'मुझे घुमाओ! 🎮',
+    },
+    pad: { up: 'ऊपर', down: 'नीचे', left: 'बाएँ', right: 'दाएँ', use: 'इस्तेमाल' },
+  },
+};
+
+addCatalog({ es, en, pt, zh, hi });

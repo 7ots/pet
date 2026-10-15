@@ -138,4 +138,92 @@ const pt = {
   },
 };
 
-addCatalog({ es, en, pt });
+const zh = {
+  identity: {
+    card: {
+      label: '{name} 的名片',
+      loadError: '无法加载该智能体的名片。',
+      loading: '加载中…',
+      chat: '在这里聊天',
+      chatSub: '就在本页',
+      mail: '发送邮件',
+      mailInstant: '{email} · 即时回复',
+      mailSubject: '你好，{name}',
+      apuchatSub: '在 apuchat 应用中',
+      apuchatInstant: '在 apuchat 应用中 · 会回复也会给你打电话',
+      apuchatCopied: '已复制 @{handle}：在 apuchat 应用中搜索并给它发消息。',
+      apuchatSearch: '在 apuchat 应用中搜索 @{handle} 并给它发消息。',
+      call: '立即视频通话',
+      callSub: '在 meet.apuchat.com 面对面',
+      callPreparing: '正在准备与 {name} 的通话…',
+      callReady: '{name} 已在通话中等你。',
+      callError: '无法打开通话：{error}',
+      listen: '听听它的声音',
+      save: '保存联系人',
+      saveSub: 'vCard',
+      footer: '智能体身份',
+    },
+    greeting: {
+      intro: '你好，我是 {name}。',
+      introRole: '你好，我是 {name}，{role}。',
+      offer: '有什么可以帮你？',
+    },
+    face: {
+      subtitles: '字幕',
+      loadError: '无法加载身份（{status}）',
+    },
+    prompt: {
+      youAre: '你是 {name}。',
+      youAreRole: '你是 {name}，{role}。',
+      about: '关于你：{bio}',
+      tone: '你的语气：{tone}。',
+      traits: '特点：{traits}。',
+    },
+  },
+};
+
+const hi = {
+  identity: {
+    card: {
+      label: '{name} का कार्ड',
+      loadError: 'एजेंट का कार्ड लोड नहीं हो सका।',
+      loading: 'लोड हो रहा है…',
+      chat: 'यहाँ चैट करें',
+      chatSub: 'इसी पेज पर',
+      mail: 'ईमेल भेजें',
+      mailInstant: '{email} · तुरंत जवाब देता है',
+      mailSubject: 'नमस्ते, {name}',
+      apuchatSub: 'apuchat ऐप में',
+      apuchatInstant: 'apuchat ऐप में · जवाब देता है और आपको कॉल करता है',
+      apuchatCopied: '@{handle} कॉपी हो गया: apuchat ऐप में इसे खोजें और संदेश भेजें।',
+      apuchatSearch: 'apuchat ऐप में @{handle} खोजें और संदेश भेजें।',
+      call: 'अभी वीडियो कॉल करें',
+      callSub: 'meet.apuchat.com पर आमने-सामने',
+      callPreparing: '{name} के साथ कॉल तैयार हो रही है…',
+      callReady: '{name} कॉल पर आपका इंतज़ार कर रहा है।',
+      callError: 'कॉल नहीं खुल सकी: {error}',
+      listen: 'इसकी आवाज़ सुनें',
+      save: 'संपर्क सहेजें',
+      saveSub: 'vCard',
+      footer: 'एजेंट पहचान',
+    },
+    greeting: {
+      intro: 'नमस्ते, मैं {name} हूँ।',
+      introRole: 'नमस्ते, मैं {name} हूँ, {role}।',
+      offer: 'मैं आपकी क्या मदद करूँ?',
+    },
+    face: {
+      subtitles: 'सबटाइटल',
+      loadError: 'पहचान लोड नहीं हो सकी ({status})',
+    },
+    prompt: {
+      youAre: 'तुम {name} हो।',
+      youAreRole: 'तुम {name} हो, {role}।',
+      about: 'तुम्हारे बारे में: {bio}',
+      tone: 'तुम्हारा लहजा: {tone}।',
+      traits: 'खूबियाँ: {traits}।',
+    },
+  },
+};
+
+addCatalog({ es, en, pt, zh, hi });

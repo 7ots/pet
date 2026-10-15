@@ -15,11 +15,11 @@
  * existe (p. ej. 'fr' sin catálogo) usa inglés; sin preferencia alguna, español.
  */
 
-/** Idiomas incluidos de serie (todos los módulos tienen estos tres completos). */
-export const LOCALES = ['es', 'en', 'pt'];
+/** Idiomas incluidos de serie (todos los módulos los tienen completos). */
+export const LOCALES = ['es', 'en', 'pt', 'zh', 'hi'];
 export const DEFAULT_LOCALE = 'en';
 /** Nombre de cada idioma en su propio idioma (para selectores). */
-export const LOCALE_NAMES = { es: 'Español', en: 'English', pt: 'Português', fr: 'Français', de: 'Deutsch', it: 'Italiano', ca: 'Català' };
+export const LOCALE_NAMES = { es: 'Español', en: 'English', pt: 'Português', zh: '中文', hi: 'हिन्दी', fr: 'Français', de: 'Deutsch', it: 'Italiano', ca: 'Català' };
 
 const catalogs = Object.create(null); // lang → Map(clave plana → valor)
 const listeners = new Set();

@@ -11,7 +11,7 @@
  *
  * Nombres visibles: el `label` de cada pieza es solo el respaldo en español; la interfaz usa
  * partLabel(t, tipo, id), que lee `character.<tipo>.<id>` del catálogo de i18n
- * (src/i18n/messages/character.js). Una pieza nueva debe añadir su texto en es/en/pt allí
+ * (src/i18n/messages/character.js). Una pieza nueva debe añadir su texto en es/en/pt/zh/hi allí
  * (o con addMessages desde el sitio).
  */
 
@@ -135,38 +135,38 @@ export const SHAPES = [
   // ── catálogo 2 (2026-10): añadidas al final; las semillas antiguas no las sacan (ver CATALOG_V1) ──
   {
     id: 'peanut',
-    label: 'Cacahuete', en: 'Peanut', pt: 'Amendoim',
+    label: 'Cacahuete', en: 'Peanut', pt: 'Amendoim', zh: '花生', hi: 'मूंगफली',
     points: superShape({ rxT: 56, rxB: 64, ryT: 72, ryB: 60, nT: 2.2, nB: 2.4, tweak: (i, x, y) => (i === 4 || i === 12 ? [100 + (x - 100) * 0.84, y + 4] : i === 3 || i === 13 ? [100 + (x - 100) * 1.04, y] : [x, y]) }),
   },
-  { id: 'onigiri', label: 'Onigiri', en: 'Onigiri', pt: 'Onigiri', points: superShape({ rxT: 40, rxB: 72, ryT: 74, ryB: 54, nT: 1.5, nB: 3.4 }) },
-  { id: 'bell', label: 'Campana', en: 'Bell', pt: 'Sino', points: superShape({ rxT: 48, rxB: 74, ryT: 72, ryB: 54, nT: 2.2, nB: 5.5 }) },
-  { id: 'bun', label: 'Bollito', en: 'Bun', pt: 'Pãozinho', points: superShape({ rxT: 70, rxB: 74, ryT: 70, ryB: 40, nT: 2.1, nB: 5 }) },
+  { id: 'onigiri', label: 'Onigiri', en: 'Onigiri', pt: 'Onigiri', zh: '饭团', hi: 'ओनिगिरी', points: superShape({ rxT: 40, rxB: 72, ryT: 74, ryB: 54, nT: 1.5, nB: 3.4 }) },
+  { id: 'bell', label: 'Campana', en: 'Bell', pt: 'Sino', zh: '铃铛', hi: 'घंटी', points: superShape({ rxT: 48, rxB: 74, ryT: 72, ryB: 54, nT: 2.2, nB: 5.5 }) },
+  { id: 'bun', label: 'Bollito', en: 'Bun', pt: 'Pãozinho', zh: '小面包', hi: 'बन', points: superShape({ rxT: 70, rxB: 74, ryT: 70, ryB: 40, nT: 2.1, nB: 5 }) },
   {
     id: 'bear',
-    label: 'Osito', en: 'Teddy', pt: 'Ursinho',
+    label: 'Osito', en: 'Teddy', pt: 'Ursinho', zh: '小熊', hi: 'टेडी',
     points: superShape({
       rxT: 60, rxB: 64, ryT: 62, ryB: 60, nT: 2.3, nB: 2.4,
       tweak: (i, x, y) => (i === 2 || i === 14 ? [x + (i === 2 ? 14 : -14), y - 16] : i === 1 || i === 15 ? [x, y + 6] : [x, y]),
     }),
   },
-  { id: 'potato', label: 'Patata', en: 'Potato', pt: 'Batata', points: superShape({ rxT: 62, rxB: 66, ryT: 62, ryB: 58, nT: 2.3, nB: 2.5, tweak: (i, x, y) => [x + Math.sin(i * 2.9 + 1) * 6, y + Math.cos(i * 1.3 + 2) * 6] }) },
-  { id: 'gem', label: 'Gema', en: 'Gem', pt: 'Gema', points: superShape({ rxT: 66, rxB: 66, ryT: 66, ryB: 70, nT: 1.35, nB: 1.35 }) },
-  { id: 'chubby', label: 'Rechoncho', en: 'Chubby', pt: 'Fofinho', points: superShape({ rxT: 58, rxB: 82, ryT: 60, ryB: 46, nT: 2.2, nB: 3.2 }) },
-  { id: 'capsule', label: 'Cápsula', en: 'Capsule', pt: 'Cápsula', points: superShape({ rxT: 48, rxB: 48, ryT: 78, ryB: 72, nT: 2.6, nB: 2.6 }) },
-  { id: 'barrel', label: 'Tonel', en: 'Barrel', pt: 'Barril', points: superShape({ rxT: 64, rxB: 64, ryT: 64, ryB: 62, nT: 3, nB: 3, tweak: (i, x, y) => (i === 4 || i === 12 ? [100 + (x - 100) * 1.06, y] : [x, y]) }) },
-  { id: 'flame', label: 'Llama', en: 'Flame', pt: 'Chama', points: superShape({ rxT: 40, rxB: 64, ryT: 80, ryB: 54, nT: 1.6, nB: 2.4, tweak: (i, x, y) => (i === 0 ? [x + 16, y + 4] : i === 1 ? [x + 6, y] : i === 15 ? [x + 8, y] : [x, y]) }) },
+  { id: 'potato', label: 'Patata', en: 'Potato', pt: 'Batata', zh: '土豆', hi: 'आलू', points: superShape({ rxT: 62, rxB: 66, ryT: 62, ryB: 58, nT: 2.3, nB: 2.5, tweak: (i, x, y) => [x + Math.sin(i * 2.9 + 1) * 6, y + Math.cos(i * 1.3 + 2) * 6] }) },
+  { id: 'gem', label: 'Gema', en: 'Gem', pt: 'Gema', zh: '宝石', hi: 'रत्न', points: superShape({ rxT: 66, rxB: 66, ryT: 66, ryB: 70, nT: 1.35, nB: 1.35 }) },
+  { id: 'chubby', label: 'Rechoncho', en: 'Chubby', pt: 'Fofinho', zh: '胖嘟嘟', hi: 'गोल-मटोल', points: superShape({ rxT: 58, rxB: 82, ryT: 60, ryB: 46, nT: 2.2, nB: 3.2 }) },
+  { id: 'capsule', label: 'Cápsula', en: 'Capsule', pt: 'Cápsula', zh: '胶囊', hi: 'कैप्सूल', points: superShape({ rxT: 48, rxB: 48, ryT: 78, ryB: 72, nT: 2.6, nB: 2.6 }) },
+  { id: 'barrel', label: 'Tonel', en: 'Barrel', pt: 'Barril', zh: '木桶', hi: 'पीपा', points: superShape({ rxT: 64, rxB: 64, ryT: 64, ryB: 62, nT: 3, nB: 3, tweak: (i, x, y) => (i === 4 || i === 12 ? [100 + (x - 100) * 1.06, y] : [x, y]) }) },
+  { id: 'flame', label: 'Llama', en: 'Flame', pt: 'Chama', zh: '火焰', hi: 'लौ', points: superShape({ rxT: 40, rxB: 64, ryT: 80, ryB: 54, nT: 1.6, nB: 2.4, tweak: (i, x, y) => (i === 0 ? [x + 16, y + 4] : i === 1 ? [x + 6, y] : i === 15 ? [x + 8, y] : [x, y]) }) },
   {
     id: 'owl',
-    label: 'Búho', en: 'Owl', pt: 'Coruja',
+    label: 'Búho', en: 'Owl', pt: 'Coruja', zh: '猫头鹰', hi: 'उल्लू',
     points: superShape({
       rxT: 60, rxB: 64, ryT: 62, ryB: 60, nT: 3, nB: 2.4,
       tweak: (i, x, y) => (i === 2 || i === 14 ? [x + (i === 2 ? 4 : -4), y - 20] : i === 1 || i === 15 ? [x, y + 10] : i === 0 ? [x, y + 10] : [x, y]),
     }),
   },
-  { id: 'slime', label: 'Slime', en: 'Slime', pt: 'Slime', points: superShape({ rxT: 56, rxB: 80, ryT: 78, ryB: 30, nT: 2, nB: 6, tweak: (i, x, y) => (i >= 6 && i <= 10 ? [x, y + (i % 2 ? 4 : -1)] : [x, y]) }) },
-  { id: 'apple', label: 'Manzana', en: 'Apple', pt: 'Maçã', points: superShape({ rxT: 64, rxB: 60, ryT: 62, ryB: 62, nT: 2.4, nB: 2.2, tweak: (i, x, y) => (i === 0 ? [x, y + 12] : i === 1 || i === 15 ? [x, y + 2] : [x, y]) }) },
-  { id: 'lemon', label: 'Limón', en: 'Lemon', pt: 'Limão', points: superShape({ rxT: 70, rxB: 70, ryT: 56, ryB: 56, nT: 2, nB: 2, tweak: (i, x, y) => (i === 4 || i === 12 ? [x + (i === 4 ? 12 : -12), y] : [x, y]) }) },
-  { id: 'alien', label: 'Alien', en: 'Alien', pt: 'Alienígena', points: superShape({ rxT: 72, rxB: 44, ryT: 64, ryB: 66, nT: 2.3, nB: 1.7 }) },
+  { id: 'slime', label: 'Slime', en: 'Slime', pt: 'Slime', zh: '史莱姆', hi: 'स्लाइम', points: superShape({ rxT: 56, rxB: 80, ryT: 78, ryB: 30, nT: 2, nB: 6, tweak: (i, x, y) => (i >= 6 && i <= 10 ? [x, y + (i % 2 ? 4 : -1)] : [x, y]) }) },
+  { id: 'apple', label: 'Manzana', en: 'Apple', pt: 'Maçã', zh: '苹果', hi: 'सेब', points: superShape({ rxT: 64, rxB: 60, ryT: 62, ryB: 62, nT: 2.4, nB: 2.2, tweak: (i, x, y) => (i === 0 ? [x, y + 12] : i === 1 || i === 15 ? [x, y + 2] : [x, y]) }) },
+  { id: 'lemon', label: 'Limón', en: 'Lemon', pt: 'Limão', zh: '柠檬', hi: 'नींबू', points: superShape({ rxT: 70, rxB: 70, ryT: 56, ryB: 56, nT: 2, nB: 2, tweak: (i, x, y) => (i === 4 || i === 12 ? [x + (i === 4 ? 12 : -12), y] : [x, y]) }) },
+  { id: 'alien', label: 'Alien', en: 'Alien', pt: 'Alienígena', zh: '外星人', hi: 'एलियन', points: superShape({ rxT: 72, rxB: 44, ryT: 64, ryB: 66, nT: 2.3, nB: 1.7 }) },
 ];
 
 // ───────────────────────────── ojos ─────────────────────────────
@@ -424,13 +424,13 @@ export const FINISHES = [
   { id: 'neon', label: 'Neón' },
   { id: 'sketch', label: 'Boceto' },
   // catálogo 2 (2026-10): se dibujan en Character.js (FINISH2)
-  { id: 'pastel', label: 'Pastel', en: 'Pastel', pt: 'Pastel', as3d: 'soft3d' },
-  { id: 'metal', label: 'Metálico', en: 'Metallic', pt: 'Metálico', as3d: 'glossy' },
-  { id: 'pearl', label: 'Nácar', en: 'Pearl', pt: 'Madrepérola', as3d: 'glossy' },
-  { id: 'glass', label: 'Cristal', en: 'Glass', pt: 'Vidro', as3d: 'glossy' },
-  { id: 'velvet', label: 'Terciopelo', en: 'Velvet', pt: 'Veludo', as3d: 'clay' },
-  { id: 'holo', label: 'Holográfico', en: 'Holographic', pt: 'Holográfico', as3d: 'glossy' },
-  { id: 'vinyl', label: 'Vinilo', en: 'Vinyl toy', pt: 'Vinil', as3d: 'toon' },
+  { id: 'pastel', label: 'Pastel', en: 'Pastel', pt: 'Pastel', zh: '粉彩', hi: 'पेस्टल' },
+  { id: 'metal', label: 'Metálico', en: 'Metallic', pt: 'Metálico', zh: '金属', hi: 'धात्विक' },
+  { id: 'pearl', label: 'Nácar', en: 'Pearl', pt: 'Madrepérola', zh: '珍珠', hi: 'मोती' },
+  { id: 'glass', label: 'Cristal', en: 'Glass', pt: 'Vidro', zh: '玻璃', hi: 'काँच' },
+  { id: 'velvet', label: 'Terciopelo', en: 'Velvet', pt: 'Veludo', zh: '天鹅绒', hi: 'मखमल' },
+  { id: 'holo', label: 'Holográfico', en: 'Holographic', pt: 'Holográfico', zh: '镭射', hi: 'होलोग्राफ़िक' },
+  { id: 'vinyl', label: 'Vinilo', en: 'Vinyl toy', pt: 'Vinil', zh: '搪胶玩具', hi: 'विनाइल खिलौना', as3d: 'toon' },
 ];
 
 // ───────────────────────────── texturas ─────────────────────────────
@@ -447,16 +447,16 @@ export const TEXTURES = [
   { id: 'ridges', label: 'Anillos' },
   { id: 'gloss', label: 'Gelatina' },
   { id: 'panels', label: 'Paneles' },
-  // catálogo 2 (2026-10): solo se eligen a mano ('auto' nunca las saca)
-  { id: 'knit', label: 'Punto', en: 'Knit', pt: 'Tricô', as3d: 'fuzz' },
-  { id: 'polka', label: 'Lunares', en: 'Polka dots', pt: 'Bolinhas', as3d: 'speckles' },
-  { id: 'glitter', label: 'Purpurina', en: 'Glitter', pt: 'Purpurina', as3d: 'speckles' },
-  { id: 'stone', label: 'Piedra', en: 'Stone', pt: 'Pedra', as3d: 'speckles' },
-  { id: 'wood', label: 'Madera', en: 'Wood', pt: 'Madeira', as3d: 'ridges' },
-  { id: 'bubbles', label: 'Burbujas', en: 'Bubbles', pt: 'Bolhas', as3d: 'gloss' },
-  { id: 'stitches', label: 'Costuras', en: 'Stitches', pt: 'Costuras', as3d: 'fuzz' },
-  { id: 'honeycomb', label: 'Panal', en: 'Honeycomb', pt: 'Favo de mel', as3d: 'scales' },
-  { id: 'quilt', label: 'Acolchado', en: 'Quilted', pt: 'Acolchoado', as3d: 'fuzz' },
+  // catálogo 2 (2026-10): solo se eligen a mano ('auto' nunca las saca); en 3D, skinTex2 de character3d/materials.js
+  { id: 'knit', label: 'Punto', en: 'Knit', pt: 'Tricô', zh: '针织', hi: 'बुनाई' },
+  { id: 'polka', label: 'Lunares', en: 'Polka dots', pt: 'Bolinhas', zh: '波点', hi: 'पोल्का डॉट्स' },
+  { id: 'glitter', label: 'Purpurina', en: 'Glitter', pt: 'Purpurina', zh: '亮片', hi: 'ग्लिटर' },
+  { id: 'stone', label: 'Piedra', en: 'Stone', pt: 'Pedra', zh: '石头', hi: 'पत्थर' },
+  { id: 'wood', label: 'Madera', en: 'Wood', pt: 'Madeira', zh: '木头', hi: 'लकड़ी' },
+  { id: 'bubbles', label: 'Burbujas', en: 'Bubbles', pt: 'Bolhas', zh: '泡泡', hi: 'बुलबुले' },
+  { id: 'stitches', label: 'Costuras', en: 'Stitches', pt: 'Costuras', zh: '缝线', hi: 'सिलाई' },
+  { id: 'honeycomb', label: 'Panal', en: 'Honeycomb', pt: 'Favo de mel', zh: '蜂巢', hi: 'मधुकोश' },
+  { id: 'quilt', label: 'Acolchado', en: 'Quilted', pt: 'Acolchoado', zh: '绗缝', hi: 'रज़ाई जैसा' },
 ];
 
 addCatalog({
@@ -673,16 +673,18 @@ export const CATALOG_V1 = { shapes: 16, eyes: 33, brows: 9, mouths: 28, cheeks: 
 /** Listas por tipo (para partLabel). Moods y gestos viven en Character.js y solo tienen catálogo. */
 const CATALOG = { shapes: SHAPES, eyes: EYES, brows: BROWS, mouths: MOUTHS, cheeks: CHEEKS, patterns: PATTERNS, finishes: FINISHES, textures: TEXTURES, accessories: ACCESSORIES, groups: ACCESSORY_GROUPS, presets: PRESETS };
 
-// Textos en/pt de las piezas del catálogo 2 (llevan `en` y `pt` junto al `label` en español).
+// Textos en/pt/zh/hi de las piezas del catálogo 2 (llevan `en`, `pt`, `zh` y `hi` junto al `label` en español).
+// Si a una pieza le falta zh/hi, ese idioma cae al inglés.
 {
-  const by = { es: {}, en: {}, pt: {} };
+  const LANGS = ['es', 'en', 'pt', 'zh', 'hi'];
+  const by = Object.fromEntries(LANGS.map((l) => [l, {}]));
   for (const [kind, list] of Object.entries(CATALOG)) {
     for (const x of list) {
       if (Array.isArray(x) || !x.en) continue;
-      for (const l of ['es', 'en', 'pt']) (by[l][kind] ||= {})[x.id] = l === 'es' ? x.label : x[l];
+      for (const l of LANGS) (by[l][kind] ||= {})[x.id] = l === 'es' ? x.label : x[l] || x.en;
     }
   }
-  addCatalog({ es: { character: by.es }, en: { character: by.en }, pt: { character: by.pt } });
+  addCatalog(Object.fromEntries(LANGS.map((l) => [l, { character: by[l] }])));
 }
 
 const ALIAS3D = Object.fromEntries(['eyes', 'brows', 'mouths', 'cheeks', 'patterns', 'accessories', 'finishes', 'textures'].map((k) => [k, Object.fromEntries(CATALOG[k].filter((x) => x.as3d).map((x) => [x.id, x.as3d]))]));

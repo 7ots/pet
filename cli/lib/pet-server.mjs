@@ -246,10 +246,12 @@ export function startPetServer({ port = PET_PORT, log = () => {} } = {}) {
   }
   // Orquesta sign-in in the browser; once in, its integration is on
   let connecting = null;
-  function connectOrquesta() {
+  let orquestaLoginAt = 0; // the settings page waits for it to change after "Sign in with Orquesta"
+  // local: the token is wanted on this computer (Batuta as the brain), even when 7ots.com could hold it
+  function connectOrquesta({ local = false } = {}) {
     return (connecting ||= import('./orquesta.mjs')
       .then(async (o) => {
-        if (o.via() !== '7ots') return o.login({ open: openUrl });
+        if (local || o.via() !== '7ots') return o.login({ open: openUrl });
         // signed in to 7ots.com: connect it there (once for the ot everywhere); its token stays there
         openUrl(`${SEVENOTS_URL}/app/#ots/${config.account.otsId}/orquesta`);
         for (const end = Date.now() + 10 * 60_000; Date.now() < end; ) {
@@ -263,6 +265,7 @@ export function startPetServer({ port = PET_PORT, log = () => {} } = {}) {
         next.integrations = { ...next.integrations, orquesta: { ...next.integrations?.orquesta, on: true } };
         saveConfig(next);
         config = loadConfig();
+        orquestaLoginAt = Date.now();
         log(`orquesta: connected${r.organizationName ? ` (${r.organizationName})` : ''}`);
         broadcast({ orquesta: true });
         return r;
@@ -699,6 +702,12 @@ export function startPetServer({ port = PET_PORT, log = () => {} } = {}) {
       if (!buf) return res.writeHead(404).end();
       return res.writeHead(200, { 'Content-Type': 'model/gltf-binary', 'Cache-Control': 'max-age=31536000, immutable' }).end(buf);
     }
+    // chain and launchpad logos for the wallet page (brand/logos, public files)
+    if (req.method === 'GET' && /^\/logos\/[a-z]+\.(svg|png)$/.test(p)) {
+      const f = join(PKG_ROOT, 'brand', 'logos', p.slice(7));
+      if (!existsSync(f)) return res.writeHead(404).end();
+      return res.writeHead(200, { 'Content-Type': p.endsWith('.svg') ? 'image/svg+xml' : 'image/png', 'Cache-Control': 'max-age=86400' }).end(readFileSync(f));
+    }
     if (req.method === 'GET' && p === '/favicon.svg') return res.writeHead(200, { 'Content-Type': 'image/svg+xml', 'Cache-Control': 'max-age=86400' }).end(readFileSync(join(PKG_ROOT, 'brand', 'favicon.svg')));
     // the camera's libraries and models (MediaPipe, pinned by hash in senses/vendor.mjs): public files
     if (req.method === 'GET' && p.startsWith('/senses/vendor/')) {
@@ -1015,7 +1024,7 @@ export function startPetServer({ port = PET_PORT, log = () => {} } = {}) {
         broadcast({ say: text, gesture: 'wave' });
         return json(200, { ok: true, text, ms: Date.now() - t0 });
       } catch (e) {
-        return json(200, { ok: false, error: e.message, ms: Date.now() - t0 });
+        return json(200, { ok: false, error: e.message, ...(e.code ? { code: e.code } : {}), ms: Date.now() - t0 });
       }
     }
     if (p === '/screen/look') return json(200, { seen: config.access.screen ? await watcher.look({ force: true }) : null, enabled: config.access.screen });
@@ -1151,7 +1160,7 @@ export function startPetServer({ port = PET_PORT, log = () => {} } = {}) {
       }
     }
     if (p === '/orquesta/connect') {
-      const r = connectOrquesta();
+      const r = connectOrquesta({ local: data?.local === true });
       r.catch((e) => log(`orquesta: ${e.message}`));
       return json(200, { ok: true });
     }
@@ -1200,7 +1209,7 @@ export function startPetServer({ port = PET_PORT, log = () => {} } = {}) {
       const cur = config.character || {};
       const KEYS = ['backstory', 'style', 'quirks', 'scenario', 'greeting', 'examples'];
       const who = { name: identity.name, role: identity.role, tagline: identity.tagline, bio: identity.bio, tone: identity.personality?.tone, traits: identity.personality?.traits, look: (identity.look?.character?.mods || []).map((m) => m.id) };
-      const L = ['es', 'en', 'pt'].includes(data.lang) ? data.lang : lang;
+      const L = ['es', 'en', 'pt', 'zh', 'hi'].includes(data.lang) ? data.lang : lang;
       const LN = { es: 'Spanish (español)', pt: 'Brazilian Portuguese (português)', en: 'English' }[L];
       const FIELDS = {
         backstory: 'backstory (4-6 sentences: where it comes from, what it wants, what it fears)',
@@ -1326,6 +1335,7 @@ ${keys.map((k) => FIELDS[k]).join('\n')}`;
       vision: Boolean(brain.vision),
       allClis: Object.keys(AI_CLIS),
       keys: Object.fromEntries(SETTABLE_KEYS.map((k) => [k, Boolean(keys[k])])),
+      orquestaLoginAt,
       home: { kind: config.home.kind, url: Boolean(config.home.url) },
       reminders: assistant.reminders,
       notes: assistant.notes,

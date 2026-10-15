@@ -252,6 +252,7 @@ function makeOt(opt = {}) {
   // Only our own pet page may load (its reload after a settings change or another ot: Electron routes
   // location.reload() through will-navigate too, so blocking everything froze the old look until a restart).
   win.webContents.on('will-navigate', (e, url) => String(url || e?.url || '').startsWith(`${base}/pet?`) || e.preventDefault());
+  win.webContents.on('did-finish-load', () => ((offTold = ''), alive() && tellOff(win.getBounds()))); // a reload forgets it
   win.webContents.on('console-message', (e, level, msg) => /\[7ots/.test(msg ?? e?.message) && console.log(msg ?? e?.message)); // to ~/.7ots/electron.log
   // The microphone, only for our own page (voice control).
   const ours = (u) => /^http:\/\/127\.0\.0\.1:\d+\//.test(String(u || '')); // our daemons
@@ -262,11 +263,25 @@ function makeOt(opt = {}) {
 
   let still = false;
   let lastBounds = null;
+  // How much of the window hangs off the screen it is on (a drag may leave it 40 px past the floor or the
+  // right edge, or over the taskbar): the page lifts the hover menu by that much, and moves it to the ot's
+  // left when the right side is cut, so the buttons are never off screen (QA BUG-015).
+  let offTold = '';
+  const tellOff = (b) => {
+    const wa = screen.getDisplayNearestPoint({ x: Math.round(b.x + b.width / 2), y: Math.round(b.y + b.height / 2) }).workArea;
+    const below = Math.max(0, b.y + b.height - (wa.y + wa.height));
+    const pastRight = Math.max(0, b.x + b.width - (wa.x + wa.width));
+    const key = `${below},${pastRight}`;
+    if (key === offTold) return;
+    offTold = key;
+    page(`document.documentElement.style.setProperty('--off-below', '${below}px'); document.body.classList.toggle('menu-left', ${pastRight > 0})`);
+  };
   const place = (lift = 0) => {
     const b = bounds(size, pos, lift);
     if (lastBounds && b.x === lastBounds.x && b.y === lastBounds.y && b.width === lastBounds.width && b.height === lastBounds.height) return;
     lastBounds = b;
     win.setBounds(b);
+    tellOff(b);
   };
   const show = () => {
     Object.assign(pos, homeAnchor());

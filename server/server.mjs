@@ -54,6 +54,11 @@ const { getIdentity, identityConfigured, identityPrompt, publicIdentity, toVCard
 const { createAdmin } = await import('./admin.mjs');
 // Idioma: respuestas al cliente según Accept-Language; consola y equipo según LOCALE (ver server/i18n.mjs).
 const { reqT, requestLocale, teamT, i18nError, errorText } = await import('./i18n.mjs');
+// Capa pública del sitio: idioma servido, hreflang, pie común, legales, contacto, robots/sitemap, 404 (server/site.mjs).
+const { createSite, renderSitePage } = await import('./site.mjs');
+// P10: monitoreo de errores propio (back + front → log + aviso por correo agrupado).
+const { reportError, watchProcess, createErrorIntake } = await import('./errors.mjs');
+watchProcess();
 
 const env = process.env;
 const PORT = Number(env.PORT || 8787);
@@ -111,6 +116,9 @@ const REVISION = (() => {
   try { return JSON.parse(readFileSync(join(ROOT, 'REVISION'), 'utf8')); } catch { return null; }
 })();
 
+const site = createSite({ send, clientIp, originOf });
+const errorIntake = createErrorIntake({ send, clientIp, originOf });
+
 const server = createServer(async (req, res) => {
   const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
   const t = reqT(req);
@@ -120,6 +128,8 @@ const server = createServer(async (req, res) => {
       res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-cache', 'Access-Control-Allow-Origin': '*' });
       return res.end(req.method === 'HEAD' ? undefined : JSON.stringify(REVISION || { commit: null }));
     }
+    if (await errorIntake(req, res, url)) return;
+    if (await site.handle(req, res, url)) return;
     if (platform && ((await platform(req, res, url)) || (await auth(req, res, url)))) return;
     if (PLATFORM && (url.pathname === '/app' || url.pathname.startsWith('/app/'))) return await serveApp(req, res, url.pathname);
     if (url.pathname === '/llms.txt' && (req.method === 'GET' || req.method === 'HEAD')) {
@@ -141,13 +151,18 @@ const server = createServer(async (req, res) => {
 
     if (url.pathname.startsWith(PREFIX)) return await api(req, res, url.pathname.slice(PREFIX.length));
     if (DEMO && (await handleDemo(req, res, url, { readJson, send }))) return;
-    if (SERVE_STATIC && req.method === 'GET') return await serveStatic(req, res, url.pathname);
-    send(res, 404, { error: t('server.http.notFound') });
+    if (SERVE_STATIC && (req.method === 'GET' || req.method === 'HEAD')) return await serveStatic(req, res, url);
+    site.notFound(req, res, url, { error: t('server.http.notFound') });
   } catch (err) {
     // Only our own (i18n) errors reach the visitor as text; provider/SDK errors can echo keys or bodies.
     const status = err.i18n ? err.status || 500 : err.status ? 502 : 500;
-    if (status >= 500 && status !== 501) console.error('[7ots]', req.method, url.pathname, err);
-    if (!res.headersSent) send(res, status, { error: status >= 500 && status !== 501 ? t('server.http.internal') : errorText(err, t) });
+    if (status >= 500 && status !== 501) {
+      console.error('[7ots]', req.method, url.pathname, err);
+      reportError({ kind: `http ${status}`, message: err?.message || String(err), stack: err?.stack, where: `${req.method} ${url.pathname}` });
+    }
+    // An i18n error is our own sentence (a provider's reason trimmed and scrubbed, e.g. "ElevenLabs rejected the
+    // key"), so it is shown even on a 5xx; anything else on a 5xx stays the generic text (QA BUG-013).
+    if (!res.headersSent) send(res, status, { error: status >= 500 && status !== 501 && !err.i18n ? t('server.http.internal') : errorText(err, t) });
   }
 });
 
@@ -162,6 +177,12 @@ async function api(req, res, path) {
   if (!rateLimit(req)) return send(res, 429, { error: t('server.http.rateLimited') });
 
   if (path === '/chat') {
+    // Cupo diario por IP: el chat del sitio gasta la clave del operador.
+    const wait = chatDailyWait(req);
+    if (wait) {
+      res.setHeader('Retry-After', String(wait));
+      return send(res, 429, { error: t('server.http.rateLimited') });
+    }
     const body = await readJson(req, 1024 * 1024);
     const { system, messages, tools = [] } = body;
     if (typeof system !== 'string' || !Array.isArray(messages) || !messages.length || !Array.isArray(tools)) {
@@ -382,6 +403,8 @@ function sameOrigin(req) {
 }
 
 function send(res, status, body) {
+  // R7: todo 429 dice cuándo reintentar (los límites con su propio plazo ya lo pusieron).
+  if (status === 429 && !res.getHeader('Retry-After')) res.setHeader('Retry-After', '60');
   if (body === undefined) {
     res.writeHead(status);
     return res.end();
@@ -427,10 +450,28 @@ function rateLimit(req) {
   return true;
 }
 
+// Cupo diario de /api/agent/chat por IP (CHAT_DAILY_PER_IP, defecto 300). Devuelve segundos de espera o 0.
+const chatDay = new Map();
+function chatDailyWait(req) {
+  const max = Number(env.CHAT_DAILY_PER_IP || 300);
+  if (!max) return 0;
+  const ip = clientIp(req);
+  const now = Date.now();
+  const day = Math.floor(now / 86400_000);
+  const e = chatDay.get(ip);
+  const cur = e && e.day === day ? e : { day, n: 0 };
+  if (cur.n >= max) return Math.ceil(((day + 1) * 86400_000 - now) / 1000);
+  cur.n++;
+  chatDay.set(ip, cur);
+  if (chatDay.size > 20000) chatDay.clear();
+  return 0;
+}
+
 const MIME = {
   '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.mjs': 'text/javascript; charset=utf-8',
   '.css': 'text/css; charset=utf-8', '.json': 'application/json', '.svg': 'image/svg+xml', '.png': 'image/png',
   '.jpg': 'image/jpeg', '.glb': 'model/gltf-binary', '.md': 'text/markdown; charset=utf-8', '.ico': 'image/x-icon',
+  '.webp': 'image/webp', '.txt': 'text/plain; charset=utf-8', '.xml': 'application/xml; charset=utf-8',
 };
 /** Directorio pedido sin barra final: 301 a la forma con barra (conserva la query). */
 function redirectSlash(req, res, pathname) {
@@ -441,13 +482,20 @@ function redirectSlash(req, res, pathname) {
 
 const STATIC_DIRS = ['site', 'brand', 'examples', 'src', 'dist'];
 
-async function serveStatic(req, res, pathname) {
+async function serveStatic(req, res, url) {
+  const pathname = url.pathname;
+  const notFound = () => site.notFound(req, res, url, { error: reqT(req)('server.http.notFound') });
   if (pathname === '/') {
-    res.writeHead(302, { Location: '/site/start/' });
+    res.writeHead(302, { Location: `/site/start/${url.search}` });
     return res.end();
   }
-  let rel = normalize(decodeURIComponent(pathname)).replace(/^([/\\])+/, '');
-  if (!STATIC_DIRS.some((d) => rel === d || rel.startsWith(`${d}/`))) return send(res, 404, { error: reqT(req)('server.http.notFound') });
+  let rel;
+  try {
+    rel = normalize(decodeURIComponent(pathname)).replace(/^([/\\])+/, '');
+  } catch {
+    return notFound();
+  }
+  if (!STATIC_DIRS.some((d) => rel === d || rel.startsWith(`${d}/`))) return notFound();
   let file = join(ROOT, rel);
   if (!file.startsWith(ROOT)) return send(res, 403, { error: reqT(req)('server.http.forbidden') });
   try {
@@ -455,12 +503,20 @@ async function serveStatic(req, res, pathname) {
       // /site/start → /site/start/: sin la barra, los recursos relativos (start.css) no cargan.
       if (!pathname.endsWith('/')) return redirectSlash(req, res, pathname);
       file = join(file, 'index.html');
+      rel = join(rel, 'index.html');
     }
-    const data = await readFile(file);
-    res.writeHead(200, { 'Content-Type': MIME[extname(file)] || 'application/octet-stream', 'Cache-Control': 'no-cache' });
-    res.end(data);
+    let data = await readFile(file);
+    const headers = { 'Content-Type': MIME[extname(file)] || 'application/octet-stream', 'Cache-Control': 'no-cache' };
+    // Páginas del sitio: idioma, hreflang, OG y pie se resuelven en el servidor.
+    if (rel.startsWith('site/') && extname(file) === '.html') {
+      data = Buffer.from(renderSitePage(req, url, rel.replace(/\\/g, '/'), data.toString('utf8')));
+      headers.Vary = 'Accept-Language, Cookie';
+    }
+    headers['Content-Length'] = data.length;
+    res.writeHead(200, headers);
+    res.end(req.method === 'HEAD' ? undefined : data);
   } catch {
-    send(res, 404, { error: reqT(req)('server.http.notFound') });
+    notFound();
   }
 }
 

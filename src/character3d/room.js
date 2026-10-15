@@ -172,7 +172,7 @@ export function createRoom3D(el, spec, opts = {}) {
 
   const build = (s) => {
     if (ch) { scene.remove(ch.root); ch.dispose(); }
-    ch = new Character3D(s, { quality: 'high', material: 'plush' });
+    ch = new Character3D(s, { quality: 'high', material: opts.material || 'plush' });
     ch.root.scale.setScalar(OT_H / ch.H);
     scene.add(ch.root);
   };
@@ -186,6 +186,7 @@ export function createRoom3D(el, spec, opts = {}) {
     if (!seated) return;
     const p = seated;
     seated = null;
+    if (ch.moodName === 'sleep') ch.mood('neutral'); // taken out of bed mid-nap: it wakes up (eyes open) before moving
     await hopTo([p.at[0], 0, p.at[1]]);
   };
 

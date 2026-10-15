@@ -11,10 +11,12 @@
  */
 
 import { spawn, spawnSync } from 'node:child_process';
+import { existsSync, readFileSync } from 'node:fs';
 import { homedir } from 'node:os';
-import { delimiter, dirname, join } from 'node:path';
+import { delimiter, dirname, join, win32 } from 'node:path';
 import { identityPrompt } from '../../src/identity/schema.js';
 import { createLLM } from '../../server/llm.mjs';
+import { SEVENOTS_URL } from './account.mjs';
 import { env, loadConfig, ORQUESTA_URL } from './config.mjs';
 import { characterPrompt, integrationsPrompt } from './integrations.mjs';
 import { ensureHome, PET_PORT } from './paths.mjs';
@@ -77,11 +79,49 @@ export function petSystem(identity, { lang, role = 'pet' } = {}) {
   return `${base}${sheet ? `\n${sheet}` : ''}\n${job}${tools ? `\n${tools}` : ''}${tone}\n${lang === 'auto' ? 'Always answer in the language your human writes in.' : `Always answer in ${L}.`}`;
 }
 
+/**
+ * On Windows, npm installs global CLIs as `orquesta.cmd` shims, and spawn() without a shell only finds
+ * .exe/.com (no PATHEXT), so `spawn('orquesta')` fails with ENOENT although `where orquesta` finds it.
+ * A shell is no way out: cmd.exe can't carry the prompt's newlines and re-parses its quotes. So we read
+ * the npm shim and run its script with node directly (the same thing the shim does); a real .exe runs as is.
+ * Elsewhere the name goes through unchanged.
+ */
+export function resolveCliCommand(bin, args, { platform = process.platform, where = whereAll, read = (f) => readFileSync(f, 'utf8'), exists = existsSync } = {}) {
+  if (platform !== 'win32' || /[\\/]/.test(bin)) return { cmd: bin, args };
+  const found = where(bin);
+  const exe = found.find((f) => /\.(exe|com)$/i.test(f));
+  if (exe) return { cmd: exe, args };
+  for (const shim of found.filter((f) => /\.(cmd|bat)$/i.test(f))) {
+    let text = '';
+    try {
+      text = read(shim);
+    } catch {
+      continue;
+    }
+    // npm/cmd-shim: "%_prog%"  "%dp0%\node_modules\pkg\bin.js" %*   (older: "%~dp0\..." )
+    const m = text.match(/"%(?:~dp0|dp0%)\\?([^"%]+?\.(?:c|m)?js)"\s+%\*/i);
+    if (!m) continue;
+    const dir = win32.dirname(shim);
+    const script = win32.resolve(dir, m[1]);
+    if (!exists(script)) continue;
+    const local = win32.join(dir, 'node.exe'); // the shim prefers a node.exe next to it, then the one on PATH
+    const node = exists(local) ? local : where('node').find((f) => /\.exe$/i.test(f)) || 'node';
+    return { cmd: node, args: [script, ...args] };
+  }
+  return { cmd: bin, args }; // not installed: spawn reports ENOENT as before
+}
+
+function whereAll(bin) {
+  const r = spawnSync('where', [bin], { encoding: 'utf8', windowsHide: true });
+  return r.status === 0 ? String(r.stdout).split(/\r?\n/).map((s) => s.trim()).filter(Boolean) : [];
+}
+
 function runCli({ cli, model, command }, prompt, timeoutMs, files, web = false) {
   const spec = cli === 'custom' ? { bin: '/bin/sh', args: (p) => ['-c', command, 'sh', p] } : AI_CLIS[cli];
   if (!spec) return Promise.reject(new Error(`unknown cli ${cli}`));
   return new Promise((resolve, reject) => {
-    const child = spawn(spec.bin, spec.args(prompt, model, files, web), {
+    const run = resolveCliCommand(spec.bin, spec.args(prompt, model, files, web));
+    const child = spawn(run.cmd, run.args, {
       cwd: ensureHome(),
       windowsHide: true,
       env: { ...process.env, SEVENOTS_PET_BRAIN: '1', NO_COLOR: '1' },
@@ -112,6 +152,22 @@ function runCli({ cli, model, command }, prompt, timeoutMs, files, web = false) 
       }
     });
   });
+}
+
+/**
+ * Batuta only takes Orquesta's sign-in token (oclt_…, from `7ots login orquesta` / "Sign in with Orquesta") or a
+ * project's agent token. An API key from Orquesta → Settings → API keys (oak_…) is found but has no project, and
+ * Batuta answers 403 "Could not resolve organization for token": say which token it needs instead.
+ * `code` lets the settings page translate it; the message stays readable in logs.
+ */
+export function batutaError(e, token = '') {
+  const status = e?.status;
+  const msg = String(e?.message || '');
+  const wrongKind = /^(oak_|mcp_)/.test(token) || (status === 403 && /resolve organization/i.test(msg));
+  if (wrongKind) return Object.assign(new Error('batuta: this Orquesta token has no organization for Batuta (an API key?); sign in with Orquesta to get a CLI token (oclt_)'), { code: 'batuta_wrong_token', status });
+  if (status === 401) return Object.assign(new Error(`batuta: Orquesta rejected the token (${msg.replace(/^\d+\s*/, '').slice(0, 80) || 'invalid'}); sign in with Orquesta again`), { code: 'batuta_bad_token', status });
+  if (status === 402 || (status === 403 && /billing|limit|access|plan|add-on/i.test(msg))) return Object.assign(new Error(`batuta: ${msg.replace(/^\d+\s*/, '').slice(0, 160)}`), { code: 'batuta_no_plan', status });
+  return e;
 }
 
 /** Last meaningful paragraph of a CLI's output, cleaned of ANSI and quotes. */
@@ -169,7 +225,13 @@ export function createBrain(brain = { kind: 'lines' }, home = {}) {
     return {
       kind: brain.kind,
       async think({ system, messages, raw = false, onUsage }) {
-        const r = await llm.step({ system, messages, tools: [] });
+        if (brain.kind === 'batuta' && !keys.ORQUESTA_TOKEN) throw Object.assign(new Error('batuta: no Orquesta token'), { code: 'batuta_no_token' });
+        let r;
+        try {
+          r = await llm.step({ system, messages, tools: [] });
+        } catch (e) {
+          throw brain.kind === 'batuta' ? batutaError(e, keys.ORQUESTA_TOKEN) : e;
+        }
         if (r.usage) onUsage?.(r.usage);
         return raw ? r.text : cleanReply(r.text);
       },
@@ -180,10 +242,12 @@ export function createBrain(brain = { kind: 'lines' }, home = {}) {
     return {
       kind: '7ots',
       async think({ system, messages, timeoutMs = 45000, raw = false, onUsage }) {
-        // The ot's home only serves its own domains: add http://127.0.0.1:<port> to them in /app/.
+        // On 7ots.com the owner's device token opens its own ot's home; a self-hosted home only serves its
+        // domains (add http://127.0.0.1:<port> to them). The token never goes to another server.
+        const token = new URL(url).origin === new URL(SEVENOTS_URL).origin && env().SEVENOTS_TOKEN;
         const res = await fetch(url, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', Origin: `http://127.0.0.1:${PET_PORT}` },
+          headers: { 'Content-Type': 'application/json', Origin: `http://127.0.0.1:${PET_PORT}`, ...(token ? { Authorization: `Bearer ${token}` } : {}) },
           body: JSON.stringify({ system, messages, tools: [] }),
           signal: AbortSignal.timeout(timeoutMs),
         });

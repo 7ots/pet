@@ -31,6 +31,18 @@ const TEXT = {
     traits: ['curioso', 'paciente', 'brincalhão', 'organizado', 'dramático', 'otimista', 'distraído', 'leal', 'mandão', 'dorminhoco', 'guloso', 'corajoso'],
     tagline: (n) => `Oi, eu sou ${n}.`,
   },
+  zh: {
+    roles: ['家庭助手', '好奇的向导', '编程伙伴', '数字主持人', '不知疲倦的帮手', '网页探险家', '有主见的宠物', '终端瞭望员'],
+    tones: ['亲切又俏皮', '沉稳而清晰', '热情又直接', '爱调侃但友善', '可爱又好奇', '认真中带点火花'],
+    traits: ['好奇', '耐心', '爱开玩笑', '爱整洁', '戏精', '乐观', '迷糊', '忠诚', '爱指挥', '贪睡', '贪吃', '勇敢'],
+    tagline: (n) => `你好，我是${n}。`,
+  },
+  hi: {
+    roles: ['घर का सहायक', 'जिज्ञासु गाइड', 'कोडिंग साथी', 'डिजिटल मेज़बान', 'अथक मददगार', 'पेज खोजी', 'राय रखने वाला पालतू', 'टर्मिनल का पहरेदार'],
+    tones: ['अपनापन भरा और चंचल', 'शांत और साफ़', 'उत्साही और सीधा', 'चुटीला पर दयालु', 'प्यारा और जिज्ञासु', 'गंभीर पर चमकदार'],
+    traits: ['जिज्ञासु', 'धैर्यवान', 'नटखट', 'सलीकेदार', 'नाटकीय', 'आशावादी', 'भुलक्कड़', 'वफ़ादार', 'हुक्म चलाने वाला', 'नींद का मारा', 'पेटू', 'बहादुर'],
+    tagline: (n) => `नमस्ते, मैं ${n} हूँ।`,
+  },
 };
 
 /**
@@ -85,7 +97,7 @@ export function randomName(seed) {
 /**
  * Identidad completa y válida (pasa por defineIdentity).
  * @param {string} seed
- * @param {{ lang?: 'en'|'es'|'pt', name?: string }} [opts] el nombre puede fijarse; el resto sale de la semilla
+ * @param {{ lang?: 'en'|'es'|'pt'|'zh'|'hi', name?: string }} [opts] el nombre puede fijarse; el resto sale de la semilla
  */
 export function randomIdentity(seed, { lang = 'en', name } = {}) {
   const sd = cleanSeed(seed) || newSeed();
@@ -117,7 +129,7 @@ export function randomIdentity(seed, { lang = 'en', name } = {}) {
     },
     voice: {
       provider: 'auto',
-      lang: { es: 'es-ES', en: 'en-US', pt: 'pt-BR' }[L],
+      lang: { es: 'es-ES', en: 'en-US', pt: 'pt-BR', zh: 'zh-CN', hi: 'hi-IN' }[L],
       rate: Math.round((0.95 + rnd() * 0.2) * 100) / 100,
       pitch: Math.round((female ? 1.05 + rnd() * 0.3 : 0.8 + rnd() * 0.25) * 100) / 100,
     },
