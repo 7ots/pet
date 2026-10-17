@@ -82,7 +82,7 @@ import { defineIdentity, GROK_VOICES, OPENAI_VOICES, TTS_MODELS } from '../../sr
 import { normalizeMod, normalizeMods, MAX_MODS } from '../../src/character/mods.js';
 import { MOD_CATALOG } from '../../src/character/mods/index.js';
 import { DANCES, AURA_MOVES, AURA_STYLE, AURA_POINTS } from '../../src/character/motion.js';
-import { stripSpeechTags } from '../../src/voice/tags.js';
+import { stripMarkdown, stripSpeechTags } from '../../src/voice/tags.js';
 
 /** Mods importados en este pet (~/.7ots/mods/library.json), normalizados. */
 // scenes between ots on the same desktop (pet/electron/director.cjs plays them)
@@ -939,6 +939,7 @@ export function startPetServer({ port = PET_PORT, log = () => {} } = {}) {
       const kind = config.voice.kind;
       log(`audio: tts ${kind} «${String(data.text || '').slice(0, 60)}»`);
       if (['none', 'browser'].includes(kind)) return json(501, { error: 'browser voice' });
+      data.text = stripMarkdown(data.text);
       try {
         if (kind === 'local') {
           const { audio, contentType } = await synthesizeLocal(stripSpeechTags(data.text).slice(0, 600), { lang });

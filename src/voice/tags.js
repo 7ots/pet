@@ -9,6 +9,28 @@ export function stripSpeechTags(text) {
   return String(text ?? '').replace(WRAP, '').replace(INLINE, ' ').replace(/\s{2,}/g, ' ').trim();
 }
 
+/** Markdown read aloud is noise ("hashtag hashtag", "guión guión guión"): headings, rules, bullets, emphasis, code and
+ *  links become plain words. Speech tags are left alone. */
+export function stripMarkdown(text) {
+  return String(text ?? '')
+    .replace(/```[\s\S]*?```/g, ' ')
+    .replace(/^\s{0,3}(?:[-*_]\s*){3,}$/gm, ' ')
+    .replace(/^\s{0,3}#{1,6}\s+/gm, '')
+    .replace(/^\s{0,3}>\s?/gm, '')
+    .replace(/^\s*(?:[-*+]|\d+[.)])\s+/gm, '')
+    .replace(/!?\[([^\]]*)\]\([^)]*\)/g, '$1')
+    .replace(/`([^`]*)`/g, '$1')
+    .replace(/(\*\*|__)(.+?)\1/g, '$2')
+    .replace(/(^|[\s(])[*_]([^*_\n]+)[*_](?=[\s).,;:!?]|$)/g, '$1$2')
+    .replace(/\|/g, ', ')
+    .replace(/[ \t]*\n\s*/g, '\n')
+    .replace(/^\n+|\n+$/g, '')
+    .replace(/([^.!?:;,…\n])\n+/g, '$1. ') // a line or list item ends: a short pause
+    .replace(/\n+/g, ' ')
+    .replace(/[ \t]{2,}/g, ' ')
+    .trim();
+}
+
 const EL_INLINE = { laugh: '[laughs]', cry: '[crying]', sigh: '[sighs]', breath: '[exhales]', pause: '…', 'long-pause': '… …', 'mouth-click': '' };
 const EL_WRAP = { whisper: '[whispers]', soft: '[softly]', loud: '[shouting]', slow: '[slowly]', fast: '[quickly]', singing: '[sings]' };
 

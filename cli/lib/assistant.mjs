@@ -73,6 +73,8 @@ const T = {
     fire: (r) => `¡Recordatorio: ${r.text}!`,
     offload: (k) => `Voy: se lo mandé a mi servidor (${k}). Te cuento cómo va.`,
     offloadQueued: 'En cola: mi servidor está apagado ahora, empieza cuando vuelva.',
+    // what the 7ots server says about the microVM (server/platform/vm.mjs), in your language
+    server: { 'Starting the microVM…': 'prendiendo la microVM…', 'The microVM is slow to start; Orquesta keeps trying…': 'la microVM tarda en arrancar; Orquesta sigue intentando…', 'The microVM is working on it…': 'la microVM está trabajando en eso…', 'The microVM did not start in time': 'la microVM no arrancó a tiempo', 'The task no longer exists in Orquesta': 'la tarea ya no existe en Orquesta' },
     offloadStep: (s) => `Sigo en eso: ${s}`,
     offloadDone: (r) => `Listo: ${r}`,
     offloadFail: (e) => `Mi servidor no pudo terminarlo: ${e}`,
@@ -94,6 +96,7 @@ const T = {
     fire: (r) => `Lembrete: ${r.text}!`,
     offload: (k) => `Já vou: mandei para o meu servidor (${k}). Te conto como vai.`,
     offloadQueued: 'Na fila: meu servidor está desligado agora, começa quando voltar.',
+    server: { 'Starting the microVM…': 'ligando a microVM…', 'The microVM is slow to start; Orquesta keeps trying…': 'a microVM está demorando para iniciar; a Orquesta continua tentando…', 'The microVM is working on it…': 'a microVM está trabalhando nisso…', 'The microVM did not start in time': 'a microVM não iniciou a tempo', 'The task no longer exists in Orquesta': 'a tarefa não existe mais na Orquesta' },
     offloadStep: (s) => `Ainda trabalhando: ${s}`,
     offloadDone: (r) => `Pronto: ${r}`,
     offloadFail: (e) => `Meu servidor não conseguiu terminar: ${e}`,
@@ -334,6 +337,7 @@ export function createAssistant({ brain, system, lang, name, onFire, watchers = 
 
   // Runs in the background: the reply already said "on it"; progress and result come as `say`.
   async function offload(a, L0) {
+    const srv = (x) => L0.server?.[x] || x;
     if (local()) return offloadLocal(a, L0);
     const otsId = cloud();
     let last = 0;
@@ -349,14 +353,14 @@ export function createAssistant({ brain, system, lang, name, onFire, watchers = 
       offloading = job.id;
       last = Date.now();
       if (!job.online) speak(L0.offloadQueued, true);
-      const end = await followJob(otsId, job.id, { onEvent: (ev) => ev.kind === 'progress' && !/^start /.test(ev.text) && speak(L0.offloadStep(String(ev.text).slice(0, 160))) });
+      const end = await followJob(otsId, job.id, { onEvent: (ev) => ev.kind === 'progress' && !/^start /.test(ev.text) && speak(L0.offloadStep(srv(String(ev.text).slice(0, 160)))) });
       if (end.status === 'completed') {
         const text = String(end.result || '').trim();
         track(a, 'completed', text);
         finish(a, L0, text);
       } else {
         track(a, 'failed', end.error || end.status);
-        if (end.status !== 'cancelled') speak(L0.offloadFail(end.error || end.status), true);
+        if (end.status !== 'cancelled') speak(L0.offloadFail(srv(end.error || end.status)), true);
       }
     } catch (e) {
       log(`offload: ${e.message}`);
