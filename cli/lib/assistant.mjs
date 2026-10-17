@@ -222,7 +222,7 @@ export function parseLocal(text, now = Date.now()) {
 
 // ── AI understanding ──
 
-function aiPrompt(text, { lang, notes, reminders, watchers = [], procs = '', more = '', conv = '', vmKinds = [], now }) {
+function aiPrompt(text, { lang, notes, reminders, watchers = [], procs = '', more = '', conv = '', vmKinds = [], work = '', now }) {
   return [
     // the conversation goes first, right above the new message: a short «ok», «prueba», «dale» answers your last line
     conv,
@@ -239,6 +239,7 @@ function aiPrompt(text, { lang, notes, reminders, watchers = [], procs = '', mor
     `{"type":"open","url":"https://…"} (open now) · {"type":"note","text":"a durable fact or preference worth remembering"} · {"type":"cancel"} (all pending reminders and watchers) · {"type":"list"}`,
     `{"type":"watch_price","coin":"bitcoin|ethereum|solana|… (CoinGecko id) or ticker","op":">=|<=","value":N,"vs":"usd|clp|eur|…","text":"what to tell them"} (crypto price alert; checked every minute)`,
     `{"type":"watch_process","match":"part of the command line, e.g. 'npm run build'","until":"exit|start","text":"what to tell them"} (tell them when a program on their computer finishes or starts)`,
+    work,
     vmKinds.length ? `{"type":"offload","kind":"${vmKinds.join('|')}","text":"the full request, self-contained (dates, places, budget…)"} (hand long work to your worker: research = think it through, browse = read the URLs in text, long = multi-step work${vmKinds.includes('code') ? ', code = programming task' : ''}${vmKinds.includes('shell') ? ', shell = one bash command' : ''}; you will report back when it is done)` : '',
     more,
     `Use the watch actions for "alert me / let me know if/when …" about a price or a program. Never say you cannot do something these actions can do.`,
@@ -313,6 +314,17 @@ export function createAssistant({ brain, system, lang, name, onFire, watchers = 
     return cloud() ? kinds : [];
   };
   let offloading = null;
+  let lastJob = null; // { kind, text, status: running|completed|failed, out, at }: what the worker really did
+  const track = (a, status, out = '') => (lastJob = { kind: a.kind, text: a.text.slice(0, 160), status, out: String(out).slice(0, 300), at: Date.now() });
+  // The brain only knows about jobs from this: without it, it tells progress of a job that never ran.
+  const workLine = () => {
+    const j = lastJob;
+    if (!j) return vmKinds().length ? 'Your worker has no job and has done none since you started: never say one is running or has results.' : '';
+    const what = `${j.kind} «${j.text}» (${Math.round((Date.now() - j.at) / 60000)} min ago)`;
+    if (j.status === 'running') return `Your worker is working on ${what}; no result yet.`;
+    if (j.status === 'failed') return `Your worker's last job FAILED: ${what} → ${j.out}. Nothing is running now: say so plainly if asked, never invent progress or results.`;
+    return `Your worker's last job finished: ${what} → ${j.out}. Nothing is running now.`;
+  };
 
   const finish = (a, L0, text) => {
     if (may('memory')) (notes.push({ text: `[${a.kind}] ${a.text.slice(0, 80)} → ${text.slice(0, 200)}`, at: Date.now() }), saveN());
@@ -332,6 +344,7 @@ export function createAssistant({ brain, system, lang, name, onFire, watchers = 
     };
     try {
       const context = may('memory') && notes.length ? `What the owner told the pet to remember:\n${notes.slice(-15).map((n) => `- ${n.text}`).join('\n')}` : '';
+      track(a, 'running');
       const job = await submitJob(otsId, { kind: a.kind, input: a.text, context });
       offloading = job.id;
       last = Date.now();
@@ -339,10 +352,15 @@ export function createAssistant({ brain, system, lang, name, onFire, watchers = 
       const end = await followJob(otsId, job.id, { onEvent: (ev) => ev.kind === 'progress' && !/^start /.test(ev.text) && speak(L0.offloadStep(String(ev.text).slice(0, 160))) });
       if (end.status === 'completed') {
         const text = String(end.result || '').trim();
+        track(a, 'completed', text);
         finish(a, L0, text);
-      } else if (end.status !== 'cancelled') speak(L0.offloadFail(end.error || end.status), true);
+      } else {
+        track(a, 'failed', end.error || end.status);
+        if (end.status !== 'cancelled') speak(L0.offloadFail(end.error || end.status), true);
+      }
     } catch (e) {
       log(`offload: ${e.message}`);
+      track(a, 'failed', e.message);
       speak(L0.offloadFail(e.message), true);
     } finally {
       offloading = null;
@@ -351,13 +369,16 @@ export function createAssistant({ brain, system, lang, name, onFire, watchers = 
   // Same job on this computer with the owner's AI CLI (web search/fetch allowed for research and browse).
   async function offloadLocal(a, L0) {
     offloading = `local-${Date.now().toString(36)}`;
+    track(a, 'running');
     try {
       const context = may('memory') && notes.length ? `\n\nWhat the owner told you to remember:\n${notes.slice(-15).map((n) => `- ${n.text}`).join('\n')}` : '';
       const text = String(await brain.work(`${LOCAL_TASK[a.kind]}\n\nThe request:\n${a.text}${context}`, { web: true })).trim();
       if (!text) throw new Error('empty answer');
+      track(a, 'completed', text);
       finish(a, L0, text);
     } catch (e) {
       log(`offload local: ${e.message}`);
+      track(a, 'failed', e.message);
       say(L0.localFail(e.message));
     } finally {
       offloading = null;
@@ -494,7 +515,7 @@ export function createAssistant({ brain, system, lang, name, onFire, watchers = 
         // Prowl.world guides for the sites in play (access.sites; untrusted reference), fetched alongside the processes
         const [running, siteRef] = await Promise.all([may('processes') ? procs().catch(() => '') : '', sites ? sites.prompt(text).catch(() => '') : '']);
         const more = [extra?.prompt() || '', context() || '', siteRef].filter(Boolean).join('\n');
-        const raw = await brain.think({ purpose: 'assistant', system: system(detected), messages: [{ role: 'user', content: aiPrompt(text, { lang: detected, notes: may('memory') ? notes.slice(-30) : [], reminders, watchers: watchers?.list || [], procs: running, more, conv: convBlock(), vmKinds: vmKinds(), now }) }], timeoutMs: 45000, raw: true });
+        const raw = await brain.think({ purpose: 'assistant', system: system(detected), messages: [{ role: 'user', content: aiPrompt(text, { lang: detected, notes: may('memory') ? notes.slice(-30) : [], reminders, watchers: watchers?.list || [], procs: running, more, conv: convBlock(), vmKinds: vmKinds(), work: workLine(), now }) }], timeoutMs: 45000, raw: true });
         ai = parseAi(raw, now, extra, vmKinds());
       } catch (e) {
         log(`assistant: ${e.message}`);

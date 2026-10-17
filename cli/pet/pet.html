@@ -176,6 +176,10 @@
   body.desktop .act span { display: none; }
   body.desktop .act.primary { background: var(--accent); }
   body.desktop .badge { display: flex; }
+  /* "oye <name>" is on: a small ear that shows the mic is being read for the wake word */
+  .wakeDot { display: none; position: absolute; z-index: 2; right: -4px; bottom: 18px; width: 10px; height: 10px; border-radius: 50%; background: var(--accent); opacity: .75; pointer-events: none; }
+  body.wakeword .wakeDot { display: block; }
+  body.wakeword.listening .wakeDot { background: var(--err); opacity: 1; }
   body.listening #micBtn { background: var(--err); color: #fff; animation: rec 1s ease-in-out infinite; }
   @keyframes rec { 50% { box-shadow: 0 0 0 6px color-mix(in srgb, var(--err) 30%, transparent); } }
   body.desktop .ask { display: none; position: absolute; left: 6px; right: 6px; top: 6px; margin: 0; z-index: 4; -webkit-app-region: no-drag; }
@@ -214,6 +218,7 @@
       <div class="props" id="props" aria-hidden="true"></div>
       <div class="floor" aria-hidden="true"></div>
       <span class="badge" id="badge"></span>
+      <span class="wakeDot" id="wakeDot"></span>
       <span class="eye" id="eye" aria-live="polite"></span>
     </div>
     <form class="ask" id="ask" autocomplete="off"><input id="askIn" maxlength="800" enterkeyhint="send"></form>
@@ -253,17 +258,17 @@
 <script type="module">
   const BOOT = __BOOT__;
   const T = {
-    en: { game: 'Play byte', dance: 'Dance', aura: 'Farm aura', settings: 'Settings', card: 'Card', dismiss: 'Send home', listen: 'Listen', listening: 'Listening… 🎙️', noStt: 'Voice control needs an OpenAI or ElevenLabs key (Settings).', noMic: 'I can’t reach the microphone.', sttErr: 'I didn’t catch that.', talk: 'Talk', askPh: 'Remind me to check email in 10 min…', feed: 'Treat', play: 'Play', sleep: 'Sleep', wake: 'Wake', food: 'Food', energy: 'Energy', fun: 'Fun', level: 'Level {l}', xp: '{x} / {n} xp', live: 'Live', off: 'Reconnecting…', approve: 'Approve', reject: 'Reject',
+    en: { wakeOn: 'Say “hey {name}” and I listen', game: 'Play byte', dance: 'Dance', aura: 'Farm aura', settings: 'Settings', card: 'Card', dismiss: 'Send home', listen: 'Listen', listening: 'Listening… 🎙️', noStt: 'Voice control needs an OpenAI or ElevenLabs key (Settings).', noMic: 'I can’t reach the microphone.', sttErr: 'I didn’t catch that.', talk: 'Talk', askPh: 'Remind me to check email in 10 min…', feed: 'Treat', play: 'Play', sleep: 'Sleep', wake: 'Wake', food: 'Food', energy: 'Energy', fun: 'Fun', level: 'Level {l}', xp: '{x} / {n} xp', live: 'Live', off: 'Reconnecting…', approve: 'Approve', reject: 'Reject',
       activity: 'Activity', empty: 'Nothing yet. Run a command or ask your coding agent something.', tally: '{ok} ok · {fail} failed · turns {turns}',
       brain: 'Brain: {b}', age: 'Born {d}', lines: 'built-in phrases', now: 'now', m: '{n}m', h: '{n}h',
       moods: { happy: 'Happy', neutral: 'Calm', sad: 'Sad', disgust: 'Bored', sleep: 'Asleep', thinking: 'Thinking' },
       kind: { tool: 'Tool', shell: 'Shell', prompt: 'You asked', stop: 'Turn finished', notify: 'Needs you', start: 'Session started' } },
-    es: { game: 'Jugar byte', dance: 'Bailar', aura: 'Farmear aura', settings: 'Ajustes', card: 'Tarjeta', dismiss: 'Despedir', listen: 'Escuchar', listening: 'Te escucho… 🎙️', noStt: 'Para hablarme por voz falta una key de OpenAI o ElevenLabs (Ajustes).', noMic: 'No puedo usar el micrófono.', sttErr: 'No te entendí.', talk: 'Hablar', askPh: 'Recuérdame ver el correo en 10 min…', feed: 'Mimar', play: 'Jugar', sleep: 'Dormir', wake: 'Despertar', food: 'Comida', energy: 'Energía', fun: 'Diversión', level: 'Nivel {l}', xp: '{x} / {n} xp', live: 'En vivo', off: 'Reconectando…', approve: 'Aprobar', reject: 'Rechazar',
+    es: { wakeOn: 'Di “oye {name}” y te escucho', game: 'Jugar byte', dance: 'Bailar', aura: 'Farmear aura', settings: 'Ajustes', card: 'Tarjeta', dismiss: 'Despedir', listen: 'Escuchar', listening: 'Te escucho… 🎙️', noStt: 'Para hablarme por voz falta una key de OpenAI o ElevenLabs (Ajustes).', noMic: 'No puedo usar el micrófono.', sttErr: 'No te entendí.', talk: 'Hablar', askPh: 'Recuérdame ver el correo en 10 min…', feed: 'Mimar', play: 'Jugar', sleep: 'Dormir', wake: 'Despertar', food: 'Comida', energy: 'Energía', fun: 'Diversión', level: 'Nivel {l}', xp: '{x} / {n} xp', live: 'En vivo', off: 'Reconectando…', approve: 'Aprobar', reject: 'Rechazar',
       activity: 'Actividad', empty: 'Nada todavía. Ejecuta un comando o pregúntale algo a tu agente.', tally: '{ok} ok · {fail} fallos · turnos {turns}',
       brain: 'Cerebro: {b}', age: 'Nació {d}', lines: 'frases propias', now: 'ahora', m: '{n} min', h: '{n} h',
       moods: { happy: 'Feliz', neutral: 'Tranquilo', sad: 'Triste', disgust: 'Aburrido', sleep: 'Dormido', thinking: 'Pensando' },
       kind: { tool: 'Herramienta', shell: 'Terminal', prompt: 'Preguntaste', stop: 'Turno terminado', notify: 'Te necesita', start: 'Sesión iniciada' } },
-    pt: { game: 'Jogar byte', dance: 'Dançar', aura: 'Farmar aura', settings: 'Ajustes', card: 'Carta', dismiss: 'Despedir', listen: 'Ouvir', listening: 'Estou ouvindo… 🎙️', noStt: 'Para falar por voz falta uma key da OpenAI ou ElevenLabs (Ajustes).', noMic: 'Não consigo usar o microfone.', sttErr: 'Não entendi.', talk: 'Falar', askPh: 'Me lembre de ver o e-mail em 10 min…', feed: 'Mimar', play: 'Brincar', sleep: 'Dormir', wake: 'Acordar', food: 'Comida', energy: 'Energia', fun: 'Diversão', level: 'Nível {l}', xp: '{x} / {n} xp', live: 'Ao vivo', off: 'Reconectando…', approve: 'Aprovar', reject: 'Recusar',
+    pt: { wakeOn: 'Diga “ei {name}” e eu ouço', game: 'Jogar byte', dance: 'Dançar', aura: 'Farmar aura', settings: 'Ajustes', card: 'Carta', dismiss: 'Despedir', listen: 'Ouvir', listening: 'Estou ouvindo… 🎙️', noStt: 'Para falar por voz falta uma key da OpenAI ou ElevenLabs (Ajustes).', noMic: 'Não consigo usar o microfone.', sttErr: 'Não entendi.', talk: 'Falar', askPh: 'Me lembre de ver o e-mail em 10 min…', feed: 'Mimar', play: 'Brincar', sleep: 'Dormir', wake: 'Acordar', food: 'Comida', energy: 'Energia', fun: 'Diversão', level: 'Nível {l}', xp: '{x} / {n} xp', live: 'Ao vivo', off: 'Reconectando…', approve: 'Aprovar', reject: 'Recusar',
       activity: 'Atividade', empty: 'Nada ainda. Rode um comando ou pergunte algo ao seu agente.', tally: '{ok} ok · {fail} falhas · turnos {turns}',
       brain: 'Cérebro: {b}', age: 'Nasceu {d}', lines: 'frases próprias', now: 'agora', m: '{n} min', h: '{n} h',
       moods: { happy: 'Feliz', neutral: 'Tranquilo', sad: 'Triste', disgust: 'Entediado', sleep: 'Dormindo', thinking: 'Pensando' },
@@ -790,6 +795,8 @@
       if ('thinking' in m) setThinking(!!m.thinking);
       if (m.activity) addActivity(m.activity);
       if (m.senses) senses(m.senses);
+      if (m.wakeState) wakeShow(m.wakeState);
+      if (m.wake && !rec) (hush(), stir(), listen()); // "oye <name>": it stops talking and listens
       // asleep (and not stirred by something you asked for): no moving, gestures or talking
       if (asleep && Date.now() >= stirUntil && Date.now() - sleptAt > 15000) return void (m.dance ? dance(m.dance) : m.aura && aura(m.aura));
       if (m.gesture) ch.gesture(m.gesture);
@@ -871,6 +878,7 @@
 
   // ── voice: record until you stop talking, transcribe (/stt), then it's like typing it (/ask) ──
   let rec = null;
+  let lastVoice = { norm: '', at: 0 };
   async function listen() {
     if (rec) return rec.state === 'recording' && rec.stop();
     if (!BOOT.stt) return say(t('noStt'));
@@ -893,13 +901,17 @@
     let heard = false;
     let quiet = t0;
     let peak = 0;
+    // A fan or a noisy room sits above any fixed level: speech is measured against the room's own floor
+    // (the quietest it has been, rising slowly), so the pause after you talk is still a pause.
+    let floor = Infinity;
     const iv = setInterval(() => {
       an.getFloatTimeDomainData(buf);
       let sum = 0;
       for (const x of buf) sum += x * x;
       const now = Date.now();
       const level = Math.sqrt(sum / buf.length);
-      if (level > 0.015) (heard = true), (quiet = now);
+      floor = Math.min(level, floor === Infinity ? level : floor * 1.002);
+      if (level > Math.max(0.015, floor * 3)) (heard = true), (quiet = now);
       peak = Math.max(peak, level);
       // stops after 1.3 s of silence, 6 s without a word, or 15 s in all
       if ((heard && now - quiet > 1300) || (!heard && now - t0 > 6000) || now - t0 > 15000) rec?.state === 'recording' && rec.stop();
@@ -910,7 +922,7 @@
       ac.close().catch(() => {});
       rec = null;
       document.body.classList.remove('listening');
-      console.log('[7ots voice] stopped', { heard, peak: peak.toFixed(3), chunks: chunks.length, ms: Date.now() - t0 });
+      console.log('[7ots voice] stopped', JSON.stringify({ heard, peak: +peak.toFixed(3), floor: +floor.toFixed(4), chunks: chunks.length, ms: Date.now() - t0 }));
       if (!chunks.length) return bubble.classList.remove('on');
       if (!heard && peak < 0.004) return say(t('noMic')); // silence all along: wrong or muted microphone
       setThinking(true);
@@ -922,6 +934,10 @@
       const text = r?.text?.trim();
       if (!text) return say(r?.error && !/stt/.test(r.error) ? t('noStt') : t('sttErr'));
       showBubble(document.createTextNode(`🎙️ “${text}”`), 2500);
+      // said again while the first one was still transcribing ("escuchas" … "Escuchas."): answer once
+      const norm = text.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
+      if (norm === lastVoice.norm && Date.now() - lastVoice.at < 20000) return;
+      lastVoice = { norm, at: Date.now() };
       post('/ask', { text });
     };
     rec.onerror = (e) => console.warn('[7ots voice] recorder', e.error?.message || e);
@@ -937,6 +953,11 @@
     ch.lookAt(0, 0);
   }
   $('#micBtn').addEventListener('click', listen);
+  function wakeShow(w) {
+    document.body.classList.toggle('wakeword', w.state === 'on');
+    $('#wakeDot').title = w.state === 'on' ? t('wakeOn', { name: BOOT.identity?.name || '' }) : '';
+  }
+  if (BOOT.wake) wakeShow(BOOT.wake);
 
   // The desktop shell tells us how we move: facing (walk -1..1), hops, being dropped, following, the cursor.
   addEventListener('message', (e) => {

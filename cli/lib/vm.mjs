@@ -284,7 +284,7 @@ async function deviceApi(otsId, path, o = {}) {
 }
 
 export const vmStatus = (otsId) => deviceApi(otsId, '');
-export const submitJob = (otsId, { kind, input, context }) => deviceApi(otsId, '/jobs', { method: 'POST', body: { kind, input, context } });
+export const submitJob = (otsId, { kind, input, context }) => deviceApi(otsId, '/jobs', { method: 'POST', body: { kind, input, context }, timeout: 120000 }); // the first job may create the ot's microVM
 export const cancelJob = (otsId, jid) => deviceApi(otsId, `/jobs/${jid}/cancel`, { method: 'POST' });
 
 /** Follows a job until it ends; onEvent({kind,text,seq}) per event. Resolves {status, result?, error?}. */

@@ -1,12 +1,12 @@
 /**
  * Speech to text for voice control: the pet page records a short clip (webm/opus) and POSTs it to /stt.
- * Local first: faster-whisper in the venv ~/.7ots/stt (free, the audio never leaves the machine):
+ * Local first: faster-whisper in the venv ~/.7ots/stt (free, the audio never leaves the machine), one worker kept loaded:
  *   python3 -m venv ~/.7ots/stt && ~/.7ots/stt/bin/pip install faster-whisper
  * otherwise whichever key is configured: OpenAI (OPENAI_API_KEY), then ElevenLabs (ELEVENLABS_API_KEY).
  * Without any, voice control is off and the page says so.
  */
 
-import { execFile } from 'node:child_process';
+import { spawn } from 'node:child_process';
 import { existsSync, unlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -24,6 +24,56 @@ export function sttProvider(keys) {
   return null;
 }
 
+// One Whisper worker, started on first use (or by warmStt) and kept: jobs go one at a time.
+let worker = null;
+let queue = Promise.resolve();
+function startWorker() {
+  const p = spawn(LOCAL_PY(), [SCRIPT, process.env.SEVENOTS_STT_MODEL || ''], { stdio: ['pipe', 'pipe', 'ignore'], windowsHide: true });
+  const w = { p, buf: '', waiting: null };
+  p.stdout.on('data', (d) => {
+    w.buf += d;
+    let i;
+    while ((i = w.buf.indexOf('\n')) >= 0) {
+      const line = w.buf.slice(0, i);
+      w.buf = w.buf.slice(i + 1);
+      let m = {};
+      try {
+        m = JSON.parse(line);
+      } catch {}
+      if (!m.ready) w.waiting?.(m);
+    }
+  });
+  p.on('exit', () => {
+    if (worker === w) worker = null;
+    w.waiting?.({ error: 'worker exited' });
+  });
+  p.unref();
+  return w;
+}
+function local(file, lang) {
+  const job = queue.then(
+    () =>
+      new Promise((res, rej) => {
+        worker ||= startWorker();
+        const w = worker;
+        const timer = setTimeout(() => (w.p.kill(), rej(Object.assign(new Error('local stt: timeout'), { status: 504 }))), 90000);
+        w.waiting = (m) => {
+          clearTimeout(timer);
+          w.waiting = null;
+          m.error === undefined ? res(String(m.text || '').trim()) : rej(Object.assign(new Error(`local stt: ${m.error}`), { status: 502 }));
+        };
+        w.p.stdin.write(JSON.stringify({ file, lang }) + '\n');
+      }),
+  );
+  queue = job.catch(() => {});
+  return job;
+}
+
+/** Loads the local model ahead of the first clip (the voice button, the wake word). */
+export function warmStt() {
+  if (existsSync(LOCAL_PY())) worker ||= startWorker();
+}
+
 /** → { text } ; throws with .status on provider errors. */
 export async function transcribe({ audio, contentType = 'audio/webm', lang = '', env = {} }) {
   const provider = sttProvider(env);
@@ -33,10 +83,7 @@ export async function transcribe({ audio, contentType = 'audio/webm', lang = '',
     const f = join(tmpdir(), `7ots-voice-${process.pid}-${Date.now()}.${EXT[type] || 'webm'}`);
     writeFileSync(f, audio, { mode: 0o600 });
     try {
-      const text = await new Promise((res, rej) =>
-        execFile(LOCAL_PY(), [SCRIPT, f, lang || ''], { timeout: 60000, windowsHide: true }, (e, out) => (e ? rej(Object.assign(new Error(`local stt: ${e.message.split('\n')[0]}`), { status: 502 })) : res(String(out).trim()))),
-      );
-      return { text, provider };
+      return { text: await local(f, lang), provider };
     } finally {
       try {
         unlinkSync(f);

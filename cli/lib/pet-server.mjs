@@ -63,7 +63,8 @@ import { AI_CLIS, createBrain, detectClis, petSystem } from './brain.mjs';
 import { CONFIG_DEFAULTS, env, loadConfig, saveConfig, saveKey } from './config.mjs';
 import { loadIdentity } from './identity.mjs';
 import { readJson, writeJson } from './paths.mjs';
-import { sttProvider, transcribe } from './stt.mjs';
+import { sttProvider, transcribe, warmStt } from './stt.mjs';
+import { createWake } from './wake.mjs';
 import { localVoices, synthesizeLocal, warmLocal } from './tts-local.mjs';
 import { createScreenWatcher } from './screen.mjs';
 import { createSiteContext } from './prowl.mjs';
@@ -207,6 +208,9 @@ export function startPetServer({ port = PET_PORT, log = () => {} } = {}) {
     return synthesize({ text, voice, env: { ...process.env, ...keys } });
   };
   if (config.voice.kind === 'local') warmLocal();
+  // "oye <name>" opens the pet page's mic (wake.mjs); in your language, not the ot's. Only the host ot listens.
+  const wake = createWake({ log, onWake: () => broadcast({ wake: true }), onState: (w) => broadcast({ wakeState: w }) });
+  const wakeConf = () => wake.set({ on: !!config.voice.wake && !process.env.SEVENOTS_COMPANION && sttProvider(env()) !== null, name: identity.name, lang: uiLangOf(config, lang) });
   const brain = inferences.wrap(() => brainImpl, () => brainLabel(config.brain)); // every call lands in the history
   const pet = tick(loadPet());
   const clients = new Set();
@@ -618,7 +622,7 @@ export function startPetServer({ port = PET_PORT, log = () => {} } = {}) {
 
   const page = (file = 'pet.html', extra = {}) =>
     readFileSync(join(PKG_ROOT, 'cli', 'pet', file), 'utf8')
-      .replace('__BOOT__', JSON.stringify({ token, pid: process.pid, companion: !!process.env.SEVENOTS_COMPANION, identity, otsId: config.account?.otsId || '', voice: config.voice, lang, annoy, brain: brainLabel(config.brain), activity, stt: sttProvider(env()), backdrop: config.pet.backdrop !== false, ...extra }).replace(/</g, '\\u003c'));
+      .replace('__BOOT__', JSON.stringify({ token, pid: process.pid, companion: !!process.env.SEVENOTS_COMPANION, identity, otsId: config.account?.otsId || '', voice: config.voice, lang, annoy, brain: brainLabel(config.brain), activity, stt: sttProvider(env()), wake: wake.status(), backdrop: config.pet.backdrop !== false, ...extra }).replace(/</g, '\\u003c'));
 
   // Visitors: other ots of the account invited onto this desktop (their look, saved so they come offline too).
   // The desktop shell opens a window for each and stages scenes between them (see electron/director.cjs).
@@ -886,7 +890,7 @@ export function startPetServer({ port = PET_PORT, log = () => {} } = {}) {
       }
       try {
         const t0 = Date.now();
-        const { text, provider } = await transcribe({ audio: Buffer.concat(chunks), contentType: req.headers['content-type'], lang: '', env: env() }); // '' = detect the language spoken
+        const { text, provider } = await transcribe({ audio: Buffer.concat(chunks), contentType: req.headers['content-type'], lang: uiLangOf(config, lang), env: env() }); // your language: detecting it on a short clip lands on Portuguese
         log(`stt: ${provider} ${Date.now() - t0}ms ${n}B → ${text.length} chars`);
         return json(200, { text });
       } catch (e) {
@@ -1318,6 +1322,7 @@ ${keys.map((k) => FIELDS[k]).join('\n')}`;
       clis: detectClis(),
       stt: sttProvider(keys),
       voice: config.voice,
+      wake: wake.status(),
       voices: { local: localVoices(), keys: { elevenlabs: Boolean(keys.ELEVENLABS_API_KEY), openai: Boolean(keys.OPENAI_API_KEY), apuchat: Boolean(keys.APUCHAT_VOICE_TOKEN), apuchatCloud: Boolean(keys.SEVENOTS_TOKEN && config.account?.otsId), grok: Boolean(keys.XAI_API_KEY), fish: Boolean(keys.FISH_API_KEY) } },
       uiLang: uiLangOf(config, lang),
       configLang: config.lang || '',
@@ -1420,6 +1425,7 @@ ${keys.map((k) => FIELDS[k]).join('\n')}`;
       reload = vk !== next.voice.kind;
       next.voice = { ...next.voice, kind: vk };
       if (d.voice.expressive !== undefined) next.voice.expressive = !!d.voice.expressive;
+      if (d.voice.wake !== undefined) next.voice.wake = !!d.voice.wake;
       // each provider's own voice, model and style ({ elevenlabs: { voiceId, model }, openai: { voiceId, model, style } … })
       const pv = d.voice.providers;
       if (pv && typeof pv === 'object') {
@@ -1445,6 +1451,7 @@ ${keys.map((k) => FIELDS[k]).join('\n')}`;
     annoy = annoyOf(config);
     brainImpl = createBrain(config.brain, config.home);
     if (config.voice.kind === 'local') warmLocal();
+    wakeConf();
     if (reload) setTimeout(() => broadcast({ reload: true }), 100); // the page reads its voice at load
     // 2D ↔ 3D: open pet windows switch now (the page, or the desktop shell when it needs the GPU back on).
     if ((config.pet.backdrop !== false) !== bdWas) setTimeout(() => broadcast({ backdrop: config.pet.backdrop !== false }), 100);
@@ -1471,6 +1478,7 @@ ${keys.map((k) => FIELDS[k]).join('\n')}`;
     clearTimeout(syncSoon);
     assistant.stop();
     senses.stop();
+    wake.stop();
     watchers.stop();
     stopWatch();
     savePet(pet);
@@ -1487,6 +1495,8 @@ ${keys.map((k) => FIELDS[k]).join('\n')}`;
     server.listen(port, '127.0.0.1', () => {
       log(`pet ${identity.name} on http://127.0.0.1:${port}`);
       setTimeout(() => onEvent({ type: 'start' }), 1500);
+      wakeConf();
+      if (sttProvider(env()) === 'local') warmStt();
       resolve({ port, token, identity, stop, onEvent });
     });
   });
