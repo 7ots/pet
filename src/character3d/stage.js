@@ -12,6 +12,7 @@
  *     bajan de ~50 se reduce el DPR a pasos, y se recupera cuando sobra margen;
  *   - las vistas fuera de pantalla (IntersectionObserver) ni se animan ni se dibujan;
  *   - con la pestaña oculta el bucle se detiene del todo;
+ *   - `fps` opcional: tope de cuadros por segundo (el pet de escritorio dibuja a 30);
  *   - entorno (RoomEnvironment → PMREM) generado una vez y compartido por todas las escenas.
  *
  * Requisito: la página debe declarar el importmap de three (igual que src/avatar/AvatarStage.js):
@@ -43,6 +44,8 @@ class Stage {
     this.minDpr = Math.min(opts.minDpr || 0.75, this.maxDpr);
     this.dpr = this.maxDpr;
     this.adaptive = opts.adaptive !== false;
+    // fps: frame cap (the desktop pet at 30 is as smooth to the eye and costs half the CPU/GPU of 60)
+    this.fps = opts.fps || 0;
     const canvas = document.createElement('canvas');
     canvas.className = 'ots3d-canvas';
     canvas.setAttribute('aria-hidden', 'true');
@@ -157,6 +160,7 @@ class Stage {
     // una vista cuyo elemento salió del DOM sin destroy() (la vista cambió por innerHTML) no se dibuja más
     for (const v of this.visible) if (!v.el.isConnected) this.visible.delete(v);
     if (!this.visible.size) return this.clear();
+    if (this.fps && t - this.last < 1000 / this.fps - 4) return (this.raf = requestAnimationFrame((tt) => this.frame(tt)));
     const dt = Math.min(64, Math.max(0, t - this.last));
     this.last = t;
     const t0 = performance.now();
@@ -198,8 +202,9 @@ class Stage {
         triangles: r.info.render.triangles, dpr: this.dpr, views: this.visible.size, characters: chars,
       });
       if (this.adaptive && this._statT) {
-        if (fps < 48 && this.dpr > this.minDpr) { this.dpr = Math.max(this.minDpr, Math.round((this.dpr - 0.25) * 100) / 100); this._good = 0; }
-        else if (fps > 57 && this.dpr < this.maxDpr && ++this._good >= 3) { this.dpr = Math.min(this.maxDpr, this.dpr + 0.25); this._good = 0; }
+        const goal = this.fps || 60;
+        if (fps < goal * 0.8 && this.dpr > this.minDpr) { this.dpr = Math.max(this.minDpr, Math.round((this.dpr - 0.25) * 100) / 100); this._good = 0; }
+        else if (fps > goal * 0.95 && this.dpr < this.maxDpr && ++this._good >= 3) { this.dpr = Math.min(this.maxDpr, this.dpr + 0.25); this._good = 0; }
       }
       this._statT = t;
       this._frames = 0;

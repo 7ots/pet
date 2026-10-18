@@ -301,14 +301,14 @@
   $('#brain').innerHTML = '';
   $('#brain').append(t('brain', { b: '' }), Object.assign(document.createElement('b'), { textContent: BOOT.brain === 'lines' ? t('lines') : BOOT.brain }));
 
-  const { createCharacter, loadCharacter3D, playBeat, DANCES = [], DANCE_STYLE = {}, AURA_MOVES = [], AURA_STYLE = {} } = await import('/dist/7ots.esm.js');
+  const { createCharacter, loadCharacter3D, playBeat, stripMarkdown = (x) => x, DANCES = [], DANCE_STYLE = {}, AURA_MOVES = [], AURA_STYLE = {} } = await import('/dist/7ots.esm.js');
   const spec = id.look?.character || {};
   let ch = null;
   if (new URLSearchParams(location.search).has('3d')) {
     // three comes from the CDN; without WebGL or network the 2D ot takes over
     try {
       const m = await loadCharacter3D();
-      ch = m.createCharacter3D($('#face'), spec, { material: id.look?.material || 'plush', backdrop: !desktop && BOOT.backdrop !== false, orbit: !desktop, bleed: desktop ? 'window' : 0, stage: { key: 'pet', zIndex: 3, maxDpr: 2, minDpr: 1.25, supersample: desktop } });
+      ch = m.createCharacter3D($('#face'), spec, { material: id.look?.material || 'plush', backdrop: !desktop && BOOT.backdrop !== false, orbit: !desktop, bleed: desktop ? 'window' : 0, stage: { key: 'pet', zIndex: 3, maxDpr: 2, minDpr: 1.25, supersample: desktop, fps: desktop ? 30 : 0 } });
       if (ch.fallback) console.warn('[7ots pet] no WebGL: 2D ot');
     } catch (err) {
       console.warn('[7ots pet] 3D ot unavailable, using 2D:', err?.message || err);
@@ -684,7 +684,8 @@
     ch.gesture(Math.random() < 0.5 ? 'nod' : 'wiggle');
   }
   // speech tags ([laugh], <whisper>…: settings → Voice → expressions) go to the voice, never to the bubble (as src/voice/tags.js)
-  const clean = (t) => String(t ?? '').replace(/<\/?(loud|soft|whisper|fast|slow|singing)>/gi, '').replace(/\s*\[(pause|long-pause|laugh|cry|mouth-click|breath|sigh)\]\s*/gi, ' ').replace(/\s{2,}/g, ' ').trim();
+  // what is said: no markdown ("## Hoteles", "**4.5**", "---") nor voice tags
+  const clean = (t) => stripMarkdown(String(t ?? '')).replace(/<\/?(loud|soft|whisper|fast|slow|singing)>/gi, '').replace(/\s*\[(pause|long-pause|laugh|cry|mouth-click|breath|sigh)\]\s*/gi, ' ').replace(/\s{2,}/g, ' ').trim();
   function say(raw, withFace = false, ambient = false, photo = null) {
     if (ambient && speak.cur && speak.reply) return void alog('skip ambient (an answer is playing)'); // small talk waits for the answer to finish
     const text = clean(raw);

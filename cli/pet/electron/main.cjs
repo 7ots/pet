@@ -259,7 +259,10 @@ function makeOt(opt = {}) {
   session.defaultSession.setPermissionRequestHandler((wc, perm, cb, d) => cb(perm === 'media' && ours(d?.requestingUrl || wc.getURL())));
   session.defaultSession.setPermissionCheckHandler((wc, perm, origin) => perm === 'media' && ours(origin));
   const alive = () => !win.isDestroyed();
-  const page = (js) => alive() && win.webContents.executeJavaScript(js).catch(() => {});
+  // While the page loads (a reload after the settings, 2D ↔ 3D) executeJavaScript waits for it on a
+  // did-stop-loading listener of its own: the 60 ms timers piled them up (MaxListenersExceededWarning)
+  const ready = () => alive() && !win.webContents.isLoadingMainFrame();
+  const page = (js) => ready() && win.webContents.executeJavaScript(js).catch(() => {});
 
   let still = false;
   let lastBounds = null;
@@ -528,13 +531,15 @@ function makeOt(opt = {}) {
     window.__goal = null;
     return { rects: out, goal, need: window.__need?.(), busy: document.body.classList.contains('talking') || document.body.classList.contains('listening') || !!document.querySelector('.bubble.on'), asleep: document.body.classList.contains('asleep') };
   })()`;
+  let hitting = false; // one at a time: a busy renderer doesn't get a queue of them
   const hitTimer = setInterval(() => {
-    if (!alive()) return;
+    if (!ready() || hitting) return;
+    hitting = true;
     win.webContents.executeJavaScript(HIT).then((r) => {
       ({ rects, busy, asleep } = r);
       need = r.need || null;
       if (r.goal) goTo(r.goal);
-    }).catch(() => {});
+    }).catch(() => {}).finally(() => (hitting = false));
   }, 120);
 
   // Click-through: only the ot, its buttons and the talk box take the mouse; the transparent rest lets

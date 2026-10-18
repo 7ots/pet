@@ -67,6 +67,7 @@ export { UIManager } from './ui/UIManager.js';
 export { AvatarStage, MOODS, GESTURES, MOODS_2D, ALL_GESTURES, GESTURE_3D } from './avatar/AvatarStage.js';
 export { loadCharacter3D } from './avatar/three.js';
 export { VoiceEngine } from './voice/VoiceEngine.js';
+export { stripMarkdown } from './voice/tags.js';
 export { ProxyLLM } from './llm/ProxyLLM.js';
 export { ApuchatBridge, createApuchatActions } from './integrations/apuchat.js';
 export { createApumailActions } from './integrations/apumail.js';
