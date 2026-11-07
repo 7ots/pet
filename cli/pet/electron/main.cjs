@@ -60,8 +60,8 @@ app.whenReady().then(() => globalThis.sevenotsReady).then(() => setTimeout(start
     if (!h?.pid) return ++misses > 4 && app.quit(); // gone for ~25 s
     misses = 0;
     pid ||= h.pid;
-    // The packaged app owns its shell: a daemon that restarted itself (new identity) is adopted, not a reason to leave.
-    if (h.pid !== pid) process.env.SEVENOTS_PET_APP ? (pid = h.pid) : app.quit();
+    // Adopt a new PID: daemon restarted itself (sync/account change) — stay alive in all modes.
+    if (h.pid !== pid) pid = h.pid;
   }, 5000);
 }
 
@@ -202,6 +202,9 @@ function makeOt(opt = {}) {
   const area = screen.getPrimaryDisplay().workArea;
   const right = area.x + area.width;
   const floor = area.y + area.height;
+  // Dynamic bounds: the display the ot is currently on (pos must be defined before calling).
+  const curArea = () => screen.getDisplayNearestPoint({ x: Math.round(pos.x), y: Math.round(pos.y) }).workArea;
+  const dispBounds = () => { const ca = curArea(); return { minX: ca.x + 136, maxX: ca.x + ca.width - 136, minY: ca.y + BIG.h, floor: ca.y + ca.height }; };
 
   // The ot lives at an anchor (bottom-center of the window). The window is sized to what is in use:
   // SMALL is just the body; BIG (room for the bubble, the buttons and the talk box) only while needed.
@@ -210,7 +213,7 @@ function makeOt(opt = {}) {
   let home = null;
   try {
     const h = JSON.parse(require('node:fs').readFileSync(HOME_FILE, 'utf8'));
-    if (h.x >= area.x && h.x <= right && h.y >= area.y + 80 && h.y <= floor) home = { x: h.x, y: h.y };
+    if (screen.getAllDisplays().some(d => { const wa = d.workArea; return h.x >= wa.x && h.x <= wa.x + wa.width && h.y >= wa.y + 80 && h.y <= wa.y + wa.height; })) home = { x: h.x, y: h.y };
   } catch {}
   let homeSave = null;
   const setHome = (p) => {
@@ -319,12 +322,14 @@ function makeOt(opt = {}) {
   let gameWin = null;
   const watchGame = (url) => {
     if (!/^https:\/\/[^/]+\/stream\/s_[a-z0-9]+$/i.test(String(url || ''))) return;
-    if (gameWin && !gameWin.isDestroyed()) return gameWin.loadURL(url), gameWin.showInactive();
+    url += '?bare=1'; // byte's game-only view: no header, crew grid or avatar (the ot is already on the desktop)
+    if (gameWin && !gameWin.isDestroyed()) return gameWin.loadURL(url), gameWin.showInactive(), win.moveTop();
     const w = 480;
     const h = 300;
     const [wx, wy] = win.getPosition();
-    const x = Math.max(area.x, Math.min(right - w, wx + size.w / 2 - w - 40));
-    const y = Math.max(area.y, Math.min(floor - h, wy + size.h - h));
+    const gca = curArea();
+    const x = Math.max(gca.x, Math.min(gca.x + gca.width - w, wx + size.w / 2 - w - 40));
+    const y = Math.max(gca.y, Math.min(gca.y + gca.height - h, wy + size.h - h));
     gameWin = new BrowserWindow({ x, y, width: w, height: h, minWidth: 320, minHeight: 200, alwaysOnTop: true, title: 'byte arena', icon: ICON, autoHideMenuBar: true, backgroundColor: '#0b0b12', show: false, webPreferences: { contextIsolation: true, sandbox: true } });
     gameWin.removeMenu?.();
     gameWin.setAlwaysOnTop(true, 'floating');
@@ -334,7 +339,7 @@ function makeOt(opt = {}) {
     gameWin.webContents.setWindowOpenHandler(({ url: u }) => (shell.openExternal(u).catch(() => {}), { action: 'deny' }));
     gameWin.webContents.on('will-navigate', (e, u) => String(u).startsWith(`${origin}/stream/`) || (e.preventDefault(), shell.openExternal(u).catch(() => {})));
     gameWin.loadURL(url);
-    gameWin.once('ready-to-show', () => gameWin.showInactive());
+    gameWin.once('ready-to-show', () => { gameWin.showInactive(); win.moveTop(); });
     gameWin.on('closed', () => (gameWin = null));
   };
   // what it saw when you asked it to look at you ("¿cómo me ves?"): a small window beside it, like the game's.
@@ -349,8 +354,9 @@ function makeOt(opt = {}) {
     const w = 400;
     const h = 330;
     const [wx, wy] = win.getPosition();
-    const x = Math.max(area.x, Math.min(right - w, wx + size.w / 2 - w - 40));
-    const y = Math.max(area.y, Math.min(floor - h, wy + size.h - h));
+    const pca = curArea();
+    const x = Math.max(pca.x, Math.min(pca.x + pca.width - w, wx + size.w / 2 - w - 40));
+    const y = Math.max(pca.y, Math.min(pca.y + pca.height - h, wy + size.h - h));
     photoWin = new BrowserWindow({ x, y, width: w, height: h, minWidth: 240, minHeight: 200, alwaysOnTop: true, title, icon: ICON, autoHideMenuBar: true, backgroundColor: '#0b0b12', show: false, webPreferences: { contextIsolation: true, sandbox: true, javascript: false } });
     photoWin.removeMenu?.();
     photoWin.setAlwaysOnTop(true, 'floating');
@@ -396,8 +402,10 @@ function makeOt(opt = {}) {
       if (fs.existsSync(file)) img = nativeImage.createFromPath(file);
       else if (/^https:\/\//.test(g.cover || '')) {
         const r = await fetch(g.cover, { signal: AbortSignal.timeout(6000) });
-        const type = (r.headers.get('content-type') || 'image/webp').split(';')[0];
-        if (r.ok && /^image\//.test(type)) {
+        // byte serves some covers as application/octet-stream (Meme Kart's .webp): the bytes are still an image
+        const raw = (r.headers.get('content-type') || '').split(';')[0];
+        const type = /^image\//.test(raw) ? raw : 'image/webp';
+        if (r.ok) {
           const src = `data:${type};base64,${Buffer.from(await r.arrayBuffer()).toString('base64')}`;
           const png = await win.webContents.executeJavaScript(`(async () => { const i = new Image(); i.src = ${JSON.stringify(src)}; await i.decode();
             const h = 40, w = 30, c = document.createElement('canvas'); c.width = w * 2; c.height = h * 2; const x = c.getContext('2d');
@@ -410,7 +418,8 @@ function makeOt(opt = {}) {
       }
     } catch {}
     img = img && !img.isEmpty() ? img.resize({ width: 30, height: 40, quality: 'best' }) : null;
-    thumbs.set(g.slug, img);
+    // a miss is not remembered: a game without a cover yet (byte paints them later) gets it on the next menu
+    if (img) thumbs.set(g.slug, img);
     return img;
   };
   const lastPlayed = () => {
@@ -506,8 +515,9 @@ function makeOt(opt = {}) {
       if (!grabbing.moved) page('postMessage({ carried: true })'); // the page stretches it toward the pull
       grabbing.moved = true;
       dragged = Date.now();
-      pos.x = Math.max(area.x + size.w / 2 - 40, Math.min(right - size.w / 2 + 40, p.x + grabbing.dx));
-      pos.y = Math.max(area.y + size.h - 40, Math.min(floor + 40, p.y + grabbing.dy));
+      const allWAs = screen.getAllDisplays().map(d => d.workArea);
+      pos.x = Math.max(Math.min(...allWAs.map(a => a.x)) + size.w / 2 - 40, Math.min(Math.max(...allWAs.map(a => a.x + a.width)) - size.w / 2 + 40, p.x + grabbing.dx));
+      pos.y = Math.max(Math.min(...allWAs.map(a => a.y)) + size.h - 40, Math.min(Math.max(...allWAs.map(a => a.y + a.height)) + 40, p.y + grabbing.dy));
       place();
     }, 16);
   }
@@ -569,10 +579,14 @@ function makeOt(opt = {}) {
     if (over) hoverUntil = Date.now() + 900;
     // anywhere over its window (not only the drawn parts): it stays put so it can be clicked or dragged
     if (x >= 0 && y >= 0 && x <= size.w && y <= size.h) stillUntil = Date.now() + 1200;
-    // the eyes follow the cursor anywhere on screen (the page only sees it inside the window)
-    if (!lastLook || Math.abs(x - lastLook[0]) + Math.abs(y - lastLook[1]) > 6) {
-      lastLook = [x, y];
-      page(`postMessage({ look: [${x}, ${y}] })`);
+    // the eyes follow the cursor anywhere on screen: normalize by display size so look is proportional, not maxed
+    const ldisp = screen.getDisplayNearestPoint({ x: c.x, y: c.y });
+    const lsw = ldisp.size.width, lsh = ldisp.size.height;
+    const lx = Math.max(-1, Math.min(1, (c.x - pos.x) / (lsw / 2)));
+    const ly = Math.max(-1, Math.min(1, (c.y - (pos.y - size.h / 2)) / (lsh / 2)));
+    if (!lastLook || Math.abs(lx - lastLook[0]) + Math.abs(ly - lastLook[1]) > 0.04) {
+      lastLook = [lx, ly];
+      page(`postMessage({ look: [${lx.toFixed(3)}, ${ly.toFixed(3)}] })`);
     }
     // dropped after a drag: a little dizzy
     if (dragged && !droppedSaid && Date.now() - dragged > 350) {
@@ -598,9 +612,10 @@ function makeOt(opt = {}) {
     // 16 px steps to avoid resizing for every pixel.
     const hover = Date.now() < hoverUntil;
     const step = (v) => Math.ceil(v / 16) * 16;
+    const rca = curArea();
     const want = {
-      w: step(Math.min(area.width, Math.max(MIN.w, need?.w || 0, hover ? BIG.w : 0, held?.w || 0))),
-      h: step(Math.min(area.height, Math.max(MIN.h, need?.h || 0, hover ? BIG.h : 0, held?.h || 0))),
+      w: step(Math.min(rca.width, Math.max(MIN.w, need?.w || 0, hover ? BIG.w : 0, held?.w || 0))),
+      h: step(Math.min(rca.height, Math.max(MIN.h, need?.h || 0, hover ? BIG.h : 0, held?.h || 0))),
     };
     const grow = want.w > size.w || want.h > size.h;
     const differs = want.w !== size.w || want.h !== size.h;
@@ -668,6 +683,7 @@ function makeOt(opt = {}) {
   let lastT = Date.now();
 
   function next() {
+    const { minX, maxX } = dispBounds();
     const now = Date.now();
     const r = Math.random();
     if (r < 0.38) return { mode: 'idle', until: now + rnd(1800, 7000) };
@@ -688,6 +704,7 @@ function makeOt(opt = {}) {
     const now = Date.now();
     const dt = Math.min(0.05, (now - lastT) / 1000);
     lastT = now;
+    const { minX, maxX, minY, floor } = dispBounds(); // current display, shadows the primary-display consts
     const errand = plan.mode === 'point';
     const scene = plan.mode === 'scene' || plan.mode === 'fling';
     // the cursor on it stops it, scenes too (the director sees interrupted() and ends the scene): something
@@ -770,7 +787,9 @@ function makeOt(opt = {}) {
     if (plan.mode === 'scene' || plan.mode === 'fling' || still || asleep || Date.now() - dragged < 2000) return;
     enterUntil = Date.now() + 12000;
     const to = { ...pos };
-    const mid = area.x + area.width / 2;
+    const { minX, maxX } = dispBounds();
+    const ca = curArea();
+    const mid = ca.x + ca.width / 2;
     pos.x = Math.max(minX, Math.min(maxX, to.x + (to.x > mid ? -1 : 1) * 520));
     vel.x = vel.y = 0;
     place();
@@ -814,6 +833,7 @@ function makeOt(opt = {}) {
   async function goTo(goal) {
     if (still || plan.mode === 'scene' || plan.mode === 'fling') return; // a scene with another ot goes first
     if (goal === 'browser') await new Promise((r) => setTimeout(r, 900)); // let the site open first
+    const { minX, maxX, minY, floor } = dispBounds();
     const c = cursorPoint();
     const rect = (goal === 'agent' ? await findWindow(TERM) : goal === 'browser' ? await findWindow(BROWSER) : null) || { x: c.x - 1, y: c.y - 1, w: 2, h: 2, cursor: true };
     const cx = rect.x + rect.w / 2;
@@ -860,14 +880,14 @@ function makeOt(opt = {}) {
     host: HOST,
     home: () => homeAnchor(),
     pos: () => ({ ...pos }),
-    bounds: () => ({ minX, maxX, floor }),
+    bounds: () => { const b = dispBounds(); return { minX: b.minX, maxX: b.maxX, floor: b.floor }; },
     close,
     // free to join a scene: shown, loaded, not held still, dragged, hovered, talking or on an errand
     daemon: { url: base, token: opt.token || TOKEN }, // its own daemon (settings there can ask for a scene)
     // for a scene asked from settings: errands (pointing at the terminal while an agent works) may be cut short
     ready: () => alive() && win.isVisible() && !win.webContents.isLoading() && !asleep && Date.now() - dragged > 3000 && Date.now() > hoverUntil + 1500 && plan.mode !== 'scene' && plan.mode !== 'fling',
     free: () => alive() && win.isVisible() && !win.webContents.isLoading() && !still && !asleep && Date.now() > enterUntil && Date.now() - dragged > 8000 && Date.now() > hoverUntil + 1500 && !busy && /idle|go|hop/.test(plan.mode),
-    walkTo: (x, y = pos.y, speed = 120) => (plan = { mode: 'scene', tx: Math.max(minX, Math.min(maxX, x)), ty: Math.max(minY, Math.min(floor, y)), speed, dir: plan.dir || 0 }),
+    walkTo: (x, y = pos.y, speed = 120) => { const { minX, maxX, minY, floor } = dispBounds(); plan = { mode: 'scene', tx: Math.max(minX, Math.min(maxX, x)), ty: Math.max(minY, Math.min(floor, y)), speed, dir: plan.dir || 0 }; },
     arrivedAt: () => plan.mode === 'scene' && Math.abs(plan.tx - pos.x) < 6 && Math.abs(plan.ty - pos.y) < 6 && Math.hypot(vel.x, vel.y) < 10,
     face: (dir) => {
       if (plan.mode === 'scene' || plan.mode === 'fling') plan.dir = dir;

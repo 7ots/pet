@@ -201,7 +201,7 @@ export function startPetServer({ port = PET_PORT, log = () => {} } = {}) {
   const voiceAudio = async (kind, text, voice) => {
     const keys = env();
     if (kind === 'apuchat' && !keys.APUCHAT_VOICE_TOKEN && keys.SEVENOTS_TOKEN && config.account?.otsId) {
-      return cloudSpeak(config.account.otsId, { text: stripSpeechTags(text), voiceId: voice.voiceId || '', lang: voice.lang || '' });
+      return cloudSpeak(config.account.otsId, { text: stripSpeechTags(text), voiceId: voice.voiceId || '', lang: voice.lang || '', model: voice.model || '' });
     }
     const { synthesize } = await import('../../server/tts.mjs');
     // process.env too: XAI_TTS_VOICE, FISH_VOICE_ID, APUCHAT_VOICE_URL… (the keys still come from env())
@@ -272,6 +272,7 @@ export function startPetServer({ port = PET_PORT, log = () => {} } = {}) {
         orquestaLoginAt = Date.now();
         log(`orquesta: connected${r.organizationName ? ` (${r.organizationName})` : ''}`);
         broadcast({ orquesta: true });
+        extras?.refresh?.();
         return r;
       })
       .finally(() => (connecting = null)));
@@ -411,7 +412,7 @@ export function startPetServer({ port = PET_PORT, log = () => {} } = {}) {
       syncing = false;
     }
   }
-  const syncTimer = setInterval(cloudSync, 60_000);
+  const syncTimer = setInterval(cloudSync, 30_000);
   const syncFirst = setTimeout(cloudSync, 8000);
   const syncLater = () => (clearTimeout(syncSoon), (syncSoon = setTimeout(cloudSync, 3000)));
 
@@ -427,6 +428,7 @@ export function startPetServer({ port = PET_PORT, log = () => {} } = {}) {
     },
   });
 
+  let extras; // captured for refresh after Orquesta connects
   // The assistant: reminders that speak, notify and open the tab; notes it learns.
   const assistant = createAssistant({
     brain,
@@ -454,7 +456,7 @@ export function startPetServer({ port = PET_PORT, log = () => {} } = {}) {
       log,
     }),
     // logs, email, Orquesta agents, custom integrations (settings → Permissions)
-    extra: createExtras({
+    extra: (extras = createExtras({
       config: () => config,
       brain,
       log,
@@ -467,7 +469,7 @@ export function startPetServer({ port = PET_PORT, log = () => {} } = {}) {
         if (config.access.notify !== false) notify(`${identity.name} · 7ots`, text);
         broadcast({ say: text, gesture: 'wave', effect: 'exclaim', point: 'user', stir: pet.asleep });
       },
-    }),
+    })),
     onFire: (r, text) => {
       lastSpoke = Date.now();
       pet.lastTalk = lastSpoke;
@@ -1445,6 +1447,7 @@ ${keys.map((k) => FIELDS[k]).join('\n')}`;
       for (const [k, v] of Object.entries(d.keys)) {
         if (!SETTABLE_KEYS.includes(k) || typeof v !== 'string' || v.length > (k === 'SENSES_ICS_URL' ? 2000 : 400)) return 'key';
         saveKey(k, v.trim()); // '' removes it
+        if (k === 'ORQUESTA_TOKEN' && v.trim()) next.integrations = { ...next.integrations, orquesta: { ...next.integrations?.orquesta, on: true } };
       }
     }
     saveConfig(next);

@@ -35,6 +35,8 @@ const SITES = [
   [/\blinked ?in\b/i, 'https://www.linkedin.com', { en: 'LinkedIn', es: 'LinkedIn', pt: 'LinkedIn' }],
   [/\b(twitter|x\.com)\b/i, 'https://x.com', { en: 'X', es: 'X', pt: 'X' }],
   [/\b(google meet|meet)\b/i, 'https://meet.google.com', { en: 'Meet', es: 'Meet', pt: 'Meet' }],
+  [/\b(facebook|fb)\b/i, 'https://www.facebook.com', { en: 'Facebook', es: 'Facebook', pt: 'Facebook' }],
+  [/\b(youtube|yt)\b/i, 'https://www.youtube.com', { en: 'YouTube', es: 'YouTube', pt: 'YouTube' }],
 ];
 
 const T = {
@@ -57,7 +59,7 @@ const T = {
     offloadFail: (e) => `My server could not finish it: ${e}`,
     offloadLocal: (k) => `On it: I'm working on it here on your computer (${k}). I'll tell you when it's done.`,
     localFail: (e) => `I couldn't finish it here on your computer: ${e}`,
-    help: 'I can set reminders ("remind me to check email in 10 minutes"), open sites ("open my calendar") and remember notes ("remember that…"). Seeing your screen: coming soon.',
+    help: 'I can set reminders ("remind me to check email in 10 minutes"), open sites ("open my calendar") and remember notes ("remember that…"). I can also see your screen (enable it in Settings).',
   },
   es: {
     watch: (w) => (w.kind === 'price' ? `Vigilando ${w.coin}: te aviso cuando esté ${w.op} ${fmt(w.value)} ${w.vs.toUpperCase()}.` : `Vigilando "${w.match}": te aviso cuando ${w.until === 'start' ? 'empiece' : 'termine'}.`),
@@ -80,7 +82,7 @@ const T = {
     offloadFail: (e) => `Mi servidor no pudo terminarlo: ${e}`,
     offloadLocal: (k) => `Voy: lo estoy viendo acá en tu computador (${k}). Te aviso cuando termine.`,
     localFail: (e) => `No pude terminarlo acá en tu computador: ${e}`,
-    help: 'Puedo poner recordatorios ("recuérdame ver el correo en 10 minutos"), abrir sitios ("abre mi calendario") y recordar notas ("anota que…"). Ver tu pantalla: muy pronto.',
+    help: 'Puedo poner recordatorios ("recuérdame ver el correo en 10 minutos"), abrir sitios ("abre mi calendario") y recordar notas ("anota que…"). También puedo ver tu pantalla (actívalo en Ajustes).',
   },
   pt: {
     watch: (w) => (w.kind === 'price' ? `Vigiando ${w.coin}: te aviso quando estiver ${w.op} ${fmt(w.value)} ${w.vs.toUpperCase()}.` : `Vigiando "${w.match}": te aviso quando ${w.until === 'start' ? 'começar' : 'terminar'}.`),
@@ -102,7 +104,7 @@ const T = {
     offloadFail: (e) => `Meu servidor não conseguiu terminar: ${e}`,
     offloadLocal: (k) => `Já vou: estou vendo isso aqui no seu computador (${k}). Te aviso quando terminar.`,
     localFail: (e) => `Não consegui terminar aqui no seu computador: ${e}`,
-    help: 'Posso criar lembretes ("me lembre de ver o e-mail em 10 minutos"), abrir sites ("abra minha agenda") e lembrar notas ("anote que…"). Ver sua tela: em breve.',
+    help: 'Posso criar lembretes ("me lembre de ver o e-mail em 10 minutos"), abrir sites ("abra minha agenda") e lembrar notas ("anote que…"). Também posso ver sua tela (ative nas Configurações).',
   },
 };
 
@@ -141,7 +143,7 @@ const IN_RE = W('\\b(?:en|in|em|dentro de|daqui a)\\s+(\\d+|un|una|uno|uma|um|an
 const HALF_RE = W('\\b(?:en|in|em|dentro de)\\s+(?:media hora|half an hour|meia hora)\\b');
 const AT_RE = W('\\b(?:a las|a la|at|às|as)\\s+(\\d{1,2})(?:[:.h](\\d{2}))?\\s*(am|pm|hrs?|horas?)?\\b');
 const TOMORROW_RE = W('\\b(mañana|manana|tomorrow|amanh[aã])\\b');
-const REMIND_RE = W('\\b(recu[eé]rd[aá]me|recordame|recu[eé]rdame|av[ií]same|remind me|me lembr[ae]|lembre-me|lembra-me)\\b');
+const REMIND_RE = W('\\b(recu[eé]rd[aá]me|recordame|recu[eé]rdame|av[ií]same|pon(?:me)?(?:\\s+una?)\\s+recordatorio|crea(?:me)?(?:\\s+una?)\\s+recordatorio|setea(?:\\s+una?)\\s+recordatorio|set\\s+(?:a\\s+)?reminder|create\\s+(?:a\\s+)?reminder|schedule\\s+(?:a\\s+)?reminder|cri(?:a|e)(?:me)?(?:\\s+um)?\\s+lembrete|remind me|me lembr[ae]|lembre-me|lembra-me)\\b');
 const NOTE_RE = W('^\\s*(?:anota(?:\\s+que)?|apunta(?:\\s+que)?|recuerda que|aprende que|remember(?:\\s+that)?|note(?:\\s+that)?|anote(?:\\s+que)?|lembre que|lembra que)\\s+');
 const OPEN_RE = W('^\\s*(?:abre|abr[ií]|abrime|[aá]breme|open|abra|abrir)\\b');
 const LIST_RE = W('\\b(mis recordatorios|qu[eé] recordatorios|recordatorios pendientes|my reminders|list reminders|reminders|meus lembretes|lembretes)\\b');

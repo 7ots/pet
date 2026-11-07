@@ -258,17 +258,17 @@
 <script type="module">
   const BOOT = __BOOT__;
   const T = {
-    en: { wakeOn: 'Say “hey {name}” and I listen', game: 'Play byte', dance: 'Dance', aura: 'Farm aura', settings: 'Settings', card: 'Card', dismiss: 'Send home', listen: 'Listen', listening: 'Listening… 🎙️', noStt: 'Voice control needs an OpenAI or ElevenLabs key (Settings).', noMic: 'I can’t reach the microphone.', sttErr: 'I didn’t catch that.', talk: 'Talk', askPh: 'Remind me to check email in 10 min…', feed: 'Treat', play: 'Play', sleep: 'Sleep', wake: 'Wake', food: 'Food', energy: 'Energy', fun: 'Fun', level: 'Level {l}', xp: '{x} / {n} xp', live: 'Live', off: 'Reconnecting…', approve: 'Approve', reject: 'Reject',
+    en: { wakeOn: 'Say “hey {name}” and I listen', game: 'Play byte', dance: 'Dance', aura: 'Farm aura', settings: 'Settings', card: 'Card', dismiss: 'Send home', listen: 'Listen', listening: 'Listening… 🎙️', noStt: ‘Voice control needs an OpenAI or ElevenLabs key (Settings).’, noMic: ‘I can’t reach the microphone. Allow microphone access in system settings.’, sttErr: 'I didn’t catch that.', talk: 'Talk', askPh: 'Remind me to check email in 10 min…', feed: 'Treat', play: 'Play', sleep: 'Sleep', wake: 'Wake', food: 'Food', energy: 'Energy', fun: 'Fun', level: 'Level {l}', xp: '{x} / {n} xp', live: 'Live', off: 'Reconnecting…', approve: 'Approve', reject: 'Reject',
       activity: 'Activity', empty: 'Nothing yet. Run a command or ask your coding agent something.', tally: '{ok} ok · {fail} failed · turns {turns}',
       brain: 'Brain: {b}', age: 'Born {d}', lines: 'built-in phrases', now: 'now', m: '{n}m', h: '{n}h',
       moods: { happy: 'Happy', neutral: 'Calm', sad: 'Sad', disgust: 'Bored', sleep: 'Asleep', thinking: 'Thinking' },
       kind: { tool: 'Tool', shell: 'Shell', prompt: 'You asked', stop: 'Turn finished', notify: 'Needs you', start: 'Session started' } },
-    es: { wakeOn: 'Di “oye {name}” y te escucho', game: 'Jugar byte', dance: 'Bailar', aura: 'Farmear aura', settings: 'Ajustes', card: 'Tarjeta', dismiss: 'Despedir', listen: 'Escuchar', listening: 'Te escucho… 🎙️', noStt: 'Para hablarme por voz falta una key de OpenAI o ElevenLabs (Ajustes).', noMic: 'No puedo usar el micrófono.', sttErr: 'No te entendí.', talk: 'Hablar', askPh: 'Recuérdame ver el correo en 10 min…', feed: 'Mimar', play: 'Jugar', sleep: 'Dormir', wake: 'Despertar', food: 'Comida', energy: 'Energía', fun: 'Diversión', level: 'Nivel {l}', xp: '{x} / {n} xp', live: 'En vivo', off: 'Reconectando…', approve: 'Aprobar', reject: 'Rechazar',
+    es: { wakeOn: 'Di “oye {name}” y te escucho', game: 'Jugar byte', dance: 'Bailar', aura: 'Farmear aura', settings: 'Ajustes', card: 'Tarjeta', dismiss: 'Despedir', listen: 'Escuchar', listening: 'Te escucho… 🎙️', noStt: 'Para hablarme por voz falta una key de OpenAI o ElevenLabs (Ajustes).', noMic: 'No puedo usar el micrófono. Permite el acceso en ajustes del sistema.', sttErr: 'No te entendí.', talk: 'Hablar', askPh: 'Recuérdame ver el correo en 10 min…', feed: 'Mimar', play: 'Jugar', sleep: 'Dormir', wake: 'Despertar', food: 'Comida', energy: 'Energía', fun: 'Diversión', level: 'Nivel {l}', xp: '{x} / {n} xp', live: 'En vivo', off: 'Reconectando…', approve: 'Aprobar', reject: 'Rechazar',
       activity: 'Actividad', empty: 'Nada todavía. Ejecuta un comando o pregúntale algo a tu agente.', tally: '{ok} ok · {fail} fallos · turnos {turns}',
       brain: 'Cerebro: {b}', age: 'Nació {d}', lines: 'frases propias', now: 'ahora', m: '{n} min', h: '{n} h',
       moods: { happy: 'Feliz', neutral: 'Tranquilo', sad: 'Triste', disgust: 'Aburrido', sleep: 'Dormido', thinking: 'Pensando' },
       kind: { tool: 'Herramienta', shell: 'Terminal', prompt: 'Preguntaste', stop: 'Turno terminado', notify: 'Te necesita', start: 'Sesión iniciada' } },
-    pt: { wakeOn: 'Diga “ei {name}” e eu ouço', game: 'Jogar byte', dance: 'Dançar', aura: 'Farmar aura', settings: 'Ajustes', card: 'Carta', dismiss: 'Despedir', listen: 'Ouvir', listening: 'Estou ouvindo… 🎙️', noStt: 'Para falar por voz falta uma key da OpenAI ou ElevenLabs (Ajustes).', noMic: 'Não consigo usar o microfone.', sttErr: 'Não entendi.', talk: 'Falar', askPh: 'Me lembre de ver o e-mail em 10 min…', feed: 'Mimar', play: 'Brincar', sleep: 'Dormir', wake: 'Acordar', food: 'Comida', energy: 'Energia', fun: 'Diversão', level: 'Nível {l}', xp: '{x} / {n} xp', live: 'Ao vivo', off: 'Reconectando…', approve: 'Aprovar', reject: 'Recusar',
+    pt: { wakeOn: 'Diga “ei {name}” e eu ouço', game: 'Jogar byte', dance: 'Dançar', aura: 'Farmar aura', settings: 'Ajustes', card: 'Carta', dismiss: 'Despedir', listen: 'Ouvir', listening: 'Estou ouvindo… 🎙️', noStt: 'Para falar por voz falta uma key da OpenAI ou ElevenLabs (Ajustes).', noMic: 'Não consigo usar o microfone. Permita o acesso nas configurações do sistema.', sttErr: 'Não entendi.', talk: 'Falar', askPh: 'Me lembre de ver o e-mail em 10 min…', feed: 'Mimar', play: 'Brincar', sleep: 'Dormir', wake: 'Acordar', food: 'Comida', energy: 'Energia', fun: 'Diversão', level: 'Nível {l}', xp: '{x} / {n} xp', live: 'Ao vivo', off: 'Reconectando…', approve: 'Aprovar', reject: 'Recusar',
       activity: 'Atividade', empty: 'Nada ainda. Rode um comando ou pergunte algo ao seu agente.', tally: '{ok} ok · {fail} falhas · turnos {turns}',
       brain: 'Cérebro: {b}', age: 'Nasceu {d}', lines: 'frases próprias', now: 'agora', m: '{n} min', h: '{n} h',
       moods: { happy: 'Feliz', neutral: 'Tranquilo', sad: 'Triste', disgust: 'Entediado', sleep: 'Dormindo', thinking: 'Pensando' },
@@ -639,6 +639,7 @@
       } catch (e) {
         alog(`tts #${turn} threw ${e?.message || e}`);
       }
+      return; // non-browser provider configured: don't fall back to robotic browser voice on failure
     }
     if (turn !== speak.turn || !('speechSynthesis' in window)) return;
     const u = new SpeechSynthesisUtterance(clean(text));
@@ -977,7 +978,7 @@
     if (d.listen) listen();
     if (d.dropped) (ch.gesture('dizzy'), ch.effect?.('dizzy'));
     if (d.follow) ch.effect?.(Math.random() < 0.6 ? 'hearts' : 'question');
-    if (d.look && Date.now() > lookFree) ch.lookAtPoint(d.look[0], d.look[1]); // the cursor anywhere on screen
+    if (d.look && Date.now() > lookFree) ch.lookAt(d.look[0], d.look[1]); // pre-normalized -1..1 by shell
   });
 
   // ── scenes with other ots: the shell's director sends lines, gestures and acts to each one ──

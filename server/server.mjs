@@ -480,7 +480,7 @@ function redirectSlash(req, res, pathname) {
   res.end();
 }
 
-const STATIC_DIRS = ['site', 'brand', 'examples', 'src', 'dist'];
+const STATIC_DIRS = ['site', 'brand', 'examples', 'src', 'dist', 'oss'];
 
 async function serveStatic(req, res, url) {
   const pathname = url.pathname;

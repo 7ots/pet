@@ -9,7 +9,7 @@ const walk = (d) => readdirSync(d).forEach((f) => {
   if (statSync(p).isDirectory()) walk(p);
   else if (/\.(m?js)$/.test(f)) files.push(p);
 });
-['src', 'server', 'scripts'].forEach(walk);
+['src', 'server', 'scripts', 'site', 'app', 'backoffice'].forEach(walk);
 let bad = 0;
 for (const f of files) {
   try {

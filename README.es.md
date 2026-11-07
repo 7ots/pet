@@ -46,6 +46,9 @@ Para respuestas reales, en `.env`:
 ```bash
 LLM_PROVIDER=anthropic      # usa ANTHROPIC_API_KEY · modelo por defecto claude-opus-5-5
 # o
+
+<!-- credenciales:readme v1 -->
+> **Credenciales y accesos:** este repo sigue el protocolo S18 (ver «Credenciales y accesos» en `CLAUDE.md`). Ningún secreto va al repo, a issues ni a chats.
 LLM_PROVIDER=openai         # usa OPENAI_API_KEY · LLM_BASE_URL para compatibles (Groq, Ollama…)
 ```
 

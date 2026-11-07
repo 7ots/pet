@@ -74,11 +74,11 @@ export const me = () => api('/me');
  * account, so a pet without APUCHAT_VOICE_TOKEN speaks with its ot's voice there (the account's monthly free quota).
  * @returns {Promise<{ audio: Buffer, contentType: string }>}  or throws an Error with .status and the server's reason
  */
-export async function cloudSpeak(otsId, { text, voiceId, lang }) {
+export async function cloudSpeak(otsId, { text, voiceId, lang, model }) {
   const res = await fetch(`${SEVENOTS_URL}/api/device/ots/${encodeURIComponent(otsId)}/tts`, {
     method: 'POST',
     headers: { Authorization: `Bearer ${env().SEVENOTS_TOKEN}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ text, voiceId, lang }),
+    body: JSON.stringify({ text, voiceId, lang, ...(model ? { model } : {}) }),
     signal: AbortSignal.timeout(25000),
   });
   if (!res.ok) {

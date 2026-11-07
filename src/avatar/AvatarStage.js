@@ -141,7 +141,7 @@ export class AvatarStage {
         orbit: this.cfg.orbit === true,
         quality: this.cfg.quality || 'high',
         // escenario propio por encima del panel del widget (z-index 2147483000)
-        stage: { key: 'overlay', zIndex: 2147483001, maxDpr: 1.5 },
+        stage: { key: 'overlay', zIndex: 2147483001, maxDpr: 2 },
       });
       this._ch = ch;
       this.mode = ch.fallback ? '2d' : '3d-plush';

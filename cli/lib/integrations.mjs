@@ -586,6 +586,7 @@ export function createExtras({ config, brain, system, onLater, confirm = null, c
       }
       return {};
     },
+    refresh() { return checkCloud(true); },
   };
 }
 

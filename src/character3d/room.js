@@ -321,7 +321,7 @@ export function createRoom3D(el, spec, opts = {}) {
     const k = Object.keys(POIS).find((kk) => { const p = POIS[kk]; return Math.hypot(x - (p.seat?.[0] ?? p.at[0]), z - (p.seat?.[2] ?? p.at[1])) < 0.9; });
     if (k && (POIS[k].seat || blocked(x, z))) return run((dead) => act(k, dead));
     if (blocked(x, z)) return;
-    run(async (dead) => { await guard(dead)(leaveSeat()); doing(t('room.walk')); await guard(dead)(walkTo(x, z, 1.3)); doing(t('room.you')); });
+    run(async (dead) => { await guard(dead)(leaveSeat()); doing(t('room.walk')); await guard(dead)(walkTo(x, z, 1.3)); doing(t('room.you')); el.focus({ preventScroll: true }); });
   });
   box.addEventListener('click', (e) => {
     const b = e.target.closest('button');
