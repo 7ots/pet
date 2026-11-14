@@ -172,6 +172,7 @@
   .ot .stars button { margin: 0; padding: 0 2px; border: 0; background: none; font-size: 18px; line-height: 1; color: var(--line); cursor: pointer; box-shadow: none; }
   .ot .stars button.on { color: var(--warn); }
   .ot .acts { display: flex; gap: 6px; margin: auto 12px 0; } .ot .acts button { margin: 0; flex: 1; }
+  .otgrid.plugGrid { grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); } .plugGrid .stage { height: 84px; } .plugGrid .acts { flex-wrap: wrap; margin-bottom: 12px; } .plugGrid .acts button { white-space: nowrap; } .plugGrid .acts .chip { flex: 0 0 auto; }
   .ot .acts button.icon { flex: 0 0 auto; padding: 6px 8px; }
   .ot .rep { display: flex; gap: 6px; padding: 6px 12px 0; } .ot .rep input { flex: 1; min-width: 0; } .ot .rep button { margin: 0; }
   .ot .st { position: absolute; top: 8px; right: 8px; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 650; background: var(--panel-2); border: 1px solid var(--line); }
@@ -357,6 +358,21 @@
     <h2 id="hInteg" data-t="integH"></h2>
     <p class="hint" data-t="integHint"></p>
     <div id="integ"></div>
+  </section>
+
+  <section aria-labelledby="hPlugins">
+    <h2 id="hPlugins" data-t="plugH"></h2>
+    <p class="hint" data-t="plugHint"></p>
+    <span class="msg" id="plugMsg" role="status"></span>
+    <div id="plugMine"></div>
+    <h3 class="sh" data-t="plugCat"></h3>
+    <div class="row"><input id="plugQ" type="search" style="flex:1;min-width:140px"></div>
+    <div id="plugCat"></div>
+    <h3 class="sh" data-t="plugMake"></h3>
+    <p class="hint" data-t="plugMakeHint"></p>
+    <div class="row"><input id="plugNewId" type="text" maxlength="32" style="flex:1;min-width:140px"><button id="plugNew" class="primary"></button></div>
+    <div class="row"><input id="plugDir" type="text" style="flex:1;min-width:140px"><button id="plugAdd"></button></div>
+    <p class="hint"><a href="https://7ots.com/docs/plugins" target="_blank" rel="noopener" data-t="plugGuide"></a></p>
   </section>
 
   <section aria-labelledby="hSenses">
@@ -740,7 +756,34 @@
       sForget: 'Esquecer tudo o que notou', sForgetSure: 'Certeza? Clique de novo', sForgot: 'Esquecido: dias, rosto neutro e histórico de regras.',
     },
   };
-  for (const k of Object.keys(T2)) Object.assign(T[k], T2[k], T3[k]);
+  // Plugins (cli/lib/plugins.mjs): windows beside the ot and tools for its brain.
+  const T4 = {
+    en: {
+      plugH: 'Plugins', plugHint: 'Small apps for {name}: a window beside it (like the BTC price) and tools for its brain. The catalog only has what 7ots reviewed; yours (dev) run from your folder.',
+      plugCat: 'Catalog (7ots.com)', plugSearch: 'Search plugins…', plugEmpty: 'Nothing here yet.', plugNone: 'No plugins yet: install one from the catalog below.',
+      plugInstall: 'Install', plugUpdate: 'Update', plugInstalled: 'Installed', plugOpen: 'Open', plugRemove: 'Remove', plugPublish: 'Send to review', plugSent: 'Sent: it shows in the catalog once approved ({st}).',
+      plugDev: 'dev · your folder', plugOfficial: 'by 7ots', plugNeedLogin: 'Sign in to 7ots.com (Account) to send it for review.', plugNoPet: 'Windows open in the desktop app.',
+      plugMake: 'Make your own', plugMakeHint: 'Creates a folder with a working plugin you can edit, loads it on {name} and tells you where it is.', plugNewPh: 'my-plugin', plugNewBtn: 'Create plugin', plugCreated: 'Created in {dir}',
+      plugDirPh: '/path/to/a/plugin folder', plugAddBtn: 'Load from a folder', plugGuide: 'Guide for plugin makers →', plugTalks: 'talks to {h}', plugOn: 'On',
+    },
+    es: {
+      plugH: 'Plugins', plugHint: 'Apps pequeñas para {name}: una ventana a su lado (como el precio de BTC) y herramientas para su cerebro. El catálogo solo tiene lo que revisó 7ots; los tuyos (dev) corren desde tu carpeta.',
+      plugCat: 'Catálogo (7ots.com)', plugSearch: 'Buscar plugins…', plugEmpty: 'Todavía no hay nada.', plugNone: 'Sin plugins: instala uno del catálogo de abajo.',
+      plugInstall: 'Instalar', plugUpdate: 'Actualizar', plugInstalled: 'Instalado', plugOpen: 'Abrir', plugRemove: 'Quitar', plugPublish: 'Enviar a revisión', plugSent: 'Enviado: aparece en el catálogo cuando lo aprueben ({st}).',
+      plugDev: 'dev · tu carpeta', plugOfficial: 'de 7ots', plugNeedLogin: 'Conecta tu cuenta de 7ots.com (Cuenta) para enviarlo a revisión.', plugNoPet: 'Las ventanas se abren en la app de escritorio.',
+      plugMake: 'Haz el tuyo', plugMakeHint: 'Crea una carpeta con un plugin que funciona y puedes editar, lo carga en {name} y te dice dónde quedó.', plugNewPh: 'mi-plugin', plugNewBtn: 'Crear plugin', plugCreated: 'Creado en {dir}',
+      plugDirPh: '/ruta/a/la carpeta del plugin', plugAddBtn: 'Cargar desde carpeta', plugGuide: 'Guía para crear plugins →', plugTalks: 'se conecta a {h}', plugOn: 'Activo',
+    },
+    pt: {
+      plugH: 'Plugins', plugHint: 'Apps pequenos para {name}: uma janela ao lado dele (como o preço do BTC) e ferramentas para o cérebro. O catálogo só tem o que a 7ots revisou; os seus (dev) rodam da sua pasta.',
+      plugCat: 'Catálogo (7ots.com)', plugSearch: 'Buscar plugins…', plugEmpty: 'Ainda não há nada.', plugNone: 'Sem plugins: instale um do catálogo abaixo.',
+      plugInstall: 'Instalar', plugUpdate: 'Atualizar', plugInstalled: 'Instalado', plugOpen: 'Abrir', plugRemove: 'Remover', plugPublish: 'Enviar para revisão', plugSent: 'Enviado: aparece no catálogo quando for aprovado ({st}).',
+      plugDev: 'dev · sua pasta', plugOfficial: 'da 7ots', plugNeedLogin: 'Conecte sua conta da 7ots.com (Conta) para enviar para revisão.', plugNoPet: 'As janelas abrem no app de desktop.',
+      plugMake: 'Faça o seu', plugMakeHint: 'Cria uma pasta com um plugin que funciona e você pode editar, carrega em {name} e diz onde ficou.', plugNewPh: 'meu-plugin', plugNewBtn: 'Criar plugin', plugCreated: 'Criado em {dir}',
+      plugDirPh: '/caminho/da pasta do plugin', plugAddBtn: 'Carregar de uma pasta', plugGuide: 'Guia para criar plugins →', plugTalks: 'conecta com {h}', plugOn: 'Ativo',
+    },
+  };
+  for (const k of Object.keys(T2)) Object.assign(T[k], T2[k], T3[k], T4[k]);
   // The system's language (LANG, or the one picked below) first, then the browser's, then the ot's.
   const nav = (navigator.language || '').slice(0, 2);
   const lang = T[BOOT.uiLang] ? BOOT.uiLang : T[nav] ? nav : T[BOOT.lang] ? BOOT.lang : 'en';
@@ -899,9 +942,9 @@
 
   // ── navigation: one section at a time, remembered in the URL hash ──
   const NAV = {
-    en: { home: 'Home', gMind: 'Mind', gPriv: 'Privacy', gConn: 'Connections', gLogs: 'Logs', acc: 'Account', brain: 'Brain', voice: 'Voice', access: 'Permissions', senses: 'Senses', integ: 'Integrations', wal: 'Wallet', plaza: 'Plaza', pet: 'Personality', com: 'Community', notes: 'Memory', rem: 'Processes', inf: 'Activity' },
-    es: { home: 'Su casa', gMind: 'Mente', gPriv: 'Privacidad', gConn: 'Conexiones', gLogs: 'Registros', acc: 'Cuenta', brain: 'Cerebro', voice: 'Voz', access: 'Permisos', senses: 'Sentidos', integ: 'Integraciones', wal: 'Billetera', plaza: 'Plaza', pet: 'Personalidad', com: 'Comunidad', notes: 'Memoria', rem: 'Procesos', inf: 'Actividad' },
-    pt: { home: 'Casa', gMind: 'Mente', gPriv: 'Privacidade', gConn: 'Conexões', gLogs: 'Registros', acc: 'Conta', brain: 'Cérebro', voice: 'Voz', access: 'Permissões', senses: 'Sentidos', integ: 'Integrações', wal: 'Carteira', plaza: 'Praça', pet: 'Personalidade', com: 'Comunidade', notes: 'Memória', rem: 'Processos', inf: 'Atividade' },
+    en: { home: 'Home', gMind: 'Mind', gPriv: 'Privacy', gConn: 'Connections', gLogs: 'Logs', acc: 'Account', brain: 'Brain', voice: 'Voice', access: 'Permissions', senses: 'Senses', integ: 'Integrations', plugins: 'Plugins', wal: 'Wallet', plaza: 'Plaza', pet: 'Personality', com: 'Community', notes: 'Memory', rem: 'Processes', inf: 'Activity' },
+    es: { home: 'Su casa', gMind: 'Mente', gPriv: 'Privacidad', gConn: 'Conexiones', gLogs: 'Registros', acc: 'Cuenta', brain: 'Cerebro', voice: 'Voz', access: 'Permisos', senses: 'Sentidos', integ: 'Integraciones', plugins: 'Plugins', wal: 'Billetera', plaza: 'Plaza', pet: 'Personalidad', com: 'Comunidad', notes: 'Memoria', rem: 'Procesos', inf: 'Actividad' },
+    pt: { home: 'Casa', gMind: 'Mente', gPriv: 'Privacidade', gConn: 'Conexões', gLogs: 'Registros', acc: 'Conta', brain: 'Cérebro', voice: 'Voz', access: 'Permissões', senses: 'Sentidos', integ: 'Integrações', plugins: 'Plugins', wal: 'Carteira', plaza: 'Praça', pet: 'Personalidade', com: 'Comunidade', notes: 'Memória', rem: 'Processos', inf: 'Atividade' },
   };
   // moods and inference purposes arrive as English codes from the daemon
   const WORDS = {
@@ -946,11 +989,11 @@
     s.classList.add('ico', `logo-${name}`);
     return s;
   };
-  const ICON = { home: 'house', acc: 'user-round', brain: 'cpu', voice: 'mic', access: 'shield-check', senses: 'eye', integ: 'plug', wal: 'wallet', plaza: 'share-2', pet: 'message-circle', com: 'users', notes: 'notebook-pen', rem: 'activity', inf: 'scroll-text' };
-  const SECS = { home: 'hHome', acc: 'hAcc', brain: 'hBrain', voice: 'hVoice', access: 'hAccess', senses: 'hSenses', integ: 'hInteg', wal: 'hWal', plaza: 'hPlaza', pet: 'hPet', com: 'hCom', notes: 'hNotes', rem: 'hRem', inf: 'hInf' };
+  const ICON = { plugins: 'box', home: 'house', acc: 'user-round', brain: 'cpu', voice: 'mic', access: 'shield-check', senses: 'eye', integ: 'plug', wal: 'wallet', plaza: 'share-2', pet: 'message-circle', com: 'users', notes: 'notebook-pen', rem: 'activity', inf: 'scroll-text' };
+  const SECS = { plugins: 'hPlugins', home: 'hHome', acc: 'hAcc', brain: 'hBrain', voice: 'hVoice', access: 'hAccess', senses: 'hSenses', integ: 'hInteg', wal: 'hWal', plaza: 'hPlaza', pet: 'hPet', com: 'hCom', notes: 'hNotes', rem: 'hRem', inf: 'hInf' };
   const navT = NAV[lang] || NAV.en;
   // a few pages on top, the rest in groups that fold (the group of the open page unfolds)
-  const GROUPS = [['home', 'acc'], ['gMind', 'brain', 'pet', 'voice', 'notes'], ['gPriv', 'access', 'senses'], ['gConn', 'integ', 'wal', 'plaza', 'com'], ['gLogs', 'rem', 'inf']];
+  const GROUPS = [['home', 'acc'], ['gMind', 'brain', 'pet', 'voice', 'notes'], ['gPriv', 'access', 'senses'], ['gConn', 'integ', 'plugins', 'wal', 'plaza', 'com'], ['gLogs', 'rem', 'inf']];
   const navLink = (k) => el('a', { href: `#${k}` }, el('span', {}, ico(ICON[k])), el('b', { textContent: navT[k] }));
   $('#nav').replaceChildren(...GROUPS.flatMap(([g, ...ks]) => (g.startsWith('g') ? [el('details', {}, el('summary', { textContent: navT[g] }), el('div', {}, ...ks.map(navLink)))] : [g, ...ks].map(navLink))));
   function go() {
@@ -967,6 +1010,7 @@
     if (k === 'notes') loadMemory();
     if (k === 'senses') loadSenses();
     if (k === 'plaza') loadPlaza();
+    if (k === 'plugins') setTimeout(renderPlugins);
     if (k === 'com') setTimeout(renderCommunity); // after the script ran (com is declared further down)
     window.scrollTo(0, 0);
   }
@@ -2112,6 +2156,120 @@
     comQT = setTimeout(() => { com.q = e.target.value.trim(); renderCommunity(); }, 300);
   });
   $('#annoy').addEventListener('change', (e) => save({ pet: { annoy: Number(e.target.value) } }, $('#petMsg')));
+
+  // ── plugins (cli/lib/plugins.mjs via the daemon's /plugins/*) ──
+  const plug = { q: '' };
+  let plugSeq = 0;
+  const plugName = () => S?.identity?.name || BOOT.identity?.name || 'your ot';
+  async function renderPlugins() {
+    const seq = ++plugSeq;
+    const msg = $('#plugMsg');
+    $('#plugQ').placeholder = t('plugSearch');
+    $('#plugNewId').placeholder = t('plugNewPh');
+    $('#plugNew').textContent = t('plugNewBtn');
+    $('#plugDir').placeholder = t('plugDirPh');
+    $('#plugAdd').textContent = t('plugAddBtn');
+    for (const k of ['plugHint', 'plugMakeHint']) for (const n of document.querySelectorAll(`[data-t=${k}]`)) n.textContent = t(k, { name: plugName() });
+    const fail = (e) => flash(msg, errText(e), 'err');
+    const act = async (b, path, body, after) => {
+      b.disabled = true;
+      try {
+        const r = await api(path, body);
+        if (after) after(r);
+        renderPlugins();
+      } catch (e) {
+        b.disabled = false;
+        fail(e);
+      }
+    };
+    const card = (m, extra) => el('div', { className: 'ot' },
+      el('div', { className: 'stage' }, el('span', { className: 'init', textContent: m.icon || '🧩' })),
+      el('b', { textContent: `${m.name} v${m.version}` }),
+      el('small', { textContent: [m.description, m.net?.length ? t('plugTalks', { h: m.net.join(', ') }) : ''].filter(Boolean).join(' · ') }),
+      ...extra);
+    let mine;
+    try {
+      mine = await api('/plugins');
+    } catch (e) {
+      return fail(e);
+    }
+    if (seq !== plugSeq) return;
+    const here = mine.plugins.map((p) => {
+      const acts = el('div', { className: 'acts' });
+      if (p.manifest?.panel) {
+        const o = el('button', { className: 'primary' }, ico('external-link', 15), ' ', t('plugOpen'));
+        o.addEventListener('click', () => act(o, '/plugins/open', { id: p.id }));
+        acts.append(o);
+      }
+      if (p.source === 'local') {
+        const pb = el('button', { title: mine.signedIn ? '' : t('plugNeedLogin') }, ico('upload', 15), ' ', t('plugPublish'));
+        pb.addEventListener('click', () => (mine.signedIn ? act(pb, '/plugins/publish', { id: p.id }, (r) => flash(msg, t('plugSent', { st: r.plugin?.status || '' }))) : flash(msg, t('plugNeedLogin'), 'err')));
+        acts.append(pb);
+      }
+      const rm = el('button', { className: 'icon', title: t('plugRemove'), ariaLabel: t('plugRemove') }, ico('trash-2', 15));
+      rm.addEventListener('click', () => act(rm, '/plugins/remove', { id: p.id }));
+      acts.append(rm);
+      const on = el('input', { type: 'checkbox', checked: p.on });
+      on.addEventListener('change', () => api('/plugins/on', { id: p.id, on: on.checked }).catch(fail));
+      const m = p.manifest || { name: p.id, version: '?', description: p.error };
+      acts.prepend(el('label', { className: 'chip', title: t('plugOn') }, on, t('plugOn')));
+      const c = card(m, [acts]);
+      c.append(el('span', { className: 'st', textContent: p.source === 'local' ? t('plugDev') : t('plugInstalled') }));
+      return c;
+    });
+    $('#plugMine').replaceChildren(here.length ? el('div', { className: 'otgrid plugGrid' }, ...here) : el('p', { className: 'empty', textContent: t('plugNone') }));
+    let cat = [];
+    try {
+      cat = (await api('/plugins/catalog', { q: plug.q })).plugins;
+    } catch (e) {
+      $('#plugCat').replaceChildren(el('p', { className: 'empty', textContent: `${t('plugEmpty')} (${errText(e)})` }));
+    }
+    if (seq !== plugSeq) return;
+    const cards = cat.map((v) => {
+      const b = el('button', { className: v.installed && !v.update ? '' : 'primary', disabled: v.installed && !v.update }, ico('download', 15), ' ', v.update ? t('plugUpdate') : v.installed ? t('plugInstalled') : t('plugInstall'));
+      b.addEventListener('click', () => act(b, '/plugins/install', { id: v.id }, (r) => r.plugin?.manifest?.panel && api('/plugins/open', { id: v.id }).catch(() => {})));
+      const c = card(v.manifest, [el('small', { textContent: `${v.official ? t('plugOfficial') : v.author} · ${t('comInstalls', { n: v.installs })}` }), el('div', { className: 'acts' }, b)]);
+      return c;
+    });
+    if (cat.length || !$('#plugCat').childElementCount) $('#plugCat').replaceChildren(cards.length ? el('div', { className: 'otgrid plugGrid' }, ...cards) : el('p', { className: 'empty', textContent: t('plugEmpty') }));
+  }
+  let plugQT;
+  $('#plugQ').addEventListener('input', (e) => {
+    clearTimeout(plugQT);
+    plugQT = setTimeout(() => { plug.q = e.target.value.trim(); renderPlugins(); }, 300);
+  });
+  $('#plugNew').addEventListener('click', async (e) => {
+    const b = e.currentTarget;
+    const id = $('#plugNewId').value.trim().toLowerCase().replace(/[^a-z0-9-]+/g, '-').replace(/^-+|-+$/g, '');
+    if (!id) return $('#plugNewId').focus();
+    b.disabled = true;
+    try {
+      const r = await api('/plugins/new', { id });
+      flash($('#plugMsg'), t('plugCreated', { dir: r.dir }));
+      $('#plugMsg').className = 'msg ok';
+      clearTimeout($('#plugMsg')._t); // keep the path on screen
+      $('#plugNewId').value = '';
+      renderPlugins();
+    } catch (x) {
+      flash($('#plugMsg'), errText(x), 'err');
+    }
+    b.disabled = false;
+  });
+  $('#plugAdd').addEventListener('click', async (e) => {
+    const b = e.currentTarget;
+    const dir = $('#plugDir').value.trim();
+    if (!dir) return $('#plugDir').focus();
+    b.disabled = true;
+    try {
+      await api('/plugins/add', { dir });
+      $('#plugDir').value = '';
+      flash($('#plugMsg'), t('saved'));
+      renderPlugins();
+    } catch (x) {
+      flash($('#plugMsg'), errText(x), 'err');
+    }
+    b.disabled = false;
+  });
 
   // ── integrations (their own section) ──
   const toggle = (on, onChange, label) => {

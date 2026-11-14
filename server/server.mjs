@@ -136,6 +136,10 @@ const server = createServer(async (req, res) => {
       res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8', 'Access-Control-Allow-Origin': '*', 'Cache-Control': 'public, max-age=600' });
       return res.end(llmsTxt(PLATFORM ? 'https://7ots.com' : originOf(req)));
     }
+    if (url.pathname === '/docs/plugins' && (req.method === 'GET' || req.method === 'HEAD') && existsSync(join(ROOT, 'docs', 'PLUGINS.md'))) {
+      res.writeHead(200, { 'Content-Type': 'text/markdown; charset=utf-8', 'Access-Control-Allow-Origin': '*', 'Cache-Control': 'public, max-age=600' });
+      return res.end(readFileSync(join(ROOT, 'docs', 'PLUGINS.md')));
+    }
     if (publicIdentityRoute(req, res, url)) return; // tarjeta pública: cualquier origen puede leerla
     if (await publicWidgetRoute(req, res, url)) return; // config pública y embed.js
     if (url.pathname.startsWith(`${PREFIX}/admin/`)) {

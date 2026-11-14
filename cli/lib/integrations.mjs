@@ -20,7 +20,8 @@
  *   cloudStatus()  link with 7ots.com (account.mjs) + the cloud assistant's VM: GET /api/device/ots/:id/vm (device token; see docs/VM-PLAN.md)
  *                  (404 = not available yet).
  *
- * Extra assistant actions (assistant.mjs `extra`): read_logs · read_mail · orquesta_list · orquesta · integration.
+ * Extra assistant actions (assistant.mjs `extra`): read_logs · read_mail · orquesta_list · orquesta · integration · plugin
+ * (opens an installed plugin's panel; plugins with an MCP server join the custom integrations: plugins.mjs).
  */
 
 import { spawn } from 'node:child_process';
@@ -31,6 +32,7 @@ import { env, loadConfig, loadKeys } from './config.mjs';
 import { SEVENOTS_URL, me as accountMe, signedIn } from './account.mjs';
 import { mcpCall, mcpTools, mcpToolsCached } from './mcp.mjs';
 import { recordUse } from './tooluse.mjs';
+import { getPlugin, pluginIntegrations, pluginsPrompt } from './plugins.mjs';
 
 const LETTA_URL = (process.env.LETTA_BASE_URL || 'https://api.letta.com').replace(/\/+$/, '');
 const APUMAIL_API = (process.env.APUMAIL_API || 'https://api.apumail.com').replace(/\/+$/, '');
@@ -423,7 +425,7 @@ function refreshLetta(agentId) {
  *   confirm  (text) => Promise<boolean>: asks the human (Approve / Reject) before something that acts for them
  *   connect  () => Promise<{ organizationName }>: Orquesta sign-in in their browser (offered while there is no token)
  */
-export function createExtras({ config, brain, system, onLater, confirm = null, connect = null, log = () => {} }) {
+export function createExtras({ config, brain, system, onLater, confirm = null, connect = null, openPlugin = null, log = () => {} }) {
   let projCache = { at: 0, list: [] };
   const orq = () => import('./orquesta.mjs');
   // Orquesta: a token here, or the one connected on 7ots.com for this ot (used through 7ots, never copied here)
@@ -445,7 +447,7 @@ export function createExtras({ config, brain, system, onLater, confirm = null, c
   };
   const mailOn = () => config().access?.inbox === true && config().integrations?.apumail?.on && Boolean(env().APUMAIL_TOKEN) && Boolean(config().integrations.apumail.inbox || isAcctToken(env().APUMAIL_TOKEN));
   const cloudId = () => (env().SEVENOTS_TOKEN && config().account?.otsId) || null;
-  const customs = () => (config().integrations?.custom || []).filter((c) => c.on !== false && customKind(c) !== 'note' && (c.url || c.command));
+  const customs = () => [...(config().integrations?.custom || []), ...safePlugins()].filter((c) => c.on !== false && customKind(c) !== 'note' && (c.url || c.command));
   const toolsLine = (x) => {
     const tools = mcpToolsCached(x);
     if (!tools) {
@@ -485,6 +487,10 @@ export function createExtras({ config, brain, system, onLater, confirm = null, c
     }
   }
 
+  // ── plugins (plugins.mjs): a broken one never breaks the assistant ──
+  const safe = (fn, d) => { try { return fn(); } catch (e) { log(`plugins: ${e.message}`); return d; } };
+  const safePlugins = () => safe(pluginIntegrations, []);
+
   // Approve / Reject in the ot's bubble; without a way to ask (no confirm), it goes ahead as before
   const ask = (lang, k, ...v) => (confirm ? confirm(say(lang, k, ...v)) : Promise.resolve(true));
 
@@ -504,9 +510,13 @@ export function createExtras({ config, brain, system, onLater, confirm = null, c
       if (cloudId()) lines.push(`{"type":"read_inbox"} (read what people wrote to you lately on apuchat and email, your own accounts on 7ots.com, and what you answered them; then sum it up for your human)`);
       for (const x of customs()) {
         const kind = customKind(x);
-        if (kind === 'mcp') lines.push(`{"type":"integration","id":"${x.id}","tool":"tool name","args":{}} (MCP server "${x.name}"${toolsLine(x)})`);
+        if (kind === 'mcp') lines.push(`{"type":"integration","id":"${x.id}","tool":"tool name","args":{}} (MCP server "${x.name}"${x.id.startsWith('plugin-') && x.instructions ? `, a plugin: ${x.instructions}` : ''}${toolsLine(x)})`);
         else if (kind === 'api') lines.push(`{"type":"integration","id":"${x.id}","path":"optional /sub/path?query"} (GET the API "${x.name}" at ${x.url})`);
         else lines.push(`{"type":"integration","id":"${x.id}"} (run "${x.name}")`);
+      }
+      if (openPlugin) {
+        const pl = safe(pluginsPrompt, '');
+        if (pl) lines.push(pl);
       }
       return lines.length ? `More actions you have:\n${lines.join('\n')}` : '';
     },
@@ -518,6 +528,7 @@ export function createExtras({ config, brain, system, onLater, confirm = null, c
       if (a?.type === 'orquesta_connect' && connect) return { type: 'orquesta_connect', extra: true };
       if (a?.type === 'orquesta_list') return { type: 'orquesta_list', extra: true };
       if (a?.type === 'orquesta' && a.text) return { type: 'orquesta', extra: true, project: a.project ? String(a.project).slice(0, 120) : null, text: String(a.text).slice(0, 4000) };
+      if (a?.type === 'plugin' && a.id && openPlugin) return { type: 'plugin', extra: true, id: String(a.id).slice(0, 32) };
       if (a?.type === 'integration' && a.id) return { type: 'integration', extra: true, id: String(a.id).slice(0, 40), ...(a.tool ? { tool: String(a.tool).slice(0, 80), args: a.args && typeof a.args === 'object' && !Array.isArray(a.args) ? a.args : {} } : {}), ...(a.path ? { path: String(a.path).slice(0, 300) } : {}) };
       return null;
     },
@@ -564,6 +575,12 @@ export function createExtras({ config, brain, system, onLater, confirm = null, c
           const { id } = await sendToAgent(p.id, a.text);
           follow(id, p.name, lang).catch((e) => log(`orquesta: ${e.message}`));
           return { data: `Sent to the agent of "${p.name}"${p.online === false ? ' (its agent is offline now; it runs when it comes back)' : ''}. Tell them you'll let them know when it answers.` };
+        }
+        if (a.type === 'plugin') {
+          const p = getPlugin(a.id);
+          if (!p?.on || !p.manifest.panel) return { data: '(that plugin is off, has no panel or is not installed)' };
+          openPlugin(p.id);
+          return { data: `The "${p.manifest.name}" panel just opened beside you. Tell them in a few words; do not invent what it shows.` };
         }
         if (a.type === 'integration') {
           const x = customs().find((y) => y.id === a.id);

@@ -51,5 +51,5 @@ writeFileSync(
   ) + '\n',
 );
 
-execSync('npm install --omit=dev --no-audit --no-fund --no-package-lock --loglevel=error', { cwd: app, stdio: 'inherit' });
+execSync('npm install --omit=dev --ignore-scripts --no-audit --no-fund --no-package-lock --loglevel=error', { cwd: app, stdio: 'inherit' });
 console.log(`staged desktop/app (7ots ${version})`);

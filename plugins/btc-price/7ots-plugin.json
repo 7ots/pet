@@ -1,0 +1,12 @@
+{
+  "id": "btc-price",
+  "name": "BTC price",
+  "version": "1.0.0",
+  "icon": "₿",
+  "description": "Bitcoin's price live in a small window beside your ot, with the last 24 h.",
+  "author": "7ots",
+  "homepage": "https://7ots.com/app/#plugins",
+  "instructions": "When your human asks for the bitcoin / BTC price or how bitcoin is doing, open this panel (it shows the live price and the last 24 h).",
+  "panel": { "file": "panel.html", "title": "BTC", "width": 300, "height": 200 },
+  "net": ["api.coingecko.com"]
+}

@@ -12,7 +12,8 @@
 
 const path = require('node:path');
 const { execFile } = require('node:child_process');
-const { app, BrowserWindow, Menu, Tray, globalShortcut, nativeImage, screen, session, shell, systemPreferences } = require('electron');
+const { app, BrowserWindow, Menu, Tray, globalShortcut, nativeImage, protocol, screen, session, shell, systemPreferences } = require('electron');
+const { pathToFileURL } = require('node:url');
 
 const URL_ = process.env.SEVENOTS_PET_URL;
 const TOKEN = process.env.SEVENOTS_PET_TOKEN;
@@ -31,11 +32,32 @@ const MIN = { w: 288, h: 272 };
 const linux = process.platform === 'linux';
 
 const L = {
-  en: { settings: '⚙️ Settings', talk: '💬 Talk', listen: '🎙️ Listen (Ctrl+Alt+Space)', show: 'Show pet', hide: 'Hide (keeps living)', feed: '🍎 Treat', play: '🎾 Play', byte: '🎮 Play on byte', watch: '📺 Watch the game', stopGame: '⏹ Stop the game', lastGame: 'Last played', moreGames: 'More games', noGames: 'byte: no games (sign in to 7ots.com)', sleep: '💤 Sleep', wake: '☀️ Wake up', still: 'Stay still', quit: 'Quit pet' },
-  es: { settings: '⚙️ Configuración', talk: '💬 Hablar', listen: '🎙️ Escúchame (Ctrl+Alt+Espacio)', show: 'Mostrar mascota', hide: 'Ocultar (sigue viva)', feed: '🍎 Mimar', play: '🎾 Jugar', byte: '🎮 Jugar en byte', watch: '📺 Ver la partida', stopGame: '⏹ Parar la partida', lastGame: 'Último jugado', moreGames: 'Más juegos', noGames: 'byte: sin juegos (entra a 7ots.com)', sleep: '💤 Dormir', wake: '☀️ Despertar', still: 'Quedarse quieta', quit: 'Cerrar mascota' },
-  pt: { settings: '⚙️ Configurações', talk: '💬 Falar', listen: '🎙️ Me escute (Ctrl+Alt+Espaço)', show: 'Mostrar bichinho', hide: 'Esconder (segue vivo)', feed: '🍎 Mimar', play: '🎾 Brincar', byte: '🎮 Jogar no byte', watch: '📺 Ver a partida', stopGame: '⏹ Parar a partida', lastGame: 'Último jogado', moreGames: 'Mais jogos', noGames: 'byte: sem jogos (entre no 7ots.com)', sleep: '💤 Dormir', wake: '☀️ Acordar', still: 'Ficar parado', quit: 'Fechar bichinho' },
+  en: { settings: '⚙️ Settings', talk: '💬 Talk', listen: '🎙️ Listen (Ctrl+Alt+Space)', show: 'Show pet', hide: 'Hide (keeps living)', feed: '🍎 Treat', play: '🎾 Play', byte: '🎮 Play on byte', watch: '📺 Watch the game', stopGame: '⏹ Stop the game', lastGame: 'Last played', moreGames: 'More games', noGames: 'byte: no games (sign in to 7ots.com)', sleep: '💤 Sleep', wake: '☀️ Wake up', still: 'Stay still', quit: 'Quit pet', muteStream: '🔇 Mute stream', unmuteStream: '🔊 Unmute stream', plugins: '🧩 Plugins', noPlugins: 'No plugins yet', morePlugins: 'Get or create plugins…' },
+  es: { settings: '⚙️ Configuración', talk: '💬 Hablar', listen: '🎙️ Escúchame (Ctrl+Alt+Espacio)', show: 'Mostrar mascota', hide: 'Ocultar (sigue viva)', feed: '🍎 Mimar', play: '🎾 Jugar', byte: '🎮 Jugar en byte', watch: '📺 Ver la partida', stopGame: '⏹ Parar la partida', lastGame: 'Último jugado', moreGames: 'Más juegos', noGames: 'byte: sin juegos (entra a 7ots.com)', sleep: '💤 Dormir', wake: '☀️ Despertar', still: 'Quedarse quieta', quit: 'Cerrar mascota', muteStream: '🔇 Silenciar stream', unmuteStream: '🔊 Activar sonido', plugins: '🧩 Plugins', noPlugins: 'Aún no hay plugins', morePlugins: 'Buscar o crear plugins…' },
+  pt: { settings: '⚙️ Configurações', talk: '💬 Falar', listen: '🎙️ Me escute (Ctrl+Alt+Espaço)', show: 'Mostrar bichinho', hide: 'Esconder (segue vivo)', feed: '🍎 Mimar', play: '🎾 Brincar', byte: '🎮 Jogar no byte', watch: '📺 Ver a partida', stopGame: '⏹ Parar a partida', lastGame: 'Último jogado', moreGames: 'Mais jogos', noGames: 'byte: sem jogos (entre no 7ots.com)', sleep: '💤 Dormir', wake: '☀️ Acordar', still: 'Ficar parado', quit: 'Fechar bichinho', muteStream: '🔇 Silenciar stream', unmuteStream: '🔊 Ativar som', plugins: '🧩 Plugins', noPlugins: 'Ainda sem plugins', morePlugins: 'Buscar ou criar plugins…' },
 }[LANG] || {};
 const tr = (k) => L[k] || { listen: 'Listen', show: 'Show pet', hide: 'Hide', talk: 'Talk', settings: 'Settings', feed: 'Feed', play: 'Play', sleep: 'Sleep', wake: 'Wake up', still: 'Stay still', quit: 'Quit pet' }[k];
+
+// Plugins' panels (cli/lib/plugins.mjs): each one on its own origin, ots-plugin://<id>/<file>, served from its
+// folder with a CSP that only lets it load its own files and reach the hosts its manifest lists (src/plugins.js).
+protocol.registerSchemesAsPrivileged([{ scheme: 'ots-plugin', privileges: { standard: true, secure: true, supportFetchAPI: true } }]);
+const pluginLibs = () => Promise.all([import(pathToFileURL(path.join(__dirname, '..', '..', 'lib', 'plugins.mjs')).href), import(pathToFileURL(path.join(__dirname, '..', '..', '..', 'src', 'plugins.js')).href)]);
+let pluginProtocol = false;
+function servePlugins() {
+  if (pluginProtocol) return;
+  pluginProtocol = true;
+  protocol.handle('ots-plugin', async (req) => {
+    try {
+      const u = new URL(req.url);
+      const [pl, fmt] = await pluginLibs();
+      const f = pl.pluginFile(u.hostname, decodeURIComponent(u.pathname.slice(1)) || 'index.html');
+      if (!f || !f.plugin.on) return new Response('not found', { status: 404 });
+      return new Response(f.body, { headers: { 'Content-Type': fmt.fileType(f.file), 'Content-Security-Policy': fmt.panelCsp(f.plugin.manifest), 'X-Content-Type-Options': 'nosniff', 'Cache-Control': 'no-cache' } });
+    } catch {
+      return new Response('error', { status: 500 });
+    }
+  });
+}
 
 app.commandLine.appendSwitch('autoplay-policy', 'no-user-gesture-required'); // it talks without a click
 if (linux && !OPAQUE) {
@@ -172,13 +194,17 @@ async function syncSenses() {
 
 // Settings in a window of our own (not a browser tab); links elsewhere open in the browser.
 const settingsWins = new Map(); // one per ot that has its own daemon
-function openSettings(base = URL_, tok = TOKEN) {
+function openSettings(base = URL_, tok = TOKEN, section = '') {
+  section = /^[a-z]{2,20}$/.test(section) ? section : '';
   let settingsWin = settingsWins.get(base);
-  if (settingsWin && !settingsWin.isDestroyed()) return settingsWin.show(), settingsWin.focus();
+  if (settingsWin && !settingsWin.isDestroyed()) {
+    if (section) settingsWin.webContents.executeJavaScript(`location.hash = ${JSON.stringify(section)}`).catch(() => {});
+    return settingsWin.show(), settingsWin.focus();
+  }
   settingsWin = new BrowserWindow({ width: 1120, height: 820, minWidth: 420, minHeight: 480, title: '7ots', icon: ICON, autoHideMenuBar: true, backgroundColor: '#0f0d14', show: false });
   settingsWin.removeMenu?.();
   settingsWins.set(base, settingsWin);
-  settingsWin.loadURL(`${base}/settings?token=${encodeURIComponent(tok)}`);
+  settingsWin.loadURL(`${base}/settings?token=${encodeURIComponent(tok)}${section ? `#${section}` : ''}`);
   settingsWin.once('ready-to-show', () => settingsWin.show());
   const ours = (u) => String(u || '').startsWith(base);
   settingsWin.webContents.setWindowOpenHandler(({ url }) => {
@@ -267,7 +293,14 @@ function makeOt(opt = {}) {
   const ready = () => alive() && !win.webContents.isLoadingMainFrame();
   const page = (js) => ready() && win.webContents.executeJavaScript(js).catch(() => {});
 
+  const sevenHome = process.env.SEVENOTS_HOME || path.join(require('node:os').homedir(), '.7ots');
   let still = false;
+  if (HOST) {
+    try {
+      const cfg = JSON.parse(require('node:fs').readFileSync(path.join(sevenHome, 'config.json'), 'utf8'));
+      still = !!(cfg.pet && cfg.pet.still);
+    } catch {}
+  }
   let lastBounds = null;
   // How much of the window hangs off the screen it is on (a drag may leave it 40 px past the floor or the
   // right edge, or over the taskbar): the page lifts the hover menu by that much, and moves it to the ot's
@@ -313,17 +346,37 @@ function makeOt(opt = {}) {
       { label: tr('sleep'), click: () => postOt('/event', { type: 'sleep' }) },
       { label: tr('wake'), click: () => postOt('/event', { type: 'wake' }) },
       { label: tr('byte'), click: () => gameMenu().then((m) => m.popup({ window: win })) },
+      { label: tr('plugins'), click: () => pluginMenu().then((m) => m.popup({ window: win })) },
       { type: 'separator' },
       { label: tr('settings'), click: () => openSettings(base, tok) },
-      { label: tr('still'), type: 'checkbox', checked: still, click: (i) => (still = i.checked) },
+      { label: tr('still'), type: 'checkbox', checked: still, click: (i) => {
+        still = i.checked;
+        if (HOST) {
+          try {
+            const cfgPath = path.join(sevenHome, 'config.json');
+            let cfg = {};
+            try { cfg = JSON.parse(require('node:fs').readFileSync(cfgPath, 'utf8')); } catch {}
+            cfg.pet = cfg.pet || {};
+            cfg.pet.still = still;
+            require('node:fs').writeFileSync(cfgPath, JSON.stringify(cfg, null, 2));
+          } catch {}
+        }
+      }},
       HOST ? { label: tr('quit'), click: () => post('/quit').finally(() => app.quit()) } : { label: { es: '👋 Despedir', pt: '👋 Mandar embora' }[LANG] || '👋 Send home', click: dismiss },
     ]);
   // ── byte arena: the ot plays a game live (7ots.com runs its moves) and a small window shows it, beside it ──
   let gameWin = null;
+  let muted = false; // stream audio mute state; persists across game sessions
   const watchGame = (url) => {
     if (!/^https:\/\/[^/]+\/stream\/s_[a-z0-9]+$/i.test(String(url || ''))) return;
     url += '?bare=1'; // byte's game-only view: no header, crew grid or avatar (the ot is already on the desktop)
-    if (gameWin && !gameWin.isDestroyed()) return gameWin.loadURL(url), gameWin.showInactive(), win.moveTop();
+    if (gameWin && !gameWin.isDestroyed()) {
+      gameWin.loadURL(url);
+      gameWin.webContents.setAudioMuted(muted);
+      gameWin.showInactive();
+      win.moveTop();
+      return;
+    }
     const w = 480;
     const h = 300;
     const [wx, wy] = win.getPosition();
@@ -333,13 +386,15 @@ function makeOt(opt = {}) {
     gameWin = new BrowserWindow({ x, y, width: w, height: h, minWidth: 320, minHeight: 200, alwaysOnTop: true, title: 'byte arena', icon: ICON, autoHideMenuBar: true, backgroundColor: '#0b0b12', show: false, webPreferences: { contextIsolation: true, sandbox: true } });
     gameWin.removeMenu?.();
     gameWin.setAlwaysOnTop(true, 'floating');
-    gameWin.webContents.setAudioMuted(false);
+    gameWin.webContents.setAudioMuted(muted);
     // the page stays on byte's stream; any other link goes to the browser
     const origin = new URL(url).origin;
     gameWin.webContents.setWindowOpenHandler(({ url: u }) => (shell.openExternal(u).catch(() => {}), { action: 'deny' }));
     gameWin.webContents.on('will-navigate', (e, u) => String(u).startsWith(`${origin}/stream/`) || (e.preventDefault(), shell.openExternal(u).catch(() => {})));
     gameWin.loadURL(url);
-    gameWin.once('ready-to-show', () => { gameWin.showInactive(); win.moveTop(); });
+    // show immediately so the user sees the browser loading state while the stream connects (MJ-02)
+    gameWin.showInactive();
+    win.moveTop();
     gameWin.on('closed', () => (gameWin = null));
   };
   // what it saw when you asked it to look at you ("¿cómo me ves?"): a small window beside it, like the game's.
@@ -364,6 +419,44 @@ function makeOt(opt = {}) {
     photoWin.loadURL(url);
     photoWin.once('ready-to-show', () => photoWin.showInactive());
     photoWin.on('closed', () => (photoWin = null));
+  };
+  // ── plugins: a panel in a small window beside it, like the game's; sandboxed, on its own origin ──
+  const pluginWins = new Map(); // id → BrowserWindow
+  const openPlugin = async (id) => {
+    if (!/^[a-z0-9][a-z0-9-]{1,31}$/.test(id)) return;
+    const old = pluginWins.get(id);
+    if (old && !old.isDestroyed()) return old.showInactive(), win.moveTop();
+    const [pl] = await pluginLibs();
+    const p = pl.getPlugin(id);
+    if (!p?.on || !p.manifest.panel) return;
+    servePlugins();
+    const { width: w, height: h, title, file } = p.manifest.panel;
+    const [wx, wy] = win.getPosition();
+    const a = curArea();
+    const n = [...pluginWins.values()].filter((x) => !x.isDestroyed()).length;
+    const x = Math.max(a.x, Math.min(a.x + a.width - w, wx + size.w / 2 + 40 + n * 24));
+    const y = Math.max(a.y, Math.min(a.y + a.height - h, wy + size.h - h - n * 24));
+    const pw = new BrowserWindow({ x, y, width: w, height: h, minWidth: 160, minHeight: 100, alwaysOnTop: true, title: `${p.manifest.icon} ${title}`, icon: ICON, autoHideMenuBar: true, backgroundColor: '#0b0b12', show: false, webPreferences: { contextIsolation: true, sandbox: true, nodeIntegration: false, webviewTag: false, spellcheck: false } });
+    pw.removeMenu?.();
+    pw.setAlwaysOnTop(true, 'floating');
+    const origin = `ots-plugin://${id}`;
+    // the panel stays on its own files; an https link opens in the browser, anything else goes nowhere
+    pw.webContents.setWindowOpenHandler(({ url: u }) => (/^https:\/\//.test(u) && shell.openExternal(u).catch(() => {}), { action: 'deny' }));
+    pw.webContents.on('will-navigate', (e, u) => String(u).startsWith(`${origin}/`) || (e.preventDefault(), /^https:\/\//.test(u) && shell.openExternal(u).catch(() => {})));
+    pw.webContents.on('will-attach-webview', (e) => e.preventDefault());
+    pw.once('ready-to-show', () => (pw.showInactive(), win.moveTop()));
+    pw.on('closed', () => pluginWins.delete(id));
+    pluginWins.set(id, pw);
+    pw.loadURL(`${origin}/${file}`);
+  };
+  const pluginMenu = async () => {
+    const [pl] = await pluginLibs().catch(() => [null]);
+    const ps = (pl?.activePlugins() || []).filter((p) => p.manifest.panel);
+    return Menu.buildFromTemplate([
+      ...(ps.length ? ps.map((p) => ({ label: `${p.manifest.icon} ${p.manifest.name}${p.source === 'local' ? ' · dev' : ''}`, click: () => openPlugin(p.id) })) : [{ label: tr('noPlugins'), enabled: false }]),
+      { type: 'separator' },
+      { label: tr('morePlugins'), click: () => openSettings(base, tok, 'plugins') },
+    ]);
   };
   const playGame = async (game) => {
     try {
@@ -435,6 +528,10 @@ function makeOt(opt = {}) {
       return Menu.buildFromTemplate([
         { label: `${st.play.game} · ${st.play.moves}`, enabled: false },
         { label: tr('watch'), click: () => watchGame(st.play.streamUrl) },
+        { label: muted ? tr('unmuteStream') : tr('muteStream'), type: 'checkbox', checked: muted, click: (item) => {
+          muted = item.checked;
+          if (gameWin && !gameWin.isDestroyed()) gameWin.webContents.setAudioMuted(muted);
+        }},
         { label: tr('stopGame'), click: () => postOt('/byte/stop').then(() => gameWin && !gameWin.isDestroyed() && gameWin.close()) },
       ]);
     }
@@ -656,6 +753,14 @@ function makeOt(opt = {}) {
     if (m.startsWith('\u00a77photo')) {
       try {
         return showPhoto(JSON.parse(m.slice(7)));
+      } catch {
+        return;
+      }
+    }
+    if (m.startsWith('\u00a77plugin')) {
+      try {
+        const d = JSON.parse(m.slice(8));
+        return FULL && d.open && openPlugin(String(d.open));
       } catch {
         return;
       }

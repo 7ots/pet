@@ -54,6 +54,7 @@ import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
 import { readFileSync, existsSync, writeFileSync, chmodSync, mkdirSync, rmSync, symlinkSync, readdirSync, statSync, createReadStream } from 'node:fs';
 import { cardShot } from './card-shot.mjs';
 import { join } from 'node:path';
+import { homedir } from 'node:os';
 import { createAssistant, notify, tr } from './assistant.mjs';
 import { createWatchers, processes, processSummary } from './watchers.mjs';
 import { createInferenceLog, otherInferences } from './inferences.mjs';
@@ -70,6 +71,7 @@ import { createScreenWatcher } from './screen.mjs';
 import { createSiteContext } from './prowl.mjs';
 import { createSenses } from './senses/index.mjs';
 import { ensureVendor, vendorFile, vendorStatus } from './senses/vendor.mjs';
+import { addLocal as addLocalPlugin, catalog as pluginCatalog, getPlugin, installFromCatalog, listPlugins, myPlugins, publishPlugin, removePlugin, scaffold as scaffoldPlugin, setPluginOn } from './plugins.mjs';
 import { SEVENOTS_URL, cloudSpeak, community, sync as syncOt, logout as accountLogout, me as accountMe, pull as pullOt, signedIn, startLogin, use as useOt } from './account.mjs';
 import { openUrl } from './open.mjs';
 import { syncDesktop } from './desktop-sync.mjs';
@@ -463,6 +465,7 @@ export function startPetServer({ port = PET_PORT, log = () => {} } = {}) {
       system: (said) => petSystem(identity, { lang: said || 'auto', role: 'assistant' }),
       confirm,
       connect: connectOrquesta,
+      openPlugin: (id) => broadcast({ plugin: { open: id } }), // the desktop shell opens its panel beside the ot
       onLater: (text) => {
         lastSpoke = Date.now();
         pet.lastTalk = lastSpoke;
@@ -819,6 +822,7 @@ export function startPetServer({ port = PET_PORT, log = () => {} } = {}) {
         screen: { on: config.access.screen === true, every: config.screen.every, last: watcher.seen?.[0] || null },
         system: config.access.processes ? await processes({ n: 60 }) : null,
       });
+    if (req.method === 'GET' && p === '/plugins') return json(200, { plugins: listPlugins(), signedIn: signedIn(), url: SEVENOTS_URL });
     if (req.method === 'GET' && p === '/reminders') return json(200, { reminders: assistant.reminders, notes: assistant.notes });
     if (req.method === 'GET' && p === '/cloud') return json(200, await cloudStatus(config));
     const bm = /^\/byte(\/(?:games|status|play|stop|connect))?$/.exec(p);
@@ -1079,6 +1083,40 @@ export function startPetServer({ port = PET_PORT, log = () => {} } = {}) {
         return json(e.status || 502, { error: e.message });
       }
       return restart(); // identity, language and name are read once at start
+    }
+    if (p.startsWith('/plugins/')) {
+      // plugins (plugins.mjs): the 7ots.com catalog (approved ones), your own folders (dev), and review requests
+      const act = p.slice('/plugins/'.length);
+      const id = String(data.id || '');
+      try {
+        if (act === 'catalog') return json(200, { plugins: await pluginCatalog({ q: String(data.q || '') }) });
+        if (act === 'install') return json(200, { plugin: await installFromCatalog(id) });
+        if (act === 'add') return json(200, { plugin: addLocalPlugin(String(data.dir || '')) });
+        if (act === 'new') {
+          const dir = String(data.dir || '') || join(homedir(), '7ots-plugins', String(data.id || 'my-plugin'));
+          const r = scaffoldPlugin(dir, { id: data.id, name: data.name });
+          return json(200, { plugin: addLocalPlugin(r.dir), dir: r.dir });
+        }
+        if (act === 'remove') return json(200, { ok: removePlugin(id) });
+        if (act === 'on') return json(200, { ok: setPluginOn(id, data.on !== false) });
+        if (act === 'open') {
+          const pl = getPlugin(id);
+          if (!pl?.manifest.panel) return json(404, { error: 'no panel' });
+          broadcast({ plugin: { open: id } });
+          return json(200, { ok: true });
+        }
+        if (!signedIn()) return json(401, { error: 'login' });
+        if (act === 'mine') return json(200, await myPlugins());
+        if (act === 'publish') {
+          const pl = getPlugin(id);
+          if (!pl || pl.source !== 'local') return json(400, { error: 'only your own (local) plugins can be sent for review' });
+          return json(200, await publishPlugin(pl.dir));
+        }
+      } catch (e) {
+        log(`plugins ${act}: ${e.message}`);
+        return json(e.status || 400, { error: e.message });
+      }
+      return json(404, { error: 'not found' });
     }
     if (p.startsWith('/community/')) {
       // the 7ots.com gallery (server/platform/mods.mjs): browse without an account; share, rate and report with one
@@ -1489,7 +1527,9 @@ ${keys.map((k) => FIELDS[k]).join('\n')}`;
     for (const c of clients) c.end();
     server.close();
     server.closeAllConnections?.();
-    setTimeout(() => (then?.(), process.exit(0)), 200).unref();
+    // With a callback (restart): ref the timer so it always fires even if the event loop empties first.
+    const _t = setTimeout(() => (then?.(), process.exit(0)), 200);
+    if (!then) _t.unref();
   }
 
   return new Promise((resolve, reject) => {

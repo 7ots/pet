@@ -258,7 +258,7 @@
 <script type="module">
   const BOOT = __BOOT__;
   const T = {
-    en: { wakeOn: 'Say “hey {name}” and I listen', game: 'Play byte', dance: 'Dance', aura: 'Farm aura', settings: 'Settings', card: 'Card', dismiss: 'Send home', listen: 'Listen', listening: 'Listening… 🎙️', noStt: ‘Voice control needs an OpenAI or ElevenLabs key (Settings).’, noMic: ‘I can’t reach the microphone. Allow microphone access in system settings.’, sttErr: 'I didn’t catch that.', talk: 'Talk', askPh: 'Remind me to check email in 10 min…', feed: 'Treat', play: 'Play', sleep: 'Sleep', wake: 'Wake', food: 'Food', energy: 'Energy', fun: 'Fun', level: 'Level {l}', xp: '{x} / {n} xp', live: 'Live', off: 'Reconnecting…', approve: 'Approve', reject: 'Reject',
+    en: { wakeOn: 'Say “hey {name}” and I listen', game: 'Play byte', dance: 'Dance', aura: 'Farm aura', settings: 'Settings', card: 'Card', dismiss: 'Send home', listen: 'Listen', listening: 'Listening… 🎙️', noStt: 'Voice control needs an OpenAI or ElevenLabs key (Settings).', noMic: 'I can’t reach the microphone. Allow microphone access in system settings.', sttErr: 'I didn’t catch that.', talk: 'Talk', askPh: 'Remind me to check email in 10 min…', feed: 'Treat', play: 'Play', sleep: 'Sleep', wake: 'Wake', food: 'Food', energy: 'Energy', fun: 'Fun', level: 'Level {l}', xp: '{x} / {n} xp', live: 'Live', off: 'Reconnecting…', approve: 'Approve', reject: 'Reject',
       activity: 'Activity', empty: 'Nothing yet. Run a command or ask your coding agent something.', tally: '{ok} ok · {fail} failed · turns {turns}',
       brain: 'Brain: {b}', age: 'Born {d}', lines: 'built-in phrases', now: 'now', m: '{n}m', h: '{n}h',
       moods: { happy: 'Happy', neutral: 'Calm', sad: 'Sad', disgust: 'Bored', sleep: 'Asleep', thinking: 'Thinking' },
@@ -791,6 +791,7 @@
       if (m.backdrop !== undefined) return location.reload(); // its style's background on/off (settings)
       if (m.view && setView(m.view === '3d')) return; // 2D ↔ 3D changed in the settings
       if (guest) return; // the host's events are the host's
+      if (m.plugin && desktop) console.debug('\u00a77plugin' + JSON.stringify(m.plugin)); // the shell opens its panel beside the ot
       if (m.stir || (m.say && asleep && Date.now() < stirUntil)) stir(); // awake until it has said it
       if (m.state) render(m.state);
       if (m.ask) ask4(m.ask); // before thinking: an approved ask hands the bubble back to the dots

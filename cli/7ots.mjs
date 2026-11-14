@@ -246,6 +246,66 @@ async function cmdAsk({ pos }) {
   console.log(r.reply || '');
 }
 
+/** Plugins: windows beside the ot and tools for its brain (cli/lib/plugins.mjs, docs/PLUGINS.md). */
+async function cmdPlugin({ pos }) {
+  const P = await import('./lib/plugins.mjs');
+  const [sub = 'list', a, b] = pos;
+  const line = (p) => `${p.on ? '●' : '○'} ${p.id.padEnd(20)} ${p.manifest ? `${p.manifest.icon} ${p.manifest.name} v${p.manifest.version}` : `(${p.error})`}${p.source === 'local' ? `  · dev ${p.dir}` : ''}`;
+  const daemon = async (act, body) => {
+    if (!(await petAlive())) return null;
+    return fetch(`http://127.0.0.1:${PET_PORT}/plugins/${act}`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-7ots-Token': petToken() }, body: JSON.stringify(body), signal: AbortSignal.timeout(5000) }).then((r) => r.json()).catch(() => null);
+  };
+  switch (sub) {
+    case 'list':
+    case 'ls': {
+      const ps = P.listPlugins();
+      return console.log(ps.length ? ps.map(line).join('\n') : t('usage.plugin'));
+    }
+    case 'catalog':
+    case 'search': {
+      const ps = await P.catalog({ q: a || '' });
+      return console.log(ps.map((v) => `${v.installed ? (v.update ? '↑' : '✓') : ' '} ${v.id.padEnd(20)} ${v.manifest.icon} ${v.manifest.name} — ${v.manifest.description || ''} (${v.official ? '7ots' : v.author})`).join('\n') || '—');
+    }
+    case 'add':
+    case 'install': {
+      if (!a) fail(t('usage.plugin'));
+      const local = /[/\\.]/.test(a) || existsSync(a);
+      const p = local ? P.addLocal(a) : await P.installFromCatalog(a);
+      console.log(line(p));
+      if (p.manifest.panel) console.log(`→ 7ots plugin open ${p.id}`);
+      return;
+    }
+    case 'remove':
+    case 'rm':
+      if (!a) fail(t('usage.plugin'));
+      return console.log(P.removePlugin(a) ? `removed ${a}` : `no plugin ${a}`);
+    case 'on':
+    case 'off':
+      if (!a) fail(t('usage.plugin'));
+      return console.log(P.setPluginOn(a, sub === 'on') ? `${a}: ${sub}` : `no plugin ${a}`);
+    case 'open': {
+      if (!a) fail(t('usage.plugin'));
+      if (!P.getPlugin(a)?.manifest.panel) fail(`no plugin ${a} with a window`);
+      if (!(await daemon('open', { id: a }))) fail(t('err.noPet'));
+      return;
+    }
+    case 'new':
+    case 'create': {
+      if (!a) fail(t('usage.plugin'));
+      const { homedir } = await import('node:os');
+      const { dir, id } = P.scaffold(b || join(homedir(), '7ots-plugins', a), { id: a });
+      P.addLocal(dir);
+      return console.log(`${dir}\n→ 7ots plugin open ${id}   ·   7ots plugin publish ${dir}`);
+    }
+    case 'publish': {
+      const { plugin } = await P.publishPlugin(a || '.');
+      return console.log(`${plugin.id} v${plugin.manifest.version}: ${plugin.status} → https://7ots.com/app/#plugins`);
+    }
+    default:
+      fail(t('usage.plugin'));
+  }
+}
+
 async function cmdReminders({ flags }) {
   if (!(await petAlive())) fail(t('err.noPet'));
   if (flags.cancel) {
@@ -601,6 +661,9 @@ async function main() {
       return cmdDance(cmd, args);
     case 'reminders':
       return cmdReminders(args);
+    case 'plugin':
+    case 'plugins':
+      return cmdPlugin(args);
     case 'senses':
       return cmdSenses(args);
     case 'config':

@@ -20,6 +20,7 @@ const M = {
   7ots status [--line|--json]                pet state (--line: one line for tmux)
   7ots ask <text>                            talk to it: "remind me to check email in 10 min", "open my calendar", "remember that…"
   7ots reminders [--cancel <id>]             pending reminders and what it remembers
+  7ots plugin [add|open|new|publish] …       plugins: windows and tools for your ot
   7ots senses [status|rules|pause [min]|resume|reflect|forget]  what it notices (camera, apps, mail) and its rules
   7ots config [--print]                      settings page: brain, what it can see, notes
   7ots hooks install|remove [--claude] [--shell] [--global]
@@ -107,7 +108,8 @@ Docs: https://7ots.com/llms.txt`,
     'err.noPet': 'The pet is not awake. Start it with: 7ots pet',
     'pet.settings': 'Opening the settings in your browser.',
     'usage.senses': '7ots senses [status|rules|pause [min]|resume|reflect|forget] [--json]\n\n  Turn them on in settings → Senses (7ots config).',
-    'usage.ask': '7ots ask <text>\n\n  e.g. 7ots ask "remind me to check email in 10 minutes and open it"\n       7ots ask "remember that Fridays we demo"   ·   7ots ask "my reminders"\n  Seeing your screen or processes: coming soon.',
+    'usage.plugin': '7ots plugin [list|catalog [q]|add <id|./dir>|on|off|open|remove <id>|new <id> [dir]|publish <dir>]\n\n  Plugins add a window beside your ot and tools for its brain. Guide: https://7ots.com/docs/plugins',
+    'usage.ask': '7ots ask <text>\n\n  e.g. 7ots ask "remind me to check email in 10 minutes and open it"\n       7ots ask "remember that Fridays we demo"   ·   7ots ask "my reminders"\n  Enable "See your screen" and "Processes and apps" in Settings (7ots config).',
     'err.noIdentity': 'No identity yet. Create one with "7ots new" or run "7ots setup".',
     'w.title': '7ots setup — {name}',
     'w.intro': 'Your ot in 7 short steps. Keys stay on this computer.',
@@ -214,6 +216,7 @@ Docs: https://7ots.com/llms.txt`,
   7ots status [--line|--json]                estado (--line: una línea para tmux)
   7ots ask <texto>                           háblale: "recuérdame ver el correo en 10 min", "abre mi calendario", "anota que…"
   7ots reminders [--cancel <id>]             recordatorios pendientes y lo que recuerda
+  7ots plugin [add|open|new|publish] …       plugins: ventanas y herramientas para tu ot
   7ots senses [status|rules|pause [min]|resume|reflect|forget]  lo que nota (cámara, apps, correo) y sus reglas
   7ots config [--print]                      ajustes: cerebro, qué puede ver, notas
   7ots hooks install|remove [--claude] [--shell] [--global]
@@ -301,7 +304,8 @@ Docs: https://7ots.com/llms.txt`,
     'err.noPet': 'La mascota no está despierta. Iníciala con: 7ots pet',
     'pet.settings': 'Abriendo los ajustes en tu navegador.',
     'usage.senses': '7ots senses [status|rules|pause [min]|resume|reflect|forget] [--json]\n\n  Se activan en ajustes → Sentidos (7ots config).',
-    'usage.ask': '7ots ask <texto>\n\n  ej. 7ots ask "recuérdame ver el correo en 10 minutos y ábrelo"\n      7ots ask "anota que los viernes hay demo"   ·   7ots ask "mis recordatorios"\n  Ver tu pantalla o tus procesos: muy pronto.',
+    'usage.plugin': '7ots plugin [list|catalog [q]|add <id|./carpeta>|on|off|open|remove <id>|new <id> [carpeta]|publish <carpeta>]\n\n  Los plugins agregan una ventana junto a tu ot y herramientas para su cerebro. Guía: https://7ots.com/docs/plugins',
+    'usage.ask': '7ots ask <texto>\n\n  ej. 7ots ask "recuérdame ver el correo en 10 minutos y ábrelo"\n      7ots ask "anota que los viernes hay demo"   ·   7ots ask "mis recordatorios"\n  Activa "Ver tu pantalla" y "Procesos y apps" en Ajustes (7ots config).',
     'err.noIdentity': 'Aún no hay identidad. Crea una con «7ots new» o corre «7ots setup».',
     'w.title': 'Configuración de 7ots — {name}',
     'w.intro': 'Tu ot en 7 pasos cortos. Las claves se quedan en este computador.',
@@ -408,6 +412,7 @@ Docs: https://7ots.com/llms.txt`,
   7ots status [--line|--json]                estado (--line: uma linha para tmux)
   7ots ask <texto>                           fale com ele: "me lembre de ver o e-mail em 10 min", "abra minha agenda", "anote que…"
   7ots reminders [--cancel <id>]             lembretes pendentes e o que ele lembra
+  7ots plugin [add|open|new|publish] …       plugins: janelas e ferramentas para o seu ot
   7ots senses [status|rules|pause [min]|resume|reflect|forget]  o que ele nota (câmera, apps, e-mail) e suas regras
   7ots config [--print]                      ajustes: cérebro, o que pode ver, notas
   7ots hooks install|remove [--claude] [--shell] [--global]
@@ -495,7 +500,8 @@ Docs: https://7ots.com/llms.txt`,
     'err.noPet': 'O bichinho não está acordado. Inicie com: 7ots pet',
     'pet.settings': 'Abrindo os ajustes no seu navegador.',
     'usage.senses': '7ots senses [status|rules|pause [min]|resume|reflect|forget] [--json]\n\n  Ative em ajustes → Sentidos (7ots config).',
-    'usage.ask': '7ots ask <texto>\n\n  ex. 7ots ask "me lembre de ver o e-mail em 10 minutos e abra"\n      7ots ask "anote que às sextas tem demo"   ·   7ots ask "meus lembretes"\n  Ver sua tela ou processos: em breve.',
+    'usage.plugin': '7ots plugin [list|catalog [q]|add <id|./pasta>|on|off|open|remove <id>|new <id> [pasta]|publish <pasta>]\n\n  Plugins adicionam uma janela ao lado do seu ot e ferramentas para o cérebro. Guia: https://7ots.com/docs/plugins',
+    'usage.ask': '7ots ask <texto>\n\n  ex. 7ots ask "me lembre de ver o e-mail em 10 minutos e abra"\n      7ots ask "anote que às sextas tem demo"   ·   7ots ask "meus lembretes"\n  Ative "Ver sua tela" e "Processos e apps" nas Configurações (7ots config).',
     'err.noIdentity': 'Ainda não há identidade. Crie uma com «7ots new» ou rode «7ots setup».',
     'w.title': 'Configuração do 7ots — {name}',
     'w.intro': 'Seu ot em 7 passos curtos. As chaves ficam neste computador.',

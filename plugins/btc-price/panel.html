@@ -1,0 +1,29 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BTC</title>
+<link rel="stylesheet" href="panel.css">
+</head>
+<body>
+  <header>
+    <span class="coin">₿ Bitcoin</span>
+    <select id="vs" aria-label="Currency">
+      <option value="usd">USD</option>
+      <option value="eur">EUR</option>
+      <option value="clp">CLP</option>
+      <option value="brl">BRL</option>
+      <option value="mxn">MXN</option>
+      <option value="ars">ARS</option>
+    </select>
+  </header>
+  <main>
+    <div id="price" class="price">…</div>
+    <div id="change" class="change"></div>
+    <svg id="spark" viewBox="0 0 280 60" preserveAspectRatio="none" aria-hidden="true"><path id="area"/><path id="line"/></svg>
+  </main>
+  <footer><span id="at"></span><span>CoinGecko</span></footer>
+  <script src="panel.js"></script>
+</body>
+</html>
