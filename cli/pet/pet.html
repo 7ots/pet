@@ -161,6 +161,11 @@
   .props .pow { left: 50%; top: 6%; font: 900 22px/1 system-ui, sans-serif; color: #ffd400; -webkit-text-stroke: 2px #1a1020; transform: translateX(-50%); white-space: nowrap; }
   /* a visiting ot: its own little menu (play, say goodbye, settings); feeding, talking and sleep are the host's */
   body.guest .ask, body.guest #gameBtn, body:not(.desktop) #gameBtn, body.guest #talkBtn, body.guest #micBtn, body.guest #sleepBtn { display: none !important; }
+  /* desktop (not a visitor): mimar/bailar/aura, hablar/mic and byte+plugins are one button each with a native menu (electron/main.cjs pickMenu) */
+  .grp { display: none !important; }
+  body.desktop:not(.guest) .grp { display: flex !important; }
+  body.desktop:not(.guest) [data-act=feed], body.desktop:not(.guest) #danceBtn, body.desktop:not(.guest) #auraBtn, body.desktop:not(.guest) #talkBtn, body.desktop:not(.guest) #micBtn, body.desktop:not(.guest) #gameBtn { display: none !important; }
+  body.listening #voiceBtn { background: var(--err); color: #fff; }
   .bye { display: none; }
   body.desktop.guest .bye { display: flex; }
   body.desktop .bubble { max-width: 220px; font-size: 12.5px; padding: 8px 12px; }
@@ -236,6 +241,9 @@
   <section class="stats" id="stats"></section>
 
   <nav class="actions">
+    <button class="act primary grp" id="careBtn" type="button" data-pick="care"><svg viewBox="0 0 24 24"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/></svg></button>
+    <button class="act grp" id="voiceBtn" type="button" data-pick="voice"><svg viewBox="0 0 24 24"><path d="M4 5h11v8H8l-4 3z"/><rect x="16.5" y="9" width="4" height="7" rx="2"/><path d="M15 15a3.5 3.5 0 0 0 7 0M18.5 18.5V21"/></svg></button>
+    <button class="act grp" id="plugBtn" type="button" data-pick="plug"><svg viewBox="0 0 24 24"><path d="M5 8h4V6.5a2 2 0 1 1 4 0V8h4v4h-1.5a2 2 0 1 0 0 4H17v4H5v-4h1.5a2 2 0 1 0 0-4H5z"/></svg></button>
     <button class="act primary" data-act="feed"><svg viewBox="0 0 24 24"><path d="M12 7c-1.5-2.5-6-2.5-7 1.5S7 20 9.5 20c1.2 0 1.6-.6 2.5-.6s1.3.6 2.5.6C17 20 20 12.5 19 8.5S13.5 4.5 12 7z"/><path d="M12 7c0-2 1-3.5 3-4"/></svg><span data-t="feed"></span></button>
     <button class="act" id="talkBtn" type="button"><svg viewBox="0 0 24 24"><path d="M5 6h14v9H9l-4 3z"/></svg><span data-t="talk"></span></button>
     <button class="act" id="micBtn" type="button"><svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21"/></svg><span data-t="listen"></span></button>
@@ -258,17 +266,17 @@
 <script type="module">
   const BOOT = __BOOT__;
   const T = {
-    en: { wakeOn: 'Say “hey {name}” and I listen', game: 'Play byte', dance: 'Dance', aura: 'Farm aura', settings: 'Settings', card: 'Card', dismiss: 'Send home', listen: 'Listen', listening: 'Listening… 🎙️', noStt: 'Voice control needs an OpenAI or ElevenLabs key (Settings).', noMic: 'I can’t reach the microphone. Allow microphone access in system settings.', sttErr: 'I didn’t catch that.', talk: 'Talk', askPh: 'Remind me to check email in 10 min…', feed: 'Treat', play: 'Play', sleep: 'Sleep', wake: 'Wake', food: 'Food', energy: 'Energy', fun: 'Fun', level: 'Level {l}', xp: '{x} / {n} xp', live: 'Live', off: 'Reconnecting…', approve: 'Approve', reject: 'Reject',
+    en: { pickCare: 'Treat · dance · aura', pickVoice: 'Talk · listen', pickPlug: 'Plugins', wakeOn: 'Say “hey {name}” and I listen', game: 'Play byte', dance: 'Dance', aura: 'Farm aura', settings: 'Settings', card: 'Card', dismiss: 'Send home', listen: 'Listen', listening: 'Listening… 🎙️', noStt: 'Voice control needs an OpenAI or ElevenLabs key (Settings).', noMic: 'I can’t reach the microphone. Allow microphone access in system settings.', sttErr: 'I didn’t catch that.', talk: 'Talk', askPh: 'Remind me to check email in 10 min…', feed: 'Treat', play: 'Play', sleep: 'Sleep', wake: 'Wake', food: 'Food', energy: 'Energy', fun: 'Fun', level: 'Level {l}', xp: '{x} / {n} xp', live: 'Live', off: 'Reconnecting…', approve: 'Approve', reject: 'Reject',
       activity: 'Activity', empty: 'Nothing yet. Run a command or ask your coding agent something.', tally: '{ok} ok · {fail} failed · turns {turns}',
       brain: 'Brain: {b}', age: 'Born {d}', lines: 'built-in phrases', now: 'now', m: '{n}m', h: '{n}h',
       moods: { happy: 'Happy', neutral: 'Calm', sad: 'Sad', disgust: 'Bored', sleep: 'Asleep', thinking: 'Thinking' },
       kind: { tool: 'Tool', shell: 'Shell', prompt: 'You asked', stop: 'Turn finished', notify: 'Needs you', start: 'Session started' } },
-    es: { wakeOn: 'Di “oye {name}” y te escucho', game: 'Jugar byte', dance: 'Bailar', aura: 'Farmear aura', settings: 'Ajustes', card: 'Tarjeta', dismiss: 'Despedir', listen: 'Escuchar', listening: 'Te escucho… 🎙️', noStt: 'Para hablarme por voz falta una key de OpenAI o ElevenLabs (Ajustes).', noMic: 'No puedo usar el micrófono. Permite el acceso en ajustes del sistema.', sttErr: 'No te entendí.', talk: 'Hablar', askPh: 'Recuérdame ver el correo en 10 min…', feed: 'Mimar', play: 'Jugar', sleep: 'Dormir', wake: 'Despertar', food: 'Comida', energy: 'Energía', fun: 'Diversión', level: 'Nivel {l}', xp: '{x} / {n} xp', live: 'En vivo', off: 'Reconectando…', approve: 'Aprobar', reject: 'Rechazar',
+    es: { pickCare: 'Mimar · bailar · aura', pickVoice: 'Hablar · escuchar', pickPlug: 'Plugins', wakeOn: 'Di “oye {name}” y te escucho', game: 'Jugar byte', dance: 'Bailar', aura: 'Farmear aura', settings: 'Ajustes', card: 'Tarjeta', dismiss: 'Despedir', listen: 'Escuchar', listening: 'Te escucho… 🎙️', noStt: 'Para hablarme por voz falta una key de OpenAI o ElevenLabs (Ajustes).', noMic: 'No puedo usar el micrófono. Permite el acceso en ajustes del sistema.', sttErr: 'No te entendí.', talk: 'Hablar', askPh: 'Recuérdame ver el correo en 10 min…', feed: 'Mimar', play: 'Jugar', sleep: 'Dormir', wake: 'Despertar', food: 'Comida', energy: 'Energía', fun: 'Diversión', level: 'Nivel {l}', xp: '{x} / {n} xp', live: 'En vivo', off: 'Reconectando…', approve: 'Aprobar', reject: 'Rechazar',
       activity: 'Actividad', empty: 'Nada todavía. Ejecuta un comando o pregúntale algo a tu agente.', tally: '{ok} ok · {fail} fallos · turnos {turns}',
       brain: 'Cerebro: {b}', age: 'Nació {d}', lines: 'frases propias', now: 'ahora', m: '{n} min', h: '{n} h',
       moods: { happy: 'Feliz', neutral: 'Tranquilo', sad: 'Triste', disgust: 'Aburrido', sleep: 'Dormido', thinking: 'Pensando' },
       kind: { tool: 'Herramienta', shell: 'Terminal', prompt: 'Preguntaste', stop: 'Turno terminado', notify: 'Te necesita', start: 'Sesión iniciada' } },
-    pt: { wakeOn: 'Diga “ei {name}” e eu ouço', game: 'Jogar byte', dance: 'Dançar', aura: 'Farmar aura', settings: 'Ajustes', card: 'Carta', dismiss: 'Despedir', listen: 'Ouvir', listening: 'Estou ouvindo… 🎙️', noStt: 'Para falar por voz falta uma key da OpenAI ou ElevenLabs (Ajustes).', noMic: 'Não consigo usar o microfone. Permita o acesso nas configurações do sistema.', sttErr: 'Não entendi.', talk: 'Falar', askPh: 'Me lembre de ver o e-mail em 10 min…', feed: 'Mimar', play: 'Brincar', sleep: 'Dormir', wake: 'Acordar', food: 'Comida', energy: 'Energia', fun: 'Diversão', level: 'Nível {l}', xp: '{x} / {n} xp', live: 'Ao vivo', off: 'Reconectando…', approve: 'Aprovar', reject: 'Recusar',
+    pt: { pickCare: 'Mimar · dançar · aura', pickVoice: 'Falar · ouvir', pickPlug: 'Plugins', wakeOn: 'Diga “ei {name}” e eu ouço', game: 'Jogar byte', dance: 'Dançar', aura: 'Farmar aura', settings: 'Ajustes', card: 'Carta', dismiss: 'Despedir', listen: 'Ouvir', listening: 'Estou ouvindo… 🎙️', noStt: 'Para falar por voz falta uma key da OpenAI ou ElevenLabs (Ajustes).', noMic: 'Não consigo usar o microfone. Permita o acesso nas configurações do sistema.', sttErr: 'Não entendi.', talk: 'Falar', askPh: 'Me lembre de ver o e-mail em 10 min…', feed: 'Mimar', play: 'Brincar', sleep: 'Dormir', wake: 'Acordar', food: 'Comida', energy: 'Energia', fun: 'Diversão', level: 'Nível {l}', xp: '{x} / {n} xp', live: 'Ao vivo', off: 'Reconectando…', approve: 'Aprovar', reject: 'Recusar',
       activity: 'Atividade', empty: 'Nada ainda. Rode um comando ou pergunte algo ao seu agente.', tally: '{ok} ok · {fail} falhas · turnos {turns}',
       brain: 'Cérebro: {b}', age: 'Nasceu {d}', lines: 'frases próprias', now: 'agora', m: '{n} min', h: '{n} h',
       moods: { happy: 'Feliz', neutral: 'Tranquilo', sad: 'Triste', disgust: 'Entediado', sleep: 'Dormindo', thinking: 'Pensando' },
@@ -843,6 +851,12 @@
   if (!desktop) $('#setBtn').removeAttribute('target'); // in a browser tab, Settings opens in place (its Back returns here); the desktop window opens a tab
   $('#byeBtn').title = t('dismiss');
   $('#byeBtn').addEventListener('click', () => console.debug('\u00a77bye'));
+  for (const [id, k] of [['careBtn', 'pickCare'], ['voiceBtn', 'pickVoice'], ['plugBtn', 'pickPlug']]) {
+    const b = $('#' + id);
+    b.title = t(k);
+    b.setAttribute('aria-label', t(k));
+    b.addEventListener('click', () => console.debug('\u00a77pick' + b.dataset.pick));
+  }
   $('#gameBtn').addEventListener('click', () => console.debug('\u00a77game')); // the shell shows byte's games, then the game in a small window // the shell sends the visitor home
   const talking = (on) => {
     document.body.classList.toggle('talking', on);

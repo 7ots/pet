@@ -32,9 +32,9 @@ const MIN = { w: 288, h: 272 };
 const linux = process.platform === 'linux';
 
 const L = {
-  en: { settings: '⚙️ Settings', talk: '💬 Talk', listen: '🎙️ Listen (Ctrl+Alt+Space)', show: 'Show pet', hide: 'Hide (keeps living)', feed: '🍎 Treat', play: '🎾 Play', byte: '🎮 Play on byte', watch: '📺 Watch the game', stopGame: '⏹ Stop the game', lastGame: 'Last played', moreGames: 'More games', noGames: 'byte: no games (sign in to 7ots.com)', sleep: '💤 Sleep', wake: '☀️ Wake up', still: 'Stay still', quit: 'Quit pet', muteStream: '🔇 Mute stream', unmuteStream: '🔊 Unmute stream', plugins: '🧩 Plugins', noPlugins: 'No plugins yet', morePlugins: 'Get or create plugins…' },
-  es: { settings: '⚙️ Configuración', talk: '💬 Hablar', listen: '🎙️ Escúchame (Ctrl+Alt+Espacio)', show: 'Mostrar mascota', hide: 'Ocultar (sigue viva)', feed: '🍎 Mimar', play: '🎾 Jugar', byte: '🎮 Jugar en byte', watch: '📺 Ver la partida', stopGame: '⏹ Parar la partida', lastGame: 'Último jugado', moreGames: 'Más juegos', noGames: 'byte: sin juegos (entra a 7ots.com)', sleep: '💤 Dormir', wake: '☀️ Despertar', still: 'Quedarse quieta', quit: 'Cerrar mascota', muteStream: '🔇 Silenciar stream', unmuteStream: '🔊 Activar sonido', plugins: '🧩 Plugins', noPlugins: 'Aún no hay plugins', morePlugins: 'Buscar o crear plugins…' },
-  pt: { settings: '⚙️ Configurações', talk: '💬 Falar', listen: '🎙️ Me escute (Ctrl+Alt+Espaço)', show: 'Mostrar bichinho', hide: 'Esconder (segue vivo)', feed: '🍎 Mimar', play: '🎾 Brincar', byte: '🎮 Jogar no byte', watch: '📺 Ver a partida', stopGame: '⏹ Parar a partida', lastGame: 'Último jogado', moreGames: 'Mais jogos', noGames: 'byte: sem jogos (entre no 7ots.com)', sleep: '💤 Dormir', wake: '☀️ Acordar', still: 'Ficar parado', quit: 'Fechar bichinho', muteStream: '🔇 Silenciar stream', unmuteStream: '🔊 Ativar som', plugins: '🧩 Plugins', noPlugins: 'Ainda sem plugins', morePlugins: 'Buscar ou criar plugins…' },
+  en: { settings: '⚙️ Settings', talk: '💬 Talk', listen: '🎙️ Listen (Ctrl+Alt+Space)', show: 'Show pet', hide: 'Hide (keeps living)', feed: '🍎 Treat', play: '🎾 Play', byte: '🎮 Play on byte', watch: '📺 Watch the game', stopGame: '⏹ Stop the game', lastGame: 'Last played', moreGames: 'More games', noGames: 'byte: no games (sign in to 7ots.com)', sleep: '💤 Sleep', wake: '☀️ Wake up', still: 'Stay still', quit: 'Quit pet', muteStream: '🔇 Mute stream', unmuteStream: '🔊 Unmute stream', dance: '💃 Dance', aura: '✨ Farm aura', plugins: '🧩 Plugins', noPlugins: 'No plugins yet', morePlugins: 'Get or create plugins…' },
+  es: { settings: '⚙️ Configuración', talk: '💬 Hablar', listen: '🎙️ Escúchame (Ctrl+Alt+Espacio)', show: 'Mostrar mascota', hide: 'Ocultar (sigue viva)', feed: '🍎 Mimar', play: '🎾 Jugar', byte: '🎮 Jugar en byte', watch: '📺 Ver la partida', stopGame: '⏹ Parar la partida', lastGame: 'Último jugado', moreGames: 'Más juegos', noGames: 'byte: sin juegos (entra a 7ots.com)', sleep: '💤 Dormir', wake: '☀️ Despertar', still: 'Quedarse quieta', quit: 'Cerrar mascota', muteStream: '🔇 Silenciar stream', unmuteStream: '🔊 Activar sonido', dance: '💃 Bailar', aura: '✨ Farmear aura', plugins: '🧩 Plugins', noPlugins: 'Aún no hay plugins', morePlugins: 'Buscar o crear plugins…' },
+  pt: { settings: '⚙️ Configurações', talk: '💬 Falar', listen: '🎙️ Me escute (Ctrl+Alt+Espaço)', show: 'Mostrar bichinho', hide: 'Esconder (segue vivo)', feed: '🍎 Mimar', play: '🎾 Brincar', byte: '🎮 Jogar no byte', watch: '📺 Ver a partida', stopGame: '⏹ Parar a partida', lastGame: 'Último jogado', moreGames: 'Mais jogos', noGames: 'byte: sem jogos (entre no 7ots.com)', sleep: '💤 Dormir', wake: '☀️ Acordar', still: 'Ficar parado', quit: 'Fechar bichinho', muteStream: '🔇 Silenciar stream', unmuteStream: '🔊 Ativar som', dance: '💃 Dançar', aura: '✨ Farmar aura', plugins: '🧩 Plugins', noPlugins: 'Ainda sem plugins', morePlugins: 'Buscar ou criar plugins…' },
 }[LANG] || {};
 const tr = (k) => L[k] || { listen: 'Listen', show: 'Show pet', hide: 'Hide', talk: 'Talk', settings: 'Settings', feed: 'Feed', play: 'Play', sleep: 'Sleep', wake: 'Wake up', still: 'Stay still', quit: 'Quit pet' }[k];
 
@@ -458,6 +458,27 @@ function makeOt(opt = {}) {
       { label: tr('morePlugins'), click: () => openSettings(base, tok, 'plugins') },
     ]);
   };
+  const press = (sel) => win.webContents.executeJavaScript(`document.querySelector(${JSON.stringify(sel)})?.click()`).catch(() => {});
+  const pickMenu = async (what) => {
+    if (what === 'care') return Menu.buildFromTemplate([
+      { label: tr('feed'), click: () => press('[data-act=feed]') },
+      { label: tr('dance') || 'Dance', click: () => press('#danceBtn') },
+      { label: tr('aura') || 'Aura', click: () => press('#auraBtn') },
+    ]);
+    if (what === 'voice') return Menu.buildFromTemplate([
+      { label: tr('talk'), click: () => press('#talkBtn') },
+      { label: tr('listen'), click: () => press('#micBtn') },
+    ]);
+    if (what !== 'plug') return null;
+    const [pl] = await pluginLibs().catch(() => [null]);
+    const ps = (pl?.activePlugins() || []).filter((p) => p.manifest.panel);
+    return Menu.buildFromTemplate([
+      ...ps.map((p) => ({ label: `${p.manifest.icon} ${p.manifest.name}${p.source === 'local' ? ' · dev' : ''}`, click: () => openPlugin(p.id) })),
+      { label: tr('byte'), submenu: await gameMenu() },
+      { type: 'separator' },
+      { label: tr('morePlugins'), click: () => openSettings(base, tok, 'plugins') },
+    ]);
+  };
   const playGame = async (game) => {
     try {
       require('node:fs').writeFileSync(path.join(process.env.SEVENOTS_HOME || path.join(require('node:os').homedir(), '.7ots'), 'byte-last.json'), JSON.stringify({ slug: game, at: Date.now() }));
@@ -750,6 +771,8 @@ function makeOt(opt = {}) {
     if (m.startsWith('\u00a77bye')) return HOST || dismiss();
     if (m.startsWith('\u00a77ctx')) return (FULL ? menu() : guestMenu()).popup({ window: win });
     if (m.startsWith('\u00a77game')) return FULL && gameMenu().then((mm) => mm.popup({ window: win }));
+    // the panel's grouped buttons (pet.html): one native menu each, like the game's (a page popover would fall in the click-through)
+    if (m.startsWith('\u00a77pick')) return FULL && pickMenu(m.slice(6)).then((mm) => mm?.popup({ window: win })).catch(() => {});
     if (m.startsWith('\u00a77photo')) {
       try {
         return showPhoto(JSON.parse(m.slice(7)));
