@@ -187,7 +187,7 @@ async function syncSenses() {
   }
   sensesWin = new BrowserWindow({ show: false, width: 640, height: 480, skipTaskbar: true, webPreferences: { contextIsolation: true, sandbox: true, backgroundThrottling: false } });
   sensesWin.webContents.on('will-navigate', (e) => e.preventDefault());
-  sensesWin.webContents.on('console-message', (e, level, msg) => ['warning', 'error', 2, 3].includes(e?.level ?? level) && console.log(`[7ots senses] ${msg ?? e?.message}`));
+  sensesWin.webContents.on('console-message', (e) => ['warning', 'error'].includes(e.level) && console.log(`[7ots senses] ${e.message}`)); // Electron ≥ 35: the event carries them
   sensesWin.on('closed', () => (sensesWin = null));
   sensesWin.loadURL(`${URL_}/senses?token=${encodeURIComponent(TOKEN)}`).catch(() => {});
 }
@@ -282,7 +282,7 @@ function makeOt(opt = {}) {
   // location.reload() through will-navigate too, so blocking everything froze the old look until a restart).
   win.webContents.on('will-navigate', (e, url) => String(url || e?.url || '').startsWith(`${base}/pet?`) || e.preventDefault());
   win.webContents.on('did-finish-load', () => ((offTold = ''), alive() && tellOff(win.getBounds()))); // a reload forgets it
-  win.webContents.on('console-message', (e, level, msg) => /\[7ots/.test(msg ?? e?.message) && console.log(msg ?? e?.message)); // to ~/.7ots/electron.log
+  win.webContents.on('console-message', (e) => /\[7ots/.test(e.message) && console.log(e.message)); // to ~/.7ots/electron.log
   // The microphone, only for our own page (voice control).
   const ours = (u) => /^http:\/\/127\.0\.0\.1:\d+\//.test(String(u || '')); // our daemons
   session.defaultSession.setPermissionRequestHandler((wc, perm, cb, d) => cb(perm === 'media' && ours(d?.requestingUrl || wc.getURL())));
@@ -762,8 +762,8 @@ function makeOt(opt = {}) {
     if (alive()) win.loadURL(petURL());
   }
   // An effect just started: the page says how much room it needs right away (see tellNeed in pet.html).
-  win.webContents.on('console-message', (e, level, msg) => {
-    const m = String(e?.message ?? msg ?? '');
+  win.webContents.on('console-message', (e) => {
+    const m = String(e.message ?? '');
     if (m.startsWith('\u00a77drag')) {
       const d = JSON.parse(m.slice(6));
       return grab(d.on, d.resize);

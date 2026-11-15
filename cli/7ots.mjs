@@ -5,7 +5,7 @@
  */
 
 import { spawn, spawnSync } from 'node:child_process';
-import { existsSync, mkdirSync, openSync, statSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, openSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { dirname, join } from 'node:path';
 import { createIdentity, describe, identityPrompt, loadIdentity, cleanSeed } from './lib/identity.mjs';
@@ -19,7 +19,9 @@ import { detectProject, findHtml, installHtml, platformLink, pretty, snippet } f
 import { llmsTxt, promptText } from './lib/prompts.mjs';
 import { openUrl, graphical } from './lib/open.mjs';
 
-const ELECTRON = 'electron@37';
+// Same version as desktop/package.json (the installers). A different one in ~/.7ots/electron is replaced.
+const ELECTRON_VERSION = '44.11.3';
+const ELECTRON = `electron@${ELECTRON_VERSION}`;
 const tty = process.stdout.isTTY;
 const bold = (s) => (tty ? `\x1b[1m${s}\x1b[0m` : s);
 const dim = (s) => (tty ? `\x1b[2m${s}\x1b[0m` : s);
@@ -147,6 +149,8 @@ function petUrl(desktop = false, view3d = false) {
 /** Path to the Electron binary, or null. `electron`'s index.js throws if its postinstall download never finished. */
 function electronBin(dir) {
   try {
+    const pkg = JSON.parse(readFileSync(join(dir, 'node_modules', 'electron', 'package.json'), 'utf8')); // not require: cached
+    if (pkg.version !== ELECTRON_VERSION) return null; // an older one: npm install replaces it
     const bin = createRequire(join(dir, 'package.json'))('electron');
     return typeof bin === 'string' && existsSync(bin) ? bin : null;
   } catch {
